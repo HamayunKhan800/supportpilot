@@ -128,7 +128,7 @@ sequenceDiagram
   K->>DB: fetch job
   K->>L: structured output (Zod schema: category ∈ workspace enum …)
   K->>DB: insert ticket_triage, update ticket, ai_usage
-  Note over K: retry w/ backoff on 429/5xx; after max attempts → needs_review=true
+  Note over K: retry w/ backoff on 429/5xx, after max attempts set needs_review = true
 ```
 The job is enqueued **inside the same transaction** as the ticket insert (pg-boss supports this because it lives in Postgres), so no ticket is ever left untriaged because of a crash in between.
 
