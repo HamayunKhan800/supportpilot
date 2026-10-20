@@ -1,0 +1,12 @@
+# pnpm blocks dependency install scripts by default (supply-chain safeguard).
+# Only packages listed with `true` may run them.
+allowBuilds:
+  esbuild: true
+  sharp: false
+  unrs-resolver: false
+
+# Security override: drizzle-kit → @esbuild-kit/core-utils pins esbuild <=0.18
+# (GHSA-67mh-4wv8-2f99, dev-only). Force a patched esbuild. Verified drizzle-kit
+# generate still works (2026-10-20). Remove when drizzle-kit drops @esbuild-kit.
+overrides:
+  "@esbuild-kit/core-utils>esbuild": "^0.25.0"

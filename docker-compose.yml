@@ -1,0 +1,46 @@
+# Local development. `docker compose up -d db` for the database only,
+# or `docker compose --profile full up --build` to run the production image locally.
+name: supportpilot
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg17-trixie
+    environment:
+      POSTGRES_USER: supportpilot
+      POSTGRES_PASSWORD: supportpilot # dev-only credential
+      POSTGRES_DB: supportpilot
+    ports:
+      - "127.0.0.1:5432:5432" # bind to localhost only
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supportpilot -d supportpilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    profiles: ["full"]
+    build: .
+    command: ["node", ".build/migrate.mjs"]
+    environment:
+      DATABASE_URL: postgres://supportpilot:supportpilot@db:5432/supportpilot
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    profiles: ["full"]
+    build: .
+    environment:
+      DATABASE_URL: postgres://supportpilot:supportpilot@db:5432/supportpilot
+      LOG_LEVEL: info
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

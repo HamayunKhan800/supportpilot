@@ -1,0 +1,57 @@
+{
+  "name": "supportpilot",
+  "version": "0.1.0",
+  "description": "AI-assisted customer support with grounded, cited answers and a human in the loop.",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:scripts": "esbuild scripts/migrate.ts --bundle --platform=node --target=node24 --format=esm --external:pg-native --outfile=.build/migrate.mjs --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "start": "next start",
+    "lint": "eslint --max-warnings=0 .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run --project unit",
+    "test:coverage": "vitest run --project unit --coverage",
+    "test:integration": "vitest run --project integration",
+    "test:smoke": "vitest run --project smoke",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "next": "16.4.2",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.5",
+    "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.4.2",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}

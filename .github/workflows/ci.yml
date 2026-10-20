@@ -1,0 +1,196 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default (OWASP A03). Jobs request more only when needed.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+  PG_IMAGE: pgvector/pgvector:0.8.7-pg17-trixie
+
+jobs:
+  quality:
+    name: Lint · typecheck · format · unit tests · audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - run: pnpm test:coverage
+      - name: Audit production dependencies (blocking)
+        run: pnpm audit --prod --audit-level=high
+      - name: Audit all dependencies (report only, see docs/security/accepted-risks.md)
+        run: pnpm audit || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  integration:
+    name: Integration tests (PostgreSQL + pgvector)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17-trixie
+        env:
+          POSTGRES_USER: supportpilot
+          POSTGRES_PASSWORD: supportpilot
+          POSTGRES_DB: supportpilot_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U supportpilot"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:integration
+
+  build-smoke:
+    name: Production build + smoke tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: [quality]
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17-trixie
+        env:
+          POSTGRES_USER: supportpilot
+          POSTGRES_PASSWORD: supportpilot
+          POSTGRES_DB: supportpilot
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U supportpilot"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build (without runtime secrets)
+        run: env -u DATABASE_URL pnpm build && pnpm build:scripts
+      - name: Assemble standalone server (same layout as Docker image)
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+      - name: Run migrations (bundled script)
+        run: node .build/migrate.mjs
+      - name: Fail-fast check (server must exit 1 without DATABASE_URL)
+        working-directory: .next/standalone
+        run: |
+          set +e
+          env -u DATABASE_URL NODE_ENV=production PORT=3999 timeout 20 node server.js
+          code=$?
+          test "$code" -eq 1 || { echo "expected exit 1, got $code"; exit 1; }
+      - name: Start server
+        working-directory: .next/standalone
+        run: |
+          NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 node server.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/server.log"; exit 1
+      - run: pnpm test:smoke
+        env:
+          SMOKE_BASE_URL: http://127.0.0.1:3000
+      - name: Server logs
+        if: always()
+        run: cat "$RUNNER_TEMP/server.log" || true
+
+  docker:
+    name: Docker image build + container smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    needs: [quality]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: supportpilot:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Start database
+        run: |
+          docker network create sp
+          docker run -d --name db --network sp \
+            -e POSTGRES_USER=supportpilot -e POSTGRES_PASSWORD=supportpilot -e POSTGRES_DB=supportpilot \
+            "$PG_IMAGE"
+          for _ in $(seq 1 30); do docker exec db pg_isready -U supportpilot && break; sleep 1; done
+      - name: Run migrations from the image
+        run: |
+          docker run --rm --network sp \
+            -e DATABASE_URL=postgres://supportpilot:supportpilot@db:5432/supportpilot \
+            supportpilot:ci node .build/migrate.mjs
+      - name: Start app container
+        run: |
+          docker run -d --name app --network sp -p 3000:3000 \
+            -e DATABASE_URL=postgres://supportpilot:supportpilot@db:5432/supportpilot \
+            supportpilot:ci
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && break; sleep 1; done
+      - name: Container runs as non-root
+        run: |
+          uid=$(docker exec app id -u)
+          echo "uid=$uid"; test "$uid" != "0"
+      - name: Docker HEALTHCHECK reports healthy
+        run: |
+          for _ in $(seq 1 30); do
+            s=$(docker inspect -f '{{.State.Health.Status}}' app); echo "$s"
+            [ "$s" = "healthy" ] && exit 0; sleep 2
+          done
+          exit 1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:smoke
+        env:
+          SMOKE_BASE_URL: http://127.0.0.1:3000
+      - name: Image size
+        run: docker image ls supportpilot:ci
+      - name: Container logs
+        if: always()
+        run: docker logs app || true
