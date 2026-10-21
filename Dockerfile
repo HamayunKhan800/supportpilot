@@ -1,9 +1,12 @@
 # syntax=docker/dockerfile:1
 # SupportPilot production image (ADR-0008): multi-stage, minimal runtime, non-root.
-ARG NODE_IMAGE=node:24.22.0-trixie-slim
+# Base image is written literally (not via ARG) so Dependabot can see and update it:
+# Dependabot's Dockerfile parser skips FROM lines that use ${VARIABLES}
+# (dependabot-core#4597, #2057). Pinned by digest for reproducible, tamper-evident
+# builds (OWASP A03 supply chain). Stays on Node 24 LTS (ADR-0010). Keep both FROMs identical.
 
 # ---- base: shared tooling ------------------------------------------------------
-FROM ${NODE_IMAGE} AS base
+FROM node:24.22.0-trixie-slim@sha256:a6155384446670e9719bdc4fd0ebe4d4b29fb32a8d6aa523da3547a6cfbcf22c AS base
 ENV PNPM_HOME=/pnpm \
     NEXT_TELEMETRY_DISABLED=1 \
     COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -23,7 +26,7 @@ COPY . .
 RUN pnpm build && pnpm build:scripts
 
 # ---- runner: only what is needed at runtime --------------------------------------
-FROM ${NODE_IMAGE} AS runner
+FROM node:24.22.0-trixie-slim@sha256:a6155384446670e9719bdc4fd0ebe4d4b29fb32a8d6aa523da3547a6cfbcf22c AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

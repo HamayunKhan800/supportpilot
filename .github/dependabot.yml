@@ -8,6 +8,11 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Runtime is Node.js 24 LTS (ADR-0010), so type definitions must match it.
+      # Rejected @types/node 26 in PR #3. Revisit together with the runtime upgrade.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -16,3 +21,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Stay on Node.js 24 LTS (ADR-0010). Patch/minor and digest updates still arrive.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]

@@ -44,6 +44,7 @@ Requirements, architecture, threat model, AI evaluation plan, 9 ADRs. Mermaid di
 5. **Request paths in error logs could contain secrets** (future tracking tokens). → Log route patterns only.
 6. A **false-positive check** in my own verification script (a failed `cd` produced exit 1). Re-run with explicit guards.
 7. **First CI run on GitHub failed in the Docker and build-smoke jobs: `public/` was missing.** Git does not track empty directories, and the scaffold's sample files had been deleted. Local checks had passed only because the empty folder still existed in the sandbox. → Added `public/robots.txt` (keeps crawlers off `/api/`), plus a smoke test that fetches it so a missing `public/` fails with a clear message. Lesson: a clean-checkout CI run catches what a long-lived dev environment hides.
+8. **Dependabot was not watching the Docker base image.** The Dockerfile named it via `ARG NODE_IMAGE` + `FROM ${NODE_IMAGE}`, and Dependabot's parser skips `FROM` lines that use variables (dependabot-core#4597, #2057), so Node/OS security patches would never have been proposed. → Literal `FROM` lines pinned by digest. `dependabot.yml` now records the "stay on Node 24 LTS" policy (ADR-0010) for the image and `@types/node`. Expected proof: Dependabot proposes `node:24.22.1-trixie-slim`.
 
 ### Not yet verified (requires GitHub / Docker; first CI run)
 
