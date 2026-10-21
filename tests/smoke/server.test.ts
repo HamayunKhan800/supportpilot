@@ -47,6 +47,22 @@ describe(`smoke: ${BASE_URL}`, () => {
     expect(res.headers.get("x-powered-by")).toBeNull();
   });
 
+  it("auth endpoints are live: anonymous session is null", async () => {
+    const res = await get("/api/auth/get-session");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toBeNull();
+  });
+
+  it("auth rejects a sign-in from an untrusted origin (CSRF protection is on)", async () => {
+    const res = await get("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://evil.example.com" },
+      body: JSON.stringify({ email: "nobody@example.com", password: "x".repeat(20) }),
+    });
+    expect(res.status).toBe(403);
+    expect(res.headers.getSetCookie()).toHaveLength(0);
+  });
+
   it("unknown API route → 404", async () => {
     expect((await get("/api/does-not-exist")).status).toBe(404);
   });

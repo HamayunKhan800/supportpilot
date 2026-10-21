@@ -24,9 +24,11 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test"
+    "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test",
+    "auth:generate": "auth generate --config scripts/auth-cli.config.ts --output src/server/platform/db/auth-schema.ts"
   },
   "dependencies": {
+    "better-auth": "1.7.12",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.2",
     "pg": "^8.23.1",
@@ -42,6 +44,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^5.0.5",
+    "auth": "1.7.12",
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.5",

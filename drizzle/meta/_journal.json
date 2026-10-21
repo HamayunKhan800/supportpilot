@@ -8,6 +8,13 @@
       "when": 1792503609921,
       "tag": "0000_enable_pgvector",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792599627930,
+      "tag": "0001_m2_auth_workspaces",
+      "breakpoints": true
     }
   ]
 }

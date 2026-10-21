@@ -57,3 +57,23 @@ Requirements, architecture, threat model, AI evaluation plan, 9 ADRs. Mermaid di
 - Full nonce-based CSP (script/style) → M2.
 - ESLint 10 upgrade is blocked on plugin peer support (jsx-a11y, react, import).
 - Choose and verify the hosting platform → M8.
+
+## M2 · Authentication & multi-tenancy: in progress
+
+### Step 1–2: auth backend, schema, tests (2026-10-21)
+
+- Better Auth 1.7.12 + organization plugin (workspace = organization), Drizzle adapter. Tables generated with the official CLI (`pnpm auth:generate`), then hardened: `timestamptz`, unique `(organization_id, user_id)` on `member`, default role `agent`. Migration `0001_m2_auth_workspaces.sql` adds `workspace_settings` and an append-only `audit_log`.
+- Role matrix in one module (`src/server/platform/auth/permissions.ts`), used by Better Auth and by `requireWorkspace()` for app services. Unit tests mirror docs/01-requirements.md §2.1 row by row.
+- Passwords: 15–128 characters, no composition rules, breached-password check (NIST SP 800-63B-4 §3.1.1.2).
+- Integration tests against real PostgreSQL go through Better Auth's HTTP handler (where rate limiting and CSRF apply): sign-up and sign-in, cookie flags, sign-out revocation, password change revoking other sessions, CSRF, rate limiting, the role matrix, cross-tenant IDOR attempts, invitations, and audit entries.
+
+### Findings while verifying Better Auth defaults (ADR-0004)
+
+| #   | Finding                                                                                                                                               | Action                                                                                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 9   | **Origin/CSRF checks are skipped automatically in test environments** (`skipOriginCheck: isTest()`). A cross-origin sign-in returned 200 in our test. | Set `advanced.disableOriginCheck: false` explicitly. Tests now prove a 403. Removing the line makes 2 tests fail (checked).     |
+| 10  | **Global after-hooks do not receive the endpoint's session**, so every audit entry had `actor_user_id = NULL`.                                        | Resolve the actor with `getSessionFromCtx` (documented API) for auditable events only. A test asserts every entry has an actor. |
+| 11  | `auth.api.*` server calls bypass rate limiting (documented).                                                                                          | UI forms call `/api/auth/*` over HTTP. Server Actions never call sign-in/sign-up.                                               |
+| 12  | Probing a foreign workspace clears the caller's active workspace.                                                                                     | Fails closed. Documented as AR-003; the app re-selects a workspace.                                                             |
+| 13  | Denials come back as 400, 401 or 403 depending on which check fires first (e.g. "cannot leave without an owner" before our owner guard).              | Tests assert _denied (4xx) and database unchanged_ rather than one status code.                                                 |
+| 14  | Better Auth's default logger prints plain text.                                                                                                       | Routed into pino JSON logs (message only).                                                                                      |

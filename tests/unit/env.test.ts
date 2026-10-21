@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { EnvValidationError, parseEnv } from "@/server/platform/env";
 
-const valid = { DATABASE_URL: "postgres://user:pass@localhost:5432/db" };
+const AUTH = {
+  BETTER_AUTH_SECRET: "x".repeat(32),
+  BETTER_AUTH_URL: "http://localhost:3000",
+};
+const valid = { DATABASE_URL: "postgres://user:pass@localhost:5432/db", ...AUTH };
 
 describe("env (NFR config fail-fast)", () => {
   it("parses a minimal valid environment and applies defaults", () => {
@@ -17,7 +21,7 @@ describe("env (NFR config fail-fast)", () => {
   });
 
   it("accepts postgresql:// scheme", () => {
-    expect(() => parseEnv({ DATABASE_URL: "postgresql://u:p@h/db" })).not.toThrow();
+    expect(() => parseEnv({ ...AUTH, DATABASE_URL: "postgresql://u:p@h/db" })).not.toThrow();
   });
 
   it("rejects a missing DATABASE_URL with the variable name", () => {
@@ -30,7 +34,7 @@ describe("env (NFR config fail-fast)", () => {
   });
 
   it("rejects non-postgres URLs", () => {
-    expect(() => parseEnv({ DATABASE_URL: "mysql://u:p@h/db" })).toThrowError(EnvValidationError);
+    expect(() => parseEnv({ ...AUTH, DATABASE_URL: "mysql://u:p@h/db" })).toThrowError(EnvValidationError);
   });
 
   it("rejects out-of-range pool size", () => {
@@ -48,10 +52,59 @@ describe("env (NFR config fail-fast)", () => {
   });
 });
 
+describe("env: auth settings (FR-A1, T3/T4)", () => {
+  const issues = (src: Record<string, string>) => {
+    try {
+      parseEnv(src);
+      return [];
+    } catch (e) {
+      return (e as EnvValidationError).issues;
+    }
+  };
+
+  it("requires an auth secret of at least 32 characters", () => {
+    expect(issues({ ...valid, BETTER_AUTH_SECRET: "short" }).join()).toContain("BETTER_AUTH_SECRET");
+    const { BETTER_AUTH_SECRET: _omit, ...withoutSecret } = valid;
+    expect(issues(withoutSecret).join()).toContain("BETTER_AUTH_SECRET");
+  });
+
+  it("requires BETTER_AUTH_URL to be http(s)", () => {
+    expect(issues({ ...valid, BETTER_AUTH_URL: "ftp://x" }).join()).toContain("BETTER_AUTH_URL");
+  });
+
+  it("requires https in production except on loopback", () => {
+    const prod = { ...valid, NODE_ENV: "production" };
+    expect(issues({ ...prod, BETTER_AUTH_URL: "http://app.example.com" }).join()).toContain("https");
+    expect(issues({ ...prod, BETTER_AUTH_URL: "https://app.example.com" })).toEqual([]);
+    expect(issues({ ...prod, BETTER_AUTH_URL: "http://localhost:3000" })).toEqual([]);
+  });
+
+  it("parses trusted origins and rejects non-https entries", () => {
+    const env = parseEnv({ ...valid, AUTH_TRUSTED_ORIGINS: "https://a.example.com, https://b.example.com" });
+    expect(env.AUTH_TRUSTED_ORIGINS).toEqual(["https://a.example.com", "https://b.example.com"]);
+    expect(parseEnv(valid).AUTH_TRUSTED_ORIGINS).toEqual([]);
+    expect(issues({ ...valid, AUTH_TRUSTED_ORIGINS: "http://evil.example.com" }).join()).toContain(
+      "AUTH_TRUSTED_ORIGINS",
+    );
+  });
+
+  it("enables rate limiting by default and allows an explicit opt-out", () => {
+    expect(parseEnv(valid).AUTH_RATE_LIMIT_ENABLED).toBe(true);
+    expect(parseEnv({ ...valid, AUTH_RATE_LIMIT_ENABLED: "false" }).AUTH_RATE_LIMIT_ENABLED).toBe(false);
+  });
+
+  it("requires GitHub OAuth credentials as a pair", () => {
+    expect(issues({ ...valid, GITHUB_CLIENT_ID: "id" }).join()).toContain("GITHUB_CLIENT_ID");
+    expect(issues({ ...valid, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "s" })).toEqual([]);
+  });
+});
+
 describe("getEnv memoization", () => {
   it("reads process.env once and caches until reset", async () => {
     const { getEnv, resetEnvCache } = await import("@/server/platform/env");
     const original = process.env.DATABASE_URL;
+    process.env.BETTER_AUTH_SECRET ??= AUTH.BETTER_AUTH_SECRET;
+    process.env.BETTER_AUTH_URL ??= AUTH.BETTER_AUTH_URL;
     try {
       resetEnvCache();
       process.env.DATABASE_URL = "postgres://a:b@host1/db";

@@ -95,6 +95,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot
+      BETTER_AUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -120,6 +121,8 @@ jobs:
           env -u DATABASE_URL NODE_ENV=production PORT=3999 timeout 20 node server.js
           code=$?
           test "$code" -eq 1 || { echo "expected exit 1, got $code"; exit 1; }
+      - name: Generate a throwaway auth secret for this run
+        run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
       - name: Start server
         working-directory: .next/standalone
         run: |
@@ -163,10 +166,13 @@ jobs:
           docker run --rm --network sp \
             -e DATABASE_URL=postgres://supportpilot:supportpilot@db:5432/supportpilot \
             supportpilot:ci node .build/migrate.mjs
+      - name: Generate a throwaway auth secret for this run
+        run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
       - name: Start app container
         run: |
           docker run -d --name app --network sp -p 3000:3000 \
             -e DATABASE_URL=postgres://supportpilot:supportpilot@db:5432/supportpilot \
+            -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL=http://localhost:3000 \
             supportpilot:ci
           for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && break; sleep 1; done
       - name: Container runs as non-root

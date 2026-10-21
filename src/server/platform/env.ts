@@ -5,16 +5,72 @@ import { z } from "zod";
  * `next build` does not require runtime secrets, and eagerly at server start
  * via `instrumentation.ts` so a misconfigured deployment fails fast.
  */
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
-  DATABASE_URL: z
-    .url({ protocol: /^postgres(ql)?$/, error: "DATABASE_URL must be a postgres:// URL" })
-    .describe("PostgreSQL connection string"),
-  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
-  /** Per-statement timeout so a slow query cannot pin a connection forever. */
-  DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(10_000),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+    DATABASE_URL: z
+      .url({ protocol: /^postgres(ql)?$/, error: "DATABASE_URL must be a postgres:// URL" })
+      .describe("PostgreSQL connection string"),
+    DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+    /** Per-statement timeout so a slow query cannot pin a connection forever. */
+    DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(10_000),
+
+    /** Signs/encrypts sessions and tokens. Generate with `openssl rand -base64 32`. */
+    BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters"),
+    /** Public base URL of the app. Cookies are `Secure` when this is https. */
+    BETTER_AUTH_URL: z.url({ protocol: /^https?$/, error: "BETTER_AUTH_URL must be an http(s) URL" }),
+    /** Extra origins allowed to call auth endpoints (comma-separated, exact https origins). */
+    AUTH_TRUSTED_ORIGINS: z
+      .string()
+      .optional()
+      .transform((v) =>
+        v
+          ? v
+              .split(",")
+              .map((o) => o.trim())
+              .filter(Boolean)
+          : [],
+      )
+      .pipe(
+        z.array(z.url({ protocol: /^https$/, error: "AUTH_TRUSTED_ORIGINS entries must be https origins" })),
+      ),
+    /** Rate limiting is on by default in every environment (Better Auth disables it outside production). */
+    AUTH_RATE_LIMIT_ENABLED: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
+    /**
+     * Reject passwords found in known breaches (NIST SP 800-63B-4 §3.1.1.2) via the
+     * Have I Been Pwned range API (k-anonymity). Fails closed if the API is unreachable.
+     */
+    AUTH_PASSWORD_BREACH_CHECK: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
+    /** Optional GitHub OAuth. Both values or neither. */
+    GITHUB_CLIENT_ID: z.string().min(1).optional(),
+    GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+  })
+  .superRefine((env, ctx) => {
+    if (Boolean(env.GITHUB_CLIENT_ID) !== Boolean(env.GITHUB_CLIENT_SECRET)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["GITHUB_CLIENT_ID"],
+        message: "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set together",
+      });
+    }
+    // Production must use https, except loopback (CI smoke tests run the production build locally).
+    const url = new URL(env.BETTER_AUTH_URL);
+    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    if (env.NODE_ENV === "production" && url.protocol !== "https:" && !loopback) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["BETTER_AUTH_URL"],
+        message: "BETTER_AUTH_URL must use https in production",
+      });
+    }
+  });
 
 export type Env = z.infer<typeof envSchema>;
 

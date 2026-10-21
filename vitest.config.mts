@@ -14,6 +14,8 @@ export default defineConfig({
         test: {
           name: "integration",
           include: ["tests/integration/**/*.test.ts"],
+          globalSetup: ["tests/integration/support/global-setup.ts"],
+          setupFiles: ["tests/integration/support/env.ts"],
           // Integration tests share one real database. Run files serially.
           fileParallelism: false,
           testTimeout: 20_000,
@@ -28,7 +30,11 @@ export default defineConfig({
       provider: "v8",
       include: ["src/server/**/*.ts"],
       // Covered by integration/smoke tests instead (need a real DB / server).
-      exclude: ["src/server/platform/db/**"],
+      exclude: [
+        "src/server/platform/db/**",
+        // Wiring around Better Auth + Postgres; exercised by tests/integration/*.
+        "src/server/platform/auth/{auth,index,context,workspace-settings}.ts",
+      ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
     },
