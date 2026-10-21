@@ -7,7 +7,7 @@ import type { Database } from "../db/client";
 import * as schema from "../db/schema";
 import type { Env } from "../env";
 import { logger } from "../logger";
-import { auditEventFromAuthResponse, recordAuditEvent } from "./audit";
+import { auditEventFromAuthResponse, memberEvent, recordAuditEvent } from "./audit";
 import { ac, INVITABLE_ROLES, roles } from "./permissions";
 import {
   AUTH_RATE_LIMITS,
@@ -152,6 +152,15 @@ export function createAuth(db: Database, env: AuthEnv) {
           },
           afterCreateOrganization: async ({ organization: org }) => {
             await createDefaultWorkspaceSettings(db, org.id);
+          },
+          // addMember is a server-only endpoint without a path, so the path-based hook
+          // below never sees it. It has no user session: recorded as a system action.
+          afterAddMember: async ({ member: m }) => {
+            // Also fired for the creator's owner membership on workspace creation, which
+            // is already audited as workspace.created. Owner can't be granted any other way.
+            if (m.role === "owner") return;
+            const event = memberEvent("member.added", m, null);
+            if (event) await recordAuditEvent(db, event);
           },
           beforeCreateInvitation: async ({ invitation }) => {
             if (!(INVITABLE_ROLES as readonly string[]).includes(invitation.role)) {

@@ -14,6 +14,7 @@ export type AuditAction =
   | "invitation.cancelled"
   | "invitation.accepted"
   | "invitation.rejected"
+  | "member.added"
   | "member.role_changed"
   | "member.removed"
   | "member.left";
@@ -31,7 +32,7 @@ type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 
-function memberEvent(action: AuditAction, m: unknown, actor: string | null): AuditEvent | null {
+export function memberEvent(action: AuditAction, m: unknown, actor: string | null): AuditEvent | null {
   if (!isObj(m) || !str(m.organizationId) || !str(m.id)) return null;
   return {
     workspaceId: str(m.organizationId)!,

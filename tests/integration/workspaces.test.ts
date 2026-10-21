@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { getAuth } from "@/server/platform/auth";
 import { listAuditEvents } from "@/server/platform/auth/audit";
-import { getWorkspaceContext, requireWorkspace } from "@/server/platform/auth/context";
+import { getSessionContext, getWorkspaceContext, requireWorkspace } from "@/server/platform/auth/context";
 import { getDb } from "@/server/platform/db/client";
 import { invitation, member, session, workspaceSettings } from "@/server/platform/db/schema";
 import { AppError } from "@/server/platform/errors";
@@ -389,5 +389,20 @@ describe("audit log (T15)", () => {
     expect(page1.nextCursor).not.toBeNull();
     const page2 = await listAuditEvents(db, acmeId, { limit: 2, before: new Date(page1.nextCursor!) });
     expect(page2.entries[0]!.createdAt.getTime()).toBeLessThanOrEqual(page1.entries[1]!.createdAt.getTime());
+  });
+
+  it("audits server-side member additions once, as a system action", async () => {
+    const extra = await signUpAndIn(handler, "server.added@acme.test");
+    const extraId = (await getSessionContext(extra.headers))!.user.id;
+    const added = await getAuth().api.addMember({
+      body: { userId: extraId, role: "agent", organizationId: acmeId },
+    });
+    const { db } = getDb();
+    const { entries } = await listAuditEvents(db, acmeId, { limit: 100 });
+    const events = entries.filter((e) => e.action === "member.added");
+    // Exactly one: the creator's owner membership on workspace creation is not re-logged.
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ actorType: "system", actorUserId: null, targetId: added!.id });
+    expect(entries.filter((e) => e.action === "workspace.created")).toHaveLength(1);
   });
 });

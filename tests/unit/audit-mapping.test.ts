@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditEventFromAuthResponse } from "@/server/platform/auth/audit";
+import { auditEventFromAuthResponse, memberEvent } from "@/server/platform/auth/audit";
 
 const inv = {
   id: "inv1",
@@ -47,6 +47,14 @@ describe("auditEventFromAuthResponse (T15)", () => {
       targetType: "member",
       targetId: "m1",
       metadata: { userId: "u2", role: "admin" },
+    });
+  });
+
+  it("builds member.added events for server-side additions (no actor)", () => {
+    expect(memberEvent("member.added", mem, null)).toMatchObject({
+      action: "member.added",
+      actorUserId: null,
+      targetId: "m1",
     });
   });
 

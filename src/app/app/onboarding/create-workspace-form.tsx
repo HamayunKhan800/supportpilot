@@ -1,0 +1,91 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { FormAlert } from "@/components/form-alert";
+import { FormField } from "@/components/form-field";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { authClient, authErrorMessage } from "@/lib/auth-client";
+import { validateWorkspaceName, validateWorkspaceSlug } from "@/server/platform/auth/policy";
+
+function slugify(name: string) {
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+export function CreateWorkspaceForm({ userName, hasWorkspace }: { userName: string; hasWorkspace: boolean }) {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; slug?: string; form?: string }>({});
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // Same rules as the server (which enforces them regardless).
+    const next = {
+      name: validateWorkspaceName(name) ?? undefined,
+      slug: validateWorkspaceSlug(slug) ?? undefined,
+    };
+    setErrors(next);
+    if (next.name || next.slug) return;
+    setPending(true);
+    const { error } = await authClient.organization.create({ name: name.trim(), slug });
+    if (error) {
+      setPending(false);
+      setErrors({ form: authErrorMessage(error) });
+      return;
+    }
+    router.replace("/app");
+    router.refresh();
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <h1 className="text-xl leading-snug font-semibold">
+          {hasWorkspace ? "Create another workspace" : `Welcome, ${userName}`}
+        </h1>
+        <CardDescription>A workspace holds your team, tickets and knowledge base.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+          <FormAlert message={errors.form ?? ""} />
+          <FormField
+            label="Workspace name"
+            name="name"
+            autoComplete="organization"
+            required
+            value={name}
+            error={errors.name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (!slugEdited) setSlug(slugify(e.target.value));
+            }}
+          />
+          <FormField
+            label="Workspace address"
+            name="slug"
+            required
+            value={slug}
+            error={errors.slug}
+            hint="Lowercase letters, numbers and hyphens. Used in your customer portal link."
+            onChange={(e) => {
+              setSlugEdited(true);
+              setSlug(e.target.value);
+            }}
+          />
+          <Button type="submit" size="lg" disabled={pending}>
+            {pending ? "Creating…" : "Create workspace"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

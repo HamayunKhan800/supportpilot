@@ -93,6 +93,17 @@ describe("env: auth settings (FR-A1, T3/T4)", () => {
     expect(parseEnv({ ...valid, AUTH_RATE_LIMIT_ENABLED: "false" }).AUTH_RATE_LIMIT_ENABLED).toBe(false);
   });
 
+  it("checks breached passwords by default, rejects anything but true/false", () => {
+    expect(parseEnv(valid).AUTH_PASSWORD_BREACH_CHECK).toBe(true);
+    expect(parseEnv({ ...valid, AUTH_PASSWORD_BREACH_CHECK: "false" }).AUTH_PASSWORD_BREACH_CHECK).toBe(
+      false,
+    );
+    // A typo must not silently disable the check.
+    expect(issues({ ...valid, AUTH_PASSWORD_BREACH_CHECK: "no" }).join()).toContain(
+      "AUTH_PASSWORD_BREACH_CHECK",
+    );
+  });
+
   it("requires GitHub OAuth credentials as a pair", () => {
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id" }).join()).toContain("GITHUB_CLIENT_ID");
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "s" })).toEqual([]);

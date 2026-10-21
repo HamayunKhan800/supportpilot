@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 const milestones = [
   { id: "M0", label: "Requirements & design", done: true },
   { id: "M1", label: "Foundation: CI, database, health checks", done: true },
@@ -18,6 +20,14 @@ export default function Home() {
         <p className="text-lg text-zinc-700 dark:text-zinc-300">
           AI-assisted customer support with grounded, cited answers and a human in the loop.
         </p>
+        <div className="mt-2 flex flex-wrap gap-3">
+          <Link href="/sign-up" className={buttonVariants({ size: "lg" })}>
+            Create an account
+          </Link>
+          <Link href="/sign-in" className={buttonVariants({ size: "lg", variant: "outline" })}>
+            Sign in
+          </Link>
+        </div>
       </header>
       <section aria-labelledby="progress-heading" className="flex flex-col gap-3">
         <h2 id="progress-heading" className="text-xl font-semibold">

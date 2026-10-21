@@ -34,6 +34,9 @@ export default defineConfig({
         "src/server/platform/db/**",
         // Wiring around Better Auth + Postgres; exercised by tests/integration/*.
         "src/server/platform/auth/{auth,index,context,workspace-settings}.ts",
+        // Thin DB queries + auth wiring; tested against PostgreSQL in
+        // tests/integration/workspace-service.test.ts (tenant isolation, roles, paging).
+        "src/server/modules/workspaces/{repository,service}.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

@@ -1,12 +1,19 @@
 /**
- * Baseline security headers (OWASP A02 Security Misconfiguration).
- * A full nonce-based script/style CSP is added in M2 (see docs/02-architecture.md §6).
+ * Security headers (OWASP A02 Security Misconfiguration, threat model T11 XSS).
+ *
+ * Strict, nonce-based Content Security Policy following the Next.js 16 CSP guide
+ * (node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md):
+ * a fresh nonce per request, `'strict-dynamic'` so only nonce-bearing scripts (and the
+ * scripts they load) run, and no `'unsafe-inline'`. Next.js reads the nonce from the
+ * request's CSP header and applies it to its own scripts. This requires dynamic
+ * rendering, see ADR-0011.
  *
  * `frameAncestors` defaults to 'none' (clickjacking protection). It can be set to an
  * explicit origin list (e.g. a preview host) via CSP_FRAME_ANCESTORS.
  */
 const FRAME_ANCESTORS_RE =
   /^('none'|'self'|(https:\/\/[A-Za-z0-9*.-]+(:\d+)?))( ('self'|https:\/\/[A-Za-z0-9*.-]+(:\d+)?))*$/;
+const NONCE_RE = /^[A-Za-z0-9+/=_-]{16,}$/;
 
 export function normalizeFrameAncestors(value: string | undefined): string {
   const v = value?.trim();
@@ -15,18 +22,51 @@ export function normalizeFrameAncestors(value: string | undefined): string {
   return FRAME_ANCESTORS_RE.test(v) ? v : "'none'";
 }
 
-export function securityHeaders(opts: {
+/** 128 bits of randomness, base64 encoded (Web Crypto: works in the proxy runtime). */
+export function createNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return btoa(String.fromCharCode(...bytes));
+}
+
+export function contentSecurityPolicy(opts: {
+  nonce: string;
   frameAncestors?: string;
+  isDevelopment: boolean;
+  isProduction: boolean;
+}): string {
+  if (!NONCE_RE.test(opts.nonce)) throw new Error("invalid CSP nonce");
+  const n = `'nonce-${opts.nonce}'`;
+  const directives = [
+    "default-src 'self'",
+    // React needs eval in development for debugging features only (Next.js CSP guide).
+    `script-src 'self' ${n} 'strict-dynamic'${opts.isDevelopment ? " 'unsafe-eval'" : ""}`,
+    `style-src 'self' ${n}`,
+    "img-src 'self' blob: data:",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    `frame-ancestors ${normalizeFrameAncestors(opts.frameAncestors)}`,
+  ];
+  if (opts.isProduction) directives.push("upgrade-insecure-requests");
+  return directives.join("; ");
+}
+
+export function securityHeaders(opts: {
+  nonce: string;
+  frameAncestors?: string;
+  isDevelopment?: boolean;
   isProduction: boolean;
 }): Record<string, string> {
   const frameAncestors = normalizeFrameAncestors(opts.frameAncestors);
   const headers: Record<string, string> = {
-    "Content-Security-Policy": [
-      `frame-ancestors ${frameAncestors}`,
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join("; "),
+    "Content-Security-Policy": contentSecurityPolicy({
+      nonce: opts.nonce,
+      frameAncestors,
+      isDevelopment: opts.isDevelopment ?? false,
+      isProduction: opts.isProduction,
+    }),
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
