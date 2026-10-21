@@ -58,7 +58,7 @@ Requirements, architecture, threat model, AI evaluation plan, 9 ADRs. Mermaid di
 - ESLint 10 upgrade is blocked on plugin peer support (jsx-a11y, react, import).
 - Choose and verify the hosting platform → M8.
 
-## M2 · Authentication & multi-tenancy: in progress
+## M2 · Authentication & multi-tenancy: complete (2026-10-21, CI run 39640206795)
 
 ### Step 1–2: auth backend, schema, tests (2026-10-21)
 

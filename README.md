@@ -2,7 +2,7 @@
 
 AI-assisted customer support with **grounded, cited answers** and a **human in the loop**.
 
-> 🚧 **Status: M1 (foundation) complete · M2 (accounts, workspaces, roles) in final verification.** Ticketing and AI features arrive in M3–M5. See the [roadmap](docs/00-research-and-plan.md#5-implementation-roadmap-one-verifiable-milestone-at-a-time).
+> 🚧 **Status: M0–M2 complete: foundation, accounts, workspaces and roles.** Ticketing and AI features arrive in M3–M5. See the [roadmap](docs/00-research-and-plan.md#5-implementation-roadmap-one-verifiable-milestone-at-a-time).
 
 ## Tech stack
 
