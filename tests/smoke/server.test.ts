@@ -31,6 +31,12 @@ describe(`smoke: ${BASE_URL}`, () => {
     expect(res.headers.get("x-request-id")).toBe("smoke-test-0001");
   });
 
+  it("serves static files from public/ (regression: missing public/ broke the Docker build)", async () => {
+    const res = await get("/robots.txt");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("Disallow: /api/");
+  });
+
   it("home page renders with baseline security headers and no X-Powered-By", async () => {
     const res = await get("/");
     expect(res.status).toBe(200);

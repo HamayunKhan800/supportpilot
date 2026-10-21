@@ -1,0 +1,3 @@
+# SupportPilot: public pages may be indexed. API and app routes may not.
+User-agent: *
+Disallow: /api/
