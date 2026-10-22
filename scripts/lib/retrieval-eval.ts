@@ -36,7 +36,7 @@ import { hybridSearch } from "../../src/server/modules/kb/service";
 import { getDb } from "../../src/server/platform/db/client";
 import { kbChunk, organization } from "../../src/server/platform/db/schema";
 import { transaction } from "../../src/server/platform/db/tx";
-import { chunked, type TextRateLimiter } from "./rate-limit";
+import { chunked, estimateTokens, type TextRateLimiter } from "./rate-limit";
 
 import {
   type CorpusArticle,
@@ -214,6 +214,23 @@ export function fileEmbeddingCache(dir: string): EmbeddingCache {
  * Wraps the embedder: serves cached texts, sends only the missing ones (one batch per call,
  * as ingestion does), and times and counts real calls only.
  */
+/**
+ * The last error the embedding provider returned during this run. The app's search turns
+ * provider errors into user-facing messages without the details (they include the request),
+ * so the eval script reads the original here to report which limit was hit.
+ */
+export const evalDiagnostics: { lastProviderError: unknown } = { lastProviderError: undefined };
+
+/** Remembers a provider error for the report, then passes it on unchanged. */
+async function remember<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (err) {
+    evalDiagnostics.lastProviderError = err;
+    throw err;
+  }
+}
+
 function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache, limiter?: TextRateLimiter) {
   const m = {
     documentMs: [] as number[],
@@ -232,13 +249,16 @@ function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache, limi
       m.cacheHits += keys.length - missing.length;
       let spent = 0;
       if (missing.length > 0) {
-        const parts = chunked(missing, limiter?.maxPerMinute ?? missing.length);
+        const parts = chunked(missing, limiter?.maxBatch ?? missing.length);
         for (const partKeys of parts) {
           const toEmbed = partKeys.map((k) => items[keys.indexOf(k)]!);
           if (paceMs) await sleep(paceMs);
-          await limiter?.acquire(toEmbed.length);
+          await limiter?.acquire(
+            toEmbed.length,
+            toEmbed.reduce((n, i) => n + estimateTokens(documentInput(i)), 0),
+          );
           const start = performance.now();
-          const batch = await inner.embedDocuments(toEmbed, signal);
+          const batch = await remember(inner.embedDocuments(toEmbed, signal));
           m.documentMs.push(performance.now() - start);
           m.documentTokens += batch.tokenEstimate;
           m.embeddedTexts += toEmbed.length;
@@ -267,9 +287,9 @@ function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache, limi
       if (!pending) {
         pending = (async () => {
           if (paceMs) await sleep(paceMs);
-          await limiter?.acquire(1);
+          await limiter?.acquire(1, estimateTokens(query));
           const start = performance.now();
-          const result = await inner.embedQuery(query, signal);
+          const result = await remember(inner.embedQuery(query, signal));
           m.queryMs.push(performance.now() - start);
           m.queryTokens += result.tokenEstimate;
           m.embeddedTexts++;

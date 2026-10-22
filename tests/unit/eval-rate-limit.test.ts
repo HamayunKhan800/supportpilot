@@ -81,6 +81,55 @@ describe("text rate limiter (free-tier per-minute limit, counted per text)", () 
     expect(() => createTextRateLimiter({ maxPerMinute: 2.5 })).toThrow();
   });
 
+  it("even spacing: no burst, sends spread at the allowed rate (finding #86)", async () => {
+    // A sliding window alone let 60 texts go at once, then 60 more a minute later; Google's
+    // minutes don't line up with ours, so both bursts could count in one of its minutes.
+    const clock = fakeClock();
+    const limiter = createTextRateLimiter({ maxPerMinute: 50, maxBatch: 10, even: true, ...clock });
+    const log: { at: number; count: number }[] = [];
+    for (let i = 0; i < 10; i++) {
+      await limiter.acquire(10);
+      log.push({ at: clock.t, count: 10 });
+    }
+    // 10 texts at 50 per minute use 12 seconds each.
+    expect(log.map((e) => e.at)).toEqual([0, 12, 24, 36, 48, 60, 72, 84, 96, 108].map((s) => s * 1000));
+    // Even a window placed anywhere (Google's) holds at most 50 + one batch.
+    for (let start = -60_000; start < 120_000; start += 1_000) {
+      const inWindow = log
+        .filter((e) => e.at >= start && e.at < start + 60_000)
+        .reduce((n, e) => n + e.count, 0);
+      expect(inWindow).toBeLessThanOrEqual(50);
+    }
+  });
+
+  it("limits tokens per minute too, so long passages slow the pace", async () => {
+    const clock = fakeClock();
+    const limiter = createTextRateLimiter({ maxPerMinute: 100, maxTokensPerMinute: 1_000, ...clock });
+    await limiter.acquire(1, 600);
+    await limiter.acquire(1, 600); // 1,200 > 1,000: waits for the first to leave the window
+    expect(clock.t).toBe(60_000);
+    const c2 = fakeClock();
+    const paced = createTextRateLimiter({ maxPerMinute: 100, maxTokensPerMinute: 1_000, even: true, ...c2 });
+    await paced.acquire(1, 500);
+    await paced.acquire(1, 10);
+    expect(c2.t).toBe(30_000); // 500 tokens at 1,000 per minute use 30 seconds
+  });
+
+  it("a single passage over the token limit still goes, alone, instead of waiting for ever", async () => {
+    const clock = fakeClock();
+    const limiter = createTextRateLimiter({ maxPerMinute: 100, maxTokensPerMinute: 1_000, ...clock });
+    await limiter.acquire(1, 100);
+    await limiter.acquire(1, 5_000); // waits until the window is empty, then goes
+    expect(clock.t).toBe(60_000);
+  });
+
+  it("validates batch and token settings", () => {
+    expect(createTextRateLimiter({ maxPerMinute: 50, maxBatch: 10 }).maxBatch).toBe(10);
+    expect(createTextRateLimiter({ maxPerMinute: 50 }).maxBatch).toBe(50);
+    expect(() => createTextRateLimiter({ maxPerMinute: 5, maxBatch: 6 })).toThrow();
+    expect(() => createTextRateLimiter({ maxPerMinute: 5, maxTokensPerMinute: 0 })).toThrow();
+  });
+
   it("chunked splits lists into batches no larger than the limit", () => {
     expect(chunked([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
     expect(chunked([], 3)).toEqual([]);

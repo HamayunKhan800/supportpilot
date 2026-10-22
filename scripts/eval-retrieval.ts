@@ -34,6 +34,7 @@ import {
   EVAL_MODES,
   type EvalMode,
   type EvalReport,
+  evalDiagnostics,
   fileEmbeddingCache,
   memoryEmbeddingCache,
   runRetrievalEval,
@@ -93,6 +94,8 @@ async function main() {
       modes: { type: "string", default: EVAL_MODES.join(",") },
       "pace-ms": { type: "string", default: "0" },
       "max-per-minute": { type: "string" },
+      "max-tokens-per-minute": { type: "string" },
+      "max-batch": { type: "string" },
       retries: { type: "string" },
       out: { type: "string" },
       cache: { type: "string", default: "eval/cache" },
@@ -129,16 +132,25 @@ async function main() {
     embedder = createMockEmbedder();
   }
 
-  // Gemini free tier: 100 embedded texts per minute for gemini-embedding-2 (AI Studio,
-  // 2026-10-22); 80 leaves room for clock differences and anything else using the key.
-  const maxPerMinute =
-    values["max-per-minute"] !== undefined
-      ? Number(values["max-per-minute"])
-      : provider === "gemini"
-        ? 80
-        : undefined;
-  const rateLimiter = maxPerMinute ? createTextRateLimiter({ maxPerMinute }) : undefined;
-  if (rateLimiter) console.log(`Rate limit: at most ${maxPerMinute} embedded texts per minute`);
+  // Gemini free tier for gemini-embedding-2 (AI Studio, 2026-10-22): 100 texts and 30,000
+  // tokens per minute. Defaults use half of each, in small evenly spaced batches (#85, #86).
+  const num = (v: string | undefined, gemini: number) =>
+    v !== undefined ? Number(v) : provider === "gemini" ? gemini : undefined;
+  const maxPerMinute = num(values["max-per-minute"], 50);
+  const maxTokensPerMinute = num(values["max-tokens-per-minute"], 15_000);
+  const maxBatch = num(values["max-batch"], 10);
+  const rateLimiter = maxPerMinute
+    ? createTextRateLimiter({
+        maxPerMinute,
+        even: true,
+        ...(maxTokensPerMinute ? { maxTokensPerMinute } : {}),
+        ...(maxBatch ? { maxBatch: Math.min(maxBatch, maxPerMinute) } : {}),
+      })
+    : undefined;
+  if (rateLimiter)
+    console.log(
+      `Rate limit: ${maxPerMinute} texts${maxTokensPerMinute ? ` and ~${maxTokensPerMinute} tokens` : ""} per minute, evenly spaced, batches of up to ${rateLimiter.maxBatch}`,
+    );
 
   const budget =
     values.budget !== undefined ? Number(values.budget) : provider === "gemini" ? 900 : undefined;
@@ -198,10 +210,48 @@ async function main() {
 main()
   .then(() => getDb().pool.end())
   .catch(async (err: unknown) => {
-    // The message only: an SDK error can carry request details.
+    // Messages and the provider's reason only: an SDK error also carries the request
+    // (texts, headers), which must not be printed.
     console.error(err instanceof Error ? `${err.name}: ${err.message}` : err);
+    const provider = evalDiagnostics.lastProviderError;
+    for (const line of providerReason(provider ? { cause: provider } : err)) console.error(`  ${line}`);
     await getDb()
       .pool.end()
       .catch(() => {});
     process.exitCode = 1;
   });
+
+/**
+ * Follows `cause` links and reports what the provider said: HTTP status, Google's error
+ * status and any quota that was exceeded (which limit: per minute, per day, tokens).
+ */
+function providerReason(err: unknown): string[] {
+  const lines: string[] = [];
+  const seen = new Set<unknown>();
+  let e: unknown = (err as { cause?: unknown } | undefined)?.cause;
+  while (e instanceof Error && !seen.has(e) && lines.length < 10) {
+    seen.add(e);
+    const call = e as Error & { statusCode?: number; responseBody?: string; lastError?: unknown };
+    lines.push(
+      `caused by ${e.name}: ${e.message.slice(0, 200)}${call.statusCode ? ` (HTTP ${call.statusCode})` : ""}`,
+    );
+    if (call.responseBody) {
+      try {
+        const body = JSON.parse(call.responseBody) as {
+          error?: {
+            status?: string;
+            details?: { violations?: { quotaId?: string; quotaValue?: string }[] }[];
+          };
+        };
+        if (body.error?.status) lines.push(`provider status: ${body.error.status}`);
+        for (const d of body.error?.details ?? [])
+          for (const v of d.violations ?? [])
+            lines.push(`quota exceeded: ${v.quotaId} (limit ${v.quotaValue})`);
+      } catch {
+        // not JSON: the status line above is enough
+      }
+    }
+    e = call.lastError ?? e.cause;
+  }
+  return lines;
+}
