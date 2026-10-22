@@ -157,3 +157,25 @@ Plan: [`docs/plans/m3-ticketing.md`](plans/m3-ticketing.md) (approved 2026-10-22
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | 31  | The first honeypot E2E test **passed without testing anything**: its helper reloaded the page after the trap was filled. A deliberate mutation (form not sending the field) exposed it. | The helper fills the trap after the page loads; the mutation now fails the test. |
 | 32  | The shared `Alert` always has `role="alert"`, which would make screen readers interrupt with static notices on page load.                                                               | Static notices use `role="note"`; `role="alert"` is kept for real errors.        |
+
+### Step 5: agent inbox UI (2026-10-22)
+
+- **`/app/tickets`:** status tabs with live counts (Active = open + pending, the default), full-text search (words, `-exclude`, or `#12` for a ticket number), filters for priority, category and assignee ("Me", "Unassigned", or a teammate), and sorting. Filters live in the URL, so a filtered view can be bookmarked or shared. The form is a plain GET form, so it also works without JavaScript. A tampered URL shows an explanation instead of an error page. Paging uses keyset cursors (D9).
+- **`/app/tickets/{number}`:** the conversation shows who wrote each message. Internal notes are amber and say in words "not visible to the customer" (colour is never the only signal). Public replies have a blue edge.
+- **Composer:** you choose "Public reply" or "Internal note", and the label, button and hint change with it. Once a ticket is closed, only internal notes are possible.
+- **Details panel:** status, priority, category and assignee. Impossible status moves are disabled in the list, not just rejected by the server. Only changed fields are sent, together with the version number (D4). If someone else saved first, the agent sees what happened and a "Load latest version" button, and their colleague's change is never silently overwritten.
+- **Navigation:** a Tickets tab, which stays highlighted inside a ticket (`aria-current="true"`; `"page"` only on the exact page).
+- **Layering:** the app layer still cannot import the database layer. A lint rule enforces this, and it flagged three of my first imports. Pages now use a small public `tickets/types.ts`. Client components import only types from it, which disappear at build time.
+- **Tests:** 1 integration test (`getInboxOptions`: counts, members, categories, cross-tenant, 403). 3 E2E tests:
+  - the full agent journey, including the customer's tracking page showing the reply but not the note, and the audit trail;
+  - two tabs editing the same ticket, then closing it;
+  - cross-workspace 404 and an invalid filter URL.
+- **Accessibility:** axe audits of the inbox, its invalid-filter state and the ticket page on desktop and mobile found 0 serious or critical violations.
+- **Mutation-checked:** removing the closed-ticket fix and removing the internal-note label each failed the intended test.
+- Screenshots: `docs/screenshots/m3-inbox-{desktop,mobile}.png`, `m3-ticket-{desktop,mobile}.png`.
+
+| #   | Finding                                                                                                                                                                                                  | Action                                                                                                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 33  | After an agent closed a ticket, the composer kept "Public reply" selected but disabled. The agent could type a reply and only learn on Send that it was refused. Found by the new E2E test, not by hand. | Reply mode is now derived from the ticket status instead of stored, so a closed ticket always means "internal note". |
+| 34  | On a phone, four full-width filter menus pushed the first ticket below the fold. Found by reviewing screenshots.                                                                                         | Filters use two columns on small screens.                                                                            |
+| 35  | My screenshot script hit the CSRF guard (403): it sent the agent's session cookie without an `Origin` header, which is exactly what a forged cross-site request looks like.                              | No code change. This is the protection working. The script now sends `Origin` like a real browser.                   |

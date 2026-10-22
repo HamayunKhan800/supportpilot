@@ -333,6 +333,21 @@ export async function addAgentMessage(headers: Headers, rawId: string, rawInput:
   });
 }
 
+/** Everything the inbox needs for its filters: people, categories and per-status counts. */
+export async function getInboxOptions(headers: Headers) {
+  const ctx = await requireWorkspace(headers, { ticket: ["read"] });
+  const [members, settings, counts] = await Promise.all([
+    listMembers(ctx.workspace.id),
+    getWorkspaceSettings(getDb().db, ctx.workspace.id),
+    repo.countTicketsByStatus(ctx.workspace.id),
+  ]);
+  return {
+    assignees: members.map((m) => ({ id: m.userId, name: m.name })),
+    categories: settings?.categories ?? [],
+    counts,
+  };
+}
+
 export async function getTicketCounts(headers: Headers) {
   const ctx = await requireWorkspace(headers, { ticket: ["read"] });
   return repo.countTicketsByStatus(ctx.workspace.id);

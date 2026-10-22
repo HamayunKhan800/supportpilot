@@ -14,6 +14,7 @@ import {
   addCustomerReply,
   createPortalTicket,
   getCustomerTicket,
+  getInboxOptions,
   getPortal,
   getTicketByNumberForAgent,
   getTicketCounts,
@@ -249,6 +250,23 @@ describe("FR-T3 agent queue", () => {
 
   it("rejects malformed queries", async () => {
     await expect(listTicketsForAgent(agent.headers, { status: "bogus" })).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it("inbox options: own members, categories and counts only", async () => {
+    const before = await getInboxOptions(agent.headers);
+    await submit({ subject: "Counted request" });
+    const after = await getInboxOptions(agent.headers);
+    expect(after.counts.open).toBe(before.counts.open + 1);
+    expect(after.assignees.map((a) => a.name).sort()).toEqual(["admin", "agent", "owner"]);
+    expect(after.categories).toContain("billing");
+
+    // Another workspace sees none of it.
+    const globex = await getInboxOptions(globexOwner.headers);
+    expect(globex.assignees.map((a) => a.id)).toEqual([globexOwnerId]);
+    expect(Object.values(globex.counts).reduce((a, b) => a + b, 0)).toBe(
+      (await listTicketsForAgent(globexOwner.headers, {})).items.length,
+    );
+    await expectAppError(getInboxOptions(newcomer.headers), 403);
   });
 });
 

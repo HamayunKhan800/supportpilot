@@ -24,12 +24,15 @@ export default async function OverviewPage() {
               <h2>Customer portal</h2>
             </CardTitle>
             <CardDescription>
-              Share this page with your customers so they can send requests. The agent inbox is coming next.
+              Share this page with your customers so they can send requests. Requests arrive in Tickets.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-2">
             <Link href={`/p/${ctx.workspace.slug}`} className="text-sm font-medium break-all underline">
               /p/{ctx.workspace.slug}
+            </Link>
+            <Link href="/app/tickets" className="text-sm font-medium underline">
+              Go to tickets
             </Link>
           </CardContent>
         </Card>

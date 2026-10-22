@@ -20,6 +20,8 @@ const MESSAGES: Record<number, string> = {
 };
 
 export function problemMessage(problem: ApiProblem, retryAfterSeconds?: number): string {
+  // Conflicts carry a specific, user-facing explanation (stale version, closed request…).
+  if (problem.status === 409 && problem.detail) return problem.detail;
   if (problem.status === 429 && retryAfterSeconds) {
     const minutes = Math.ceil(retryAfterSeconds / 60);
     return `Too many attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
@@ -34,11 +36,14 @@ export function fieldErrors(problem: ApiProblem): Record<string, string> {
   );
 }
 
-export async function postJson<T>(url: string, body: unknown): Promise<ApiResult<T>> {
+export const postJson = <T>(url: string, body: unknown) => sendJson<T>("POST", url, body);
+export const patchJson = <T>(url: string, body: unknown) => sendJson<T>("PATCH", url, body);
+
+async function sendJson<T>(method: "POST" | "PATCH", url: string, body: unknown): Promise<ApiResult<T>> {
   let res: Response;
   try {
     res = await fetch(url, {
-      method: "POST",
+      method,
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify(body),
       credentials: "same-origin",

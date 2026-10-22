@@ -12,6 +12,7 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
 
   const links = [
     { href: "/app", label: "Overview" },
+    { href: "/app/tickets", label: "Tickets" },
     { href: "/app/members", label: "Members" },
     ...(can(ctx.role, { audit: ["read"] }) ? [{ href: "/app/audit", label: "Audit log" }] : []),
     { href: "/app/account", label: "Account" },

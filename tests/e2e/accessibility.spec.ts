@@ -80,4 +80,16 @@ test("customer portal and tracking pages have no serious accessibility violation
   await audit(page, "/t/{token}");
   await page.getByRole("button", { name: "Send reply" }).click();
   await audit(page, "/t/{token} (error)");
+
+  // Agent side, same session (the owner is signed in).
+  await page.goto("/app/tickets");
+  await audit(page, "/app/tickets");
+  await page.goto("/app/tickets?priority=extreme");
+  await audit(page, "/app/tickets (invalid filter)");
+  await page.goto("/app/tickets/1");
+  await page.getByLabel("Internal note (team only)").check();
+  await page.getByLabel("Internal note", { exact: true }).fill("Checked with axe.");
+  await page.getByRole("button", { name: "Add internal note" }).click();
+  await expect(page.getByText("Internal note added.")).toBeVisible();
+  await audit(page, "/app/tickets/{number}");
 });
