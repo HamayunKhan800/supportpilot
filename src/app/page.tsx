@@ -4,7 +4,7 @@ const milestones = [
   { id: "M0", label: "Requirements & design", done: true },
   { id: "M1", label: "Foundation: CI, database, health checks", done: true },
   { id: "M2", label: "Authentication & multi-tenancy", done: true },
-  { id: "M3", label: "Ticketing", done: false },
+  { id: "M3", label: "Ticketing: portal, inbox, REST API", done: true },
   { id: "M4", label: "Knowledge base ingestion", done: false },
   { id: "M5", label: "AI triage & grounded drafts", done: false },
 ];

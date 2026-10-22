@@ -43,6 +43,9 @@ export default defineConfig({
         // Orchestration over the DB (transactions, locks, audit); 26 tests in
         // tests/integration/tickets-service.test.ts, mutation-checked.
         "src/server/modules/tickets/service.ts",
+        // Inserts the demo data in one transaction; tested against PostgreSQL in
+        // tests/integration/demo-seed.test.ts. The data itself is unit-tested.
+        "src/server/modules/tickets/demo/seed.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

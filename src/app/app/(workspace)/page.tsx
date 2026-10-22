@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getTicketCounts } from "@/server/modules/tickets/service";
 import { can } from "@/server/platform/auth/permissions";
 import { requireAppWorkspace } from "./workspace-context";
 
@@ -9,6 +11,11 @@ export const metadata: Metadata = { title: "Overview" };
 export default async function OverviewPage() {
   const { ctx } = await requireAppWorkspace();
   const manage = can(ctx.role, { invitation: ["create"] });
+  const counts = await getTicketCounts(await headers());
+  const queue = [
+    { view: "open", label: "Open", value: counts.open },
+    { view: "pending", label: "Waiting for customer", value: counts.pending },
+  ];
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -18,6 +25,32 @@ export default async function OverviewPage() {
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="sm:col-span-2">
+          <CardHeader>
+            <CardTitle>
+              <h2>Tickets</h2>
+            </CardTitle>
+            <CardDescription>Requests that need attention.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <dl className="grid grid-cols-2 gap-4 sm:max-w-md">
+              {queue.map((q) => (
+                <div key={q.view} className="flex flex-col-reverse gap-1">
+                  <dt className="text-muted-foreground text-sm">{q.label}</dt>
+                  <dd className="text-3xl font-semibold tabular-nums">
+                    <Link href={`/app/tickets?view=${q.view}`} className="hover:underline">
+                      {q.value}
+                      <span className="sr-only"> {q.label.toLowerCase()} tickets</span>
+                    </Link>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <Link href="/app/tickets" className="text-sm font-medium underline">
+              Open the inbox
+            </Link>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>
@@ -30,9 +63,6 @@ export default async function OverviewPage() {
           <CardContent className="flex flex-col gap-2">
             <Link href={`/p/${ctx.workspace.slug}`} className="text-sm font-medium break-all underline">
               /p/{ctx.workspace.slug}
-            </Link>
-            <Link href="/app/tickets" className="text-sm font-medium underline">
-              Go to tickets
             </Link>
           </CardContent>
         </Card>

@@ -1,7 +1,9 @@
 /**
- * Seeds the public demo workspace "Nimbus Cloud Storage" with one user per role.
+ * Seeds the public demo workspace "Nimbus Cloud Storage" with one user per role and
+ * 25 synthetic tickets (src/server/modules/tickets/demo/tickets.ts).
  *   DEMO_PASSWORD='a long passphrase' pnpm db:seed-demo
- * Idempotent: existing users and the workspace are reused. The password is never stored
+ * Idempotent: existing users and the workspace are reused, and tickets are only added
+ * to a workspace that has none. The password is never stored
  * in the repository. Refuses to run in production unless ALLOW_DEMO_SEED=true.
  */
 import { eq } from "drizzle-orm";
@@ -9,6 +11,7 @@ import { getAuth } from "../src/server/platform/auth";
 import { getDb } from "../src/server/platform/db/client";
 import { member, organization, user } from "../src/server/platform/db/schema";
 import { PASSWORD_MIN_LENGTH } from "../src/server/platform/auth/policy";
+import { seedDemoTickets } from "../src/server/modules/tickets/demo/seed";
 
 const WORKSPACE = { name: "Nimbus Cloud Storage", slug: "nimbus-demo" };
 const USERS = [
@@ -51,7 +54,9 @@ async function main() {
     await auth.api.addMember({ body: { userId: ids[u.role]!, role: u.role, organizationId: org!.id } });
   }
 
+  const added = await seedDemoTickets(org!.id, { owner: ids.owner!, admin: ids.admin!, agent: ids.agent! });
   console.log(`Demo workspace ready: ${WORKSPACE.name} (${USERS.map((u) => u.email).join(", ")})`);
+  console.log(added ? `Added ${added} demo tickets.` : "Tickets already present; none added.");
   await pool.end();
 }
 

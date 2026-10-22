@@ -250,9 +250,10 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                       {PRIORITY_LABEL[t.priority]}
                     </Badge>
                     <span className="text-muted-foreground">{t.assigneeName ?? "Unassigned"}</span>
-                    <time dateTime={t.lastActivityAt.toISOString()} className="text-muted-foreground">
-                      {dateFormat.format(t.lastActivityAt)}
-                    </time>
+                    <span className="text-muted-foreground">
+                      Opened{" "}
+                      <time dateTime={t.createdAt.toISOString()}>{dateFormat.format(t.createdAt)}</time>
+                    </span>
                   </div>
                 </li>
               ))}

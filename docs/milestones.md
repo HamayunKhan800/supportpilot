@@ -92,7 +92,7 @@ Requirements, architecture, threat model, AI evaluation plan, 9 ADRs. Mermaid di
 | 20  | `addMember` is a **server-only endpoint without a URL path**, so the path-based audit hook never saw it: direct additions were not audited. The same plugin hook also fires on workspace creation.                                                     | `afterAddMember` hook logs a system event, skipping the creator's owner membership. An integration test asserts exactly one event. |
 | 21  | **Audit-log paging silently skipped entries.** The cursor was a JS timestamp (milliseconds) while PostgreSQL stores microseconds, so entries within the same millisecond at a page boundary were lost. A test reproduced it (1 of 3 entries returned). | Keyset pagination on `(created_at, id)` in SQL, with the entry id as the cursor (validated as a UUID). Regression test added.      |
 
-## M3 · Ticketing: in progress
+## M3 · Ticketing: complete (pending CI on push)
 
 Plan: [`docs/plans/m3-ticketing.md`](plans/m3-ticketing.md) (approved 2026-10-22).
 
@@ -179,3 +179,44 @@ Plan: [`docs/plans/m3-ticketing.md`](plans/m3-ticketing.md) (approved 2026-10-22
 | 33  | After an agent closed a ticket, the composer kept "Public reply" selected but disabled. The agent could type a reply and only learn on Send that it was refused. Found by the new E2E test, not by hand. | Reply mode is now derived from the ticket status instead of stored, so a closed ticket always means "internal note". |
 | 34  | On a phone, four full-width filter menus pushed the first ticket below the fold. Found by reviewing screenshots.                                                                                         | Filters use two columns on small screens.                                                                            |
 | 35  | My screenshot script hit the CSRF guard (403): it sent the agent's session cookie without an `Origin` header, which is exactly what a forged cross-site request looks like.                              | No code change. This is the protection working. The script now sends `Origin` like a real browser.                   |
+
+### Step 6: finish: demo data, last journeys, ADR-0012 (2026-10-22)
+
+- **25 synthetic demo tickets** (`src/server/modules/tickets/demo/tickets.ts`), loaded by `pnpm db:seed-demo`:
+  - Every status, priority and category, plus unassigned tickets, internal notes and customer follow-ups.
+  - Each ticket carries correct category and priority labels (`expected`), so the set doubles as the M5/M6 evaluation data. Seven are untriaged, for the AI to classify.
+  - `nim-15` is a prompt-injection attempt (OWASP LLM01) for the AI safety evaluation.
+  - Names are invented and addresses use the reserved `.test` domain.
+- **The seed** uses the app's own repository functions, in one transaction, and only touches an empty workspace. Tracking tokens are generated and discarded. No audit events are written, so the audit log keeps recording real actions only.
+- **Overview:** an "Open" and "Waiting for customer" count, each linking to that inbox tab.
+- **New E2E journeys:**
+  - a customer reply reopens a resolved ticket, and the overview counts update;
+  - the tracking token never leaks: no Referer from any request the tracking page makes, and absent from the agent inbox, ticket page, audit log and agent API.
+- **[ADR-0012](adr/0012-tracking-link.md):** the tracking-link design, the alternatives considered, and its limits. Linked from the accepted risks:
+  - **AR-005:** links don't expire and can't be revoked or recovered until email arrives in M8.
+  - **M8 note:** the host's access logs may record full URLs.
+- **README:** ticketing features and screenshots, a configuration table (including when `TRUST_PROXY_HEADERS` is safe), and the demo data.
+- **Tests:**
+  - unit: 1 data-consistency suite (+104 tests: status vs. conversation, limits, label coverage);
+  - integration: 5 seed tests (contents, times, search, idempotency under concurrent runs, never seeding a workspace that has real tickets);
+  - E2E: 2 new journeys.
+- **Mutation-checked:**
+  - removing the seed's lock let two simultaneous runs create 50 tickets (failed 3 of 3 runs);
+  - switching the tracking page back to the site's default referrer policy failed the leak test.
+
+| #   | Finding                                                                                                                                                                                                                         | Action                                                                                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 36  | My first seed design reserved a ticket number to lock the workspace, then needed a new "rewind the counter" function to undo it. Too clever for a seed script.                                                                  | Replaced with a transaction-scoped PostgreSQL advisory lock. The mutation check proved it is needed.                                                                                              |
+| 37  | Without `no-referrer`, the browser attached the **full private tracking URL** as a Referer to more than a dozen requests from the tracking page (scripts, styles, the reply). Found by the mutation check.                      | No code change; the protection was already in place. It is now proven necessary by a test that fails without it. Recorded in ADR-0012.                                                            |
+| 38  | A seed test assigned tickets to someone outside the workspace. The database refused (`ticket_assignee_is_member_fk`, step 1).                                                                                                   | Test fixed. This is the constraint working as designed: tenant rules hold even for scripts that bypass the services.                                                                              |
+| 39  | My first README draft said every setting is validated at startup. `CSP_FRAME_ANCESTORS` is not: an invalid value silently becomes `'none'` (no framing).                                                                        | README corrected. The fallback fails safe, so no code change.                                                                                                                                     |
+| 40  | With the 25 demo tickets, the inbox looked out of order: it **sorted by creation time but showed last-activity time**. My earlier 5-ticket screenshots couldn't reveal it, because every ticket was created at the same moment. | Rows show "Opened {date}", the value the list is sorted by. A script checked that all 16 dates are in order. A "recently active" sort (its own index and keyset) is a possible later improvement. |
+| 41  | Search matches whole words only: "sync" finds "Sync paused" but not "syncing". The index uses PostgreSQL's `simple` configuration (no stemming), which is language-neutral but literal.                                         | Accepted for M3 and documented. Meaning-based search arrives with embeddings (pgvector) in M4/M5; revisit stemming then.                                                                          |
+
+### M3 summary
+
+Customers can submit and follow requests without an account. Agents can triage, reply, write internal notes and change tickets in an inbox. Everything is exposed through a documented REST API on the same services.
+
+- **Tests at the end of M3:** unit 324 (94.9% line coverage), integration 145, smoke 12, E2E 27 (+axe on desktop and mobile).
+- **Done-when list:** all items ticked except "CI green", which is confirmed on push.
+- **Open items carried to later milestones:** AR-004 (trusted proxy), AR-005 (link expiry and recovery), email notifications (M8), and CAPTCHA if abuse appears (M8).

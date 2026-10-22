@@ -59,14 +59,14 @@
 
 ## 4. Done when
 
-- [ ] FR-T1–T6 each covered by named tests (`describe("FR-T3 …")`).
-- [ ] Cross-tenant test for **every** ticket route returns 404. Role-matrix tests pass.
-- [ ] Lifecycle: every allowed and forbidden transition tested.
-- [ ] Customers can never see internal notes (tested at API, service and E2E level).
-- [ ] Portal rate limit, honeypot and size limits tested.
-- [ ] 0 serious/critical axe violations on portal, tracking, inbox and ticket pages (desktop + mobile).
-- [ ] OpenAPI document generated and validated in CI.
-- [ ] CI green.
+- [x] FR-T1–T6 each covered by named tests (`describe("FR-T3 …")`).
+- [x] Cross-tenant test for **every** ticket route returns 404. Role-matrix tests pass.
+- [x] Lifecycle: every allowed and forbidden transition tested.
+- [x] Customers can never see internal notes (tested at API, service and E2E level).
+- [x] Portal rate limit, honeypot and size limits tested.
+- [x] 0 serious/critical axe violations on portal, tracking, inbox and ticket pages (desktop + mobile).
+- [x] OpenAPI document generated and validated in CI.
+- [ ] CI green (ticked once the step 6 push passes on GitHub).
 
 ## 5. Out of scope for M3
 

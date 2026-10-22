@@ -181,3 +181,104 @@ test("tickets from another workspace are not found, and bad filter URLs are expl
   );
   await customer.dispose();
 });
+
+test("a customer reply reopens a resolved ticket, and the overview counts it", async ({
+  page,
+  browser,
+  playwright,
+  baseURL,
+}) => {
+  const slug = `reopen-${Date.now().toString(36)}`;
+  await ownerWithWorkspace(page, "reopen-owner", "Reopen Co", slug);
+  const customer = await playwright.request.newContext({ baseURL });
+  const link = await customerSubmits(
+    customer,
+    slug,
+    "Folder sharing broken",
+    "My shared folder link stopped working.",
+  );
+
+  const overviewCount = (label: string) =>
+    page
+      .getByRole("main")
+      .getByRole("definition")
+      .filter({ has: page.getByRole("link", { name: new RegExp(label, "i") }) });
+  await page.goto("/app");
+  await expect(overviewCount("open tickets")).toHaveText(/^1/);
+
+  // The agent replies and resolves.
+  await page.goto("/app/tickets/1");
+  await page
+    .getByLabel("Reply to Casey Customer", { exact: true })
+    .fill("Fixed on our side. Please try the link again.");
+  await page.getByRole("button", { name: "Send reply" }).click();
+  await expect(page.getByText("Reply sent to Casey Customer.")).toBeVisible();
+  await page.getByLabel("Status").selectOption("resolved");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
+  await page.goto("/app");
+  await expect(overviewCount("open tickets")).toHaveText(/^0/);
+
+  // The customer says it's still broken: the ticket is open again for the team.
+  const tracking = await (await browser.newContext()).newPage();
+  await tracking.goto(link);
+  await expect(tracking.getByText("Status: Resolved")).toBeVisible();
+  await tracking.getByLabel("Your reply").fill("Still broken for me, sorry!");
+  await tracking.getByRole("button", { name: "Send reply" }).click();
+  await expect(tracking.getByText("Reply sent.")).toBeVisible();
+
+  await page.reload();
+  await expect(overviewCount("open tickets")).toHaveText(/^1/);
+  await page.goto("/app/tickets/1");
+  await expect(page.getByLabel("Status")).toHaveValue("open");
+  await expect(page.getByRole("listitem").filter({ hasText: "Still broken for me" })).toContainText(
+    "customer",
+  );
+  await customer.dispose();
+});
+
+test("the tracking token never leaks to referrers, agents or the audit log", async ({
+  page,
+  browser,
+  playwright,
+  baseURL,
+}) => {
+  const slug = `leak-${Date.now().toString(36)}`;
+  await ownerWithWorkspace(page, "leak-owner", "Leak Check Co", slug);
+  const customer = await playwright.request.newContext({ baseURL });
+  const link = await customerSubmits(
+    customer,
+    slug,
+    "Token leak check",
+    "Checking where my private link appears.",
+  );
+  const token = link.split("/t/")[1]!;
+  expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+  // Customer side: no request from the tracking page carries the link as a Referer,
+  // including the page's own scripts and the reply sent from it.
+  const trackingContext = await browser.newContext();
+  const tracking = await trackingContext.newPage();
+  const referers: string[] = [];
+  tracking.on("request", (req) => {
+    const referer = req.headers()["referer"];
+    if (referer) referers.push(referer);
+  });
+  await tracking.goto(link);
+  await tracking.getByLabel("Your reply").fill("One more detail.");
+  await tracking.getByRole("button", { name: "Send reply" }).click();
+  await expect(tracking.getByText("Reply sent.")).toBeVisible();
+  expect(referers.filter((r) => r.includes(token))).toEqual([]);
+
+  // Agent side: only a hash is stored, so the token appears nowhere agents can look.
+  for (const path of ["/app/tickets", "/app/tickets/1", "/app/audit"]) {
+    const res = await page.goto(path);
+    expect(await res!.text(), path).not.toContain(token);
+  }
+  const list = await page.request.get("/api/v1/tickets");
+  expect(await list.text()).not.toContain(token);
+  const id = ((await list.json()) as { items: { id: string }[] }).items[0]!.id;
+  expect(await (await page.request.get(`/api/v1/tickets/${id}`)).text()).not.toContain(token);
+  await trackingContext.close();
+  await customer.dispose();
+});
