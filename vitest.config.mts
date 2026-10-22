@@ -46,6 +46,12 @@ export default defineConfig({
         // Inserts the demo data in one transaction; tested against PostgreSQL in
         // tests/integration/demo-seed.test.ts. The data itself is unit-tested.
         "src/server/modules/tickets/demo/seed.ts",
+        // Same for the demo knowledge base: 5 tests in tests/integration/kb-demo-seed.test.ts
+        // (idempotency, concurrent runs, queued jobs, limits), mutation-checked.
+        "src/server/modules/kb/demo-seed.ts",
+        // Re-embedding orchestration over the DB (locks, races, resumability); 5 tests in
+        // tests/integration/kb-reembed.test.ts, mutation-checked.
+        "src/server/modules/kb/reembed.ts",
         // SQL only (constraints, composite tenant FK, lifecycle guards, cascades); 20 tests
         // in tests/integration/kb-repository.test.ts, mutation-checked.
         "src/server/modules/kb/repository.ts",

@@ -30,6 +30,8 @@ test("an owner adds, checks, searches and deletes a help article", async ({ page
   await main.getByRole("link", { name: "Add your first document" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Knowledge base" })).toBeVisible();
   await expect(main.getByText("No documents yet.")).toBeVisible();
+  // Plan D14: synthetic data only on the public demo.
+  await expect(main.getByText("Demo: do not upload confidential or personal documents.")).toBeVisible();
 
   // Nothing chosen: the field explains, and gets focus.
   await main.getByRole("button", { name: "Upload" }).click();

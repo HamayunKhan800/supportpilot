@@ -87,14 +87,14 @@
 
 ## 4. Done when
 
-- [ ] FR-K1–K4 each covered by named tests (`describe("FR-K2 …")`).
-- [ ] Ingestion integration tests pass: md, txt and PDF reach `ready`. Every malicious fixture ends `failed` with the right reason, and the hostile PDF is killed within the timeout.
-- [ ] A job re-run is idempotent (same chunks, no duplicates). Deleting removes chunks immediately, including mid-ingest.
-- [ ] Cross-tenant test for **every** KB route returns 404. Retrieval never returns another workspace's chunks. Role-matrix tests pass.
-- [ ] Upload caps, dedupe 409 and rate limits are tested. The browser `Content-Type` is shown to be ignored.
-- [ ] **Retrieval baseline recorded** with Gemini (recall@5 and MRR@5 on ~80 questions, plus latency and cost), and the mock baseline is guarded in CI. The target is recall@5 ≥ 90%. If it's missed, the gap and next steps are documented honestly rather than hidden.
-- [ ] 0 serious/critical axe violations on the knowledge pages (desktop + mobile).
-- [ ] OpenAPI document updated and validated in CI. The Docker image builds with the worker.
+- [x] FR-K1–K4 each covered by named tests (`describe("FR-K2 …")`).
+- [x] Ingestion integration tests pass: md, txt and PDF reach `ready`. Every malicious fixture ends `failed` with the right reason, and the hostile PDF is killed within the timeout.
+- [x] A job re-run is idempotent (same chunks, no duplicates). Deleting removes chunks immediately, including mid-ingest.
+- [x] Cross-tenant test for **every** KB route returns 404. Retrieval never returns another workspace's chunks. Role-matrix tests pass.
+- [x] Upload caps, dedupe 409 and rate limits are tested. The browser `Content-Type` is shown to be ignored.
+- [ ] **Retrieval baseline recorded** with Gemini (mock baseline and CI guard: done, see `docs/eval/retrieval-baseline.md`; Gemini run pending) (recall@5 and MRR@5 on ~80 questions, plus latency and cost), and the mock baseline is guarded in CI. The target is recall@5 ≥ 90%. If it's missed, the gap and next steps are documented honestly rather than hidden.
+- [x] 0 serious/critical axe violations on the knowledge pages (desktop + mobile).
+- [x] OpenAPI document updated and validated in CI. The Docker image builds with the worker.
 - [ ] CI green.
 
 ## 5. Out of scope for M4

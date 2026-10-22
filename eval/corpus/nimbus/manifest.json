@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "description": "Synthetic help centre for the fictional company Nimbus Cloud Storage. Used by the retrieval eval and the demo seed. Articles marked pdf are converted to PDF in code (scripts/lib/kb-corpus.ts) so the PDF path is measured too. The poisoned article in ../poisoned is deliberately NOT listed here.",
+  "articles": [
+    {
+      "file": "account-recovery.md",
+      "title": "Recover a locked account",
+      "format": "md"
+    },
+    {
+      "file": "billing-cycle-and-invoices.md",
+      "title": "Your billing cycle and invoices",
+      "format": "md"
+    },
+    {
+      "file": "business-admin-console.md",
+      "title": "The Business admin console",
+      "format": "pdf"
+    },
+    {
+      "file": "camera-uploads.md",
+      "title": "Back up photos with camera uploads",
+      "format": "md"
+    },
+    {
+      "file": "cancel-subscription.md",
+      "title": "Cancel your subscription",
+      "format": "md"
+    },
+    {
+      "file": "change-email.md",
+      "title": "Change the email address on your account",
+      "format": "md"
+    },
+    {
+      "file": "change-plan.md",
+      "title": "Upgrade or downgrade your plan",
+      "format": "md"
+    },
+    {
+      "file": "contact-support.md",
+      "title": "Contact Nimbus support",
+      "format": "md"
+    },
+    {
+      "file": "data-export.md",
+      "title": "Export a copy of your data",
+      "format": "md"
+    },
+    {
+      "file": "delete-account.md",
+      "title": "Delete your Nimbus account",
+      "format": "md"
+    },
+    {
+      "file": "deleted-files.md",
+      "title": "Recover deleted files",
+      "format": "md"
+    },
+    {
+      "file": "desktop-app.md",
+      "title": "Install the desktop app",
+      "format": "md"
+    },
+    {
+      "file": "family-plan.md",
+      "title": "The Family plan",
+      "format": "md"
+    },
+    {
+      "file": "file-requests.md",
+      "title": "Collect files with a file request",
+      "format": "md"
+    },
+    {
+      "file": "file-size-limits.md",
+      "title": "File size and file name limits",
+      "format": "md"
+    },
+    {
+      "file": "getting-started.md",
+      "title": "Getting started with Nimbus",
+      "format": "md"
+    },
+    {
+      "file": "integrations-and-api.md",
+      "title": "Integrations and the Nimbus API",
+      "format": "md"
+    },
+    {
+      "file": "mobile-app.md",
+      "title": "Nimbus on your phone and tablet",
+      "format": "md"
+    },
+    {
+      "file": "payment-methods.md",
+      "title": "Payment methods and failed payments",
+      "format": "md"
+    },
+    {
+      "file": "plans-and-pricing.md",
+      "title": "Plans and pricing",
+      "format": "pdf"
+    },
+    {
+      "file": "refunds.md",
+      "title": "Refund policy",
+      "format": "md"
+    },
+    {
+      "file": "reset-password.md",
+      "title": "Reset your password",
+      "format": "md"
+    },
+    {
+      "file": "security-and-encryption.md",
+      "title": "How Nimbus protects your files",
+      "format": "pdf"
+    },
+    {
+      "file": "selective-sync.md",
+      "title": "Save space with selective sync and online-only files",
+      "format": "md"
+    },
+    {
+      "file": "shared-folders.md",
+      "title": "Shared folders",
+      "format": "md"
+    },
+    {
+      "file": "sharing-links.md",
+      "title": "Share files with a link",
+      "format": "md"
+    },
+    {
+      "file": "single-sign-on.md",
+      "title": "Single sign-on (SSO) for Business",
+      "format": "md"
+    },
+    {
+      "file": "storage-quota.md",
+      "title": "What counts toward your storage",
+      "format": "md"
+    },
+    {
+      "file": "student-discount.md",
+      "title": "Student discount",
+      "format": "md"
+    },
+    {
+      "file": "suspicious-activity.md",
+      "title": "Suspicious sign-ins and security alerts",
+      "format": "md"
+    },
+    {
+      "file": "sync-conflicts.md",
+      "title": "Conflicted copies",
+      "format": "md"
+    },
+    {
+      "file": "sync-troubleshooting.md",
+      "title": "Fix sync problems",
+      "format": "md"
+    },
+    {
+      "file": "two-step-verification.md",
+      "title": "Two-step verification",
+      "format": "md"
+    },
+    {
+      "file": "version-history.md",
+      "title": "Restore an earlier version of a file",
+      "format": "md"
+    },
+    {
+      "file": "web-app.md",
+      "title": "Using Nimbus in your browser",
+      "format": "md"
+    }
+  ]
+}

@@ -303,6 +303,63 @@ export async function markFailed(
 }
 
 // ---------------------------------------------------------------------------
+// Re-embedding (D4: `pnpm kb:reembed`)
+// ---------------------------------------------------------------------------
+
+/** Ready documents of a workspace embedded with any model other than `modelId`. */
+export async function listDocumentsToReembed(workspaceId: string, modelId: string): Promise<KbDocument[]> {
+  return getDb()
+    .db.select()
+    .from(kbDocument)
+    .where(
+      and(
+        eq(kbDocument.workspaceId, workspaceId),
+        eq(kbDocument.status, "ready"),
+        sql`${kbDocument.embeddingModel} IS DISTINCT FROM ${modelId}`,
+      ),
+    )
+    .orderBy(asc(kbDocument.createdAt), asc(kbDocument.id));
+}
+
+/** The stored passages of a document, in order: what gets embedded again. */
+export async function listChunkTexts(
+  tx: Executor,
+  workspaceId: string,
+  documentId: string,
+): Promise<{ id: string; headingPath: string; content: string }[]> {
+  return tx
+    .select({ id: kbChunk.id, headingPath: kbChunk.headingPath, content: kbChunk.content })
+    .from(kbChunk)
+    .where(and(eq(kbChunk.workspaceId, workspaceId), eq(kbChunk.documentId, documentId)))
+    .orderBy(asc(kbChunk.ordinal));
+}
+
+/**
+ * Swaps in new vectors for existing chunks and records the new model on the document.
+ * Call inside a transaction, with the document locked and still `ready`.
+ */
+export async function replaceEmbeddings(
+  tx: Transaction,
+  workspaceId: string,
+  documentId: string,
+  embeddingModel: string,
+  vectors: { id: string; embedding: number[] }[],
+): Promise<void> {
+  for (const v of vectors) {
+    await tx
+      .update(kbChunk)
+      .set({ embedding: v.embedding })
+      .where(
+        and(eq(kbChunk.workspaceId, workspaceId), eq(kbChunk.documentId, documentId), eq(kbChunk.id, v.id)),
+      );
+  }
+  await tx
+    .update(kbDocument)
+    .set({ embeddingModel, updatedAt: sql`now()` })
+    .where(and(inWorkspace(workspaceId, documentId), eq(kbDocument.status, "ready")));
+}
+
+// ---------------------------------------------------------------------------
 // AI usage
 // ---------------------------------------------------------------------------
 

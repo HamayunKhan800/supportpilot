@@ -74,7 +74,11 @@ export function UploadForm() {
         </CardTitle>
         <CardDescription>
           Help articles as Markdown, plain text or PDF, up to {MAX_LABEL} each. Text is extracted, split into
-          passages and indexed for search. Scanned PDFs (images of text) are not supported.
+          passages and indexed for search. Scanned PDFs (images of text) are not supported.{" "}
+          <strong className="text-foreground font-semibold">
+            Demo: do not upload confidential or personal documents.
+          </strong>{" "}
+          Passages may be sent to an external AI provider to be indexed.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

@@ -1,9 +1,11 @@
 /**
- * Seeds the public demo workspace "Nimbus Cloud Storage" with one user per role and
- * 25 synthetic tickets (src/server/modules/tickets/demo/tickets.ts).
+ * Seeds the public demo workspace "Nimbus Cloud Storage" with one user per role,
+ * 25 synthetic tickets (src/server/modules/tickets/demo/tickets.ts) and the synthetic help
+ * centre (eval/corpus/nimbus) as its knowledge base. The articles are queued for ingestion,
+ * so a running worker indexes them within a minute or so.
  *   DEMO_PASSWORD='a long passphrase' pnpm db:seed-demo
- * Idempotent: existing users and the workspace are reused, and tickets are only added
- * to a workspace that has none. The password is never stored
+ * Idempotent: existing users and the workspace are reused, and tickets and articles are
+ * only added to a workspace that has none. The password is never stored
  * in the repository. Refuses to run in production unless ALLOW_DEMO_SEED=true.
  */
 import { eq } from "drizzle-orm";
@@ -12,6 +14,9 @@ import { getDb } from "../src/server/platform/db/client";
 import { member, organization, user } from "../src/server/platform/db/schema";
 import { PASSWORD_MIN_LENGTH } from "../src/server/platform/auth/policy";
 import { seedDemoTickets } from "../src/server/modules/tickets/demo/seed";
+import { seedDemoKnowledgeBase } from "../src/server/modules/kb/demo-seed";
+import { stopWebBoss } from "../src/server/platform/jobs/boss";
+import { loadCorpus } from "./lib/kb-corpus";
 
 const WORKSPACE = { name: "Nimbus Cloud Storage", slug: "nimbus-demo" };
 const USERS = [
@@ -57,6 +62,14 @@ async function main() {
   const added = await seedDemoTickets(org!.id, { owner: ids.owner!, admin: ids.admin!, agent: ids.agent! });
   console.log(`Demo workspace ready: ${WORKSPACE.name} (${USERS.map((u) => u.email).join(", ")})`);
   console.log(added ? `Added ${added} demo tickets.` : "Tickets already present; none added.");
+  // Uploaded by the admin, the role that manages the knowledge base.
+  const articles = await seedDemoKnowledgeBase(org!.id, ids.admin!, loadCorpus());
+  console.log(
+    articles
+      ? `Queued ${articles} help articles for ingestion (start the worker to index them).`
+      : "Knowledge base already present; no articles added.",
+  );
+  await stopWebBoss();
   await pool.end();
 }
 

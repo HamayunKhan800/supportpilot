@@ -203,6 +203,22 @@ describe("runIngestJob", () => {
     expect(usage[0]!.inputTokens).toBeGreaterThan(0);
   });
 
+  it("ingests plain text: no headings, so passages have no heading trail", async () => {
+    const doc = await upload(
+      acmeId,
+      Buffer.from("# Not a heading in a .txt file\n\nRefunds take 5 business days."),
+      "text/plain",
+    );
+    const outcome = await runIngestJob(payload(doc), first, { embedder: createMockEmbedder() });
+
+    expect(outcome).toEqual({ status: "ready", chunkCount: 1 });
+    expect(await findDocument(acmeId, doc.id)).toMatchObject({ status: "ready", pageCount: null });
+    const [chunk] = await listChunks(acmeId, doc.id);
+    expect(chunk).toMatchObject({ headingPath: "" });
+    expect(chunk!.content).toContain("# Not a heading in a .txt file");
+    expect(await hasBlob(doc.id)).toBe(false);
+  });
+
   it("ingests a PDF in the sandboxed thread, one section per page", async () => {
     const doc = await upload(
       acmeId,

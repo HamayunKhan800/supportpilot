@@ -28,7 +28,9 @@
     "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test",
     "auth:generate": "auth generate --config scripts/auth-cli.config.ts --output src/server/platform/db/auth-schema.ts",
     "test:e2e": "playwright test",
-    "db:seed-demo": "tsx scripts/seed-demo.ts"
+    "db:seed-demo": "tsx scripts/seed-demo.ts",
+    "eval:retrieval": "tsx scripts/eval-retrieval.ts",
+    "kb:reembed": "tsx scripts/kb-reembed.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "4.0.97",
