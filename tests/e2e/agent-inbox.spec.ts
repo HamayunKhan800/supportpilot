@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { email, expect, signIn, signUp, test } from "./fixtures";
+import { email, expect, signIn, signUp, test, waitForTriage } from "./fixtures";
 
 /**
  * FR-T3–T6 through the agent UI: inbox filters and search, the ticket page, public
@@ -42,6 +42,7 @@ test("agent works a ticket end to end", async ({ page, browser, playwright, base
     "Sync paused on Windows",
     "The desktop app stopped syncing after 4.2.",
   );
+  await waitForTriage(page, 2); // the AI may label the refund request in the background
 
   // Inbox: both requests, counts on the tabs, search and filters narrow the list.
   await page.getByRole("link", { name: "Tickets", exact: true }).click();
@@ -125,6 +126,7 @@ test("concurrent edits are detected, and closed tickets accept notes only", asyn
   await ownerWithWorkspace(page, "conflict-owner", "Conflict Co", slug);
   const customer = await playwright.request.newContext({ baseURL });
   await customerSubmits(customer, slug, "Two agents, one ticket", "Who gets there first?");
+  await waitForTriage(page, 1);
 
   // Two tabs open the same version of the ticket.
   await page.goto("/app/tickets/1");
@@ -197,6 +199,7 @@ test("a customer reply reopens a resolved ticket, and the overview counts it", a
     "Folder sharing broken",
     "My shared folder link stopped working.",
   );
+  await waitForTriage(page, 1);
 
   const overviewCount = (label: string) =>
     page

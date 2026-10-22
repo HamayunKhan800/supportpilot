@@ -1,19 +1,4 @@
-import AxeBuilder from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
-import { email, expect, signIn, signUp, test } from "./fixtures";
-
-/** WCAG 2.2 A/AA rules. Done-when for M2: zero serious or critical violations. */
-async function audit(page: Page, label: string) {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
-  const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(
-    serious.map(
-      (v) => `${label}: ${v.id} (${v.impact}) ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
-    ),
-  ).toEqual([]);
-}
+import { audit, email, expect, signIn, signUp, test } from "./fixtures";
 
 test("public pages have no serious accessibility violations", async ({ page }) => {
   for (const path of ["/", "/sign-in", "/sign-up", "/invite/example-invitation-id"]) {

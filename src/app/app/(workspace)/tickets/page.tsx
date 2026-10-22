@@ -24,7 +24,16 @@ const TABS = [
   { value: "all", label: "All", statuses: [] },
 ] as const;
 
-const FILTER_KEYS = ["view", "q", "priority", "category", "assignee", "sort", "after"] as const;
+const FILTER_KEYS = [
+  "view",
+  "q",
+  "priority",
+  "category",
+  "assignee",
+  "needsReview",
+  "sort",
+  "after",
+] as const;
 type Filters = Partial<Record<(typeof FILTER_KEYS)[number], string>>;
 
 function readFilters(sp: Record<string, string | string[] | undefined>): Filters {
@@ -59,6 +68,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
       priority: filters.priority,
       category: filters.category,
       assignee: filters.assignee,
+      needsReview: filters.needsReview,
       sort: filters.sort,
       after: filters.after,
     });
@@ -70,7 +80,9 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
   const total = Object.values(options.counts).reduce((a, b) => a + b, 0);
   const tabCount = (t: (typeof TABS)[number]) =>
     t.statuses.length ? t.statuses.reduce((n, s) => n + options.counts[s], 0) : total;
-  const filtered = Boolean(filters.q || filters.priority || filters.category || filters.assignee);
+  const filtered = Boolean(
+    filters.q || filters.priority || filters.category || filters.assignee || filters.needsReview,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,7 +198,18 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
             <option value="oldest">Oldest first</option>
           </select>
         </div>
-        <div className="col-span-2 flex items-center gap-3 lg:col-span-6">
+        <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-3 lg:col-span-6">
+          <div className="flex items-center gap-2">
+            <input
+              id="filter-review"
+              type="checkbox"
+              name="needsReview"
+              value="true"
+              defaultChecked={filters.needsReview === "true"}
+              className="size-4"
+            />
+            <Label htmlFor="filter-review">Only AI suggestions that need review</Label>
+          </div>
           <Button type="submit">Apply filters</Button>
           {filtered && (
             <Link href={href({ view: filters.view })} className="text-sm underline">
@@ -242,6 +265,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm">
+                    {t.needsReview && <Badge className="bg-amber-100 text-amber-900">Needs review</Badge>}
                     <Badge variant={t.status === "open" ? "default" : "secondary"}>
                       {STATUS_LABEL[t.status]}
                     </Badge>

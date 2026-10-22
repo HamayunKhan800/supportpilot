@@ -388,6 +388,8 @@ export const aiDailyCalls = pgTable(
 
 export const TRIAGE_RUN_STATUSES = ["succeeded", "failed", "skipped"] as const;
 export const SENTIMENTS = ["negative", "neutral", "positive"] as const;
+export const TRIAGE_FLAGS = ["hidden_characters"] as const;
+export type TriageFlag = (typeof TRIAGE_FLAGS)[number];
 
 /**
  * One row per triage run (D4, D5). Kept even when a later run or an agent changes the ticket,
@@ -422,10 +424,21 @@ export const ticketTriage = pgTable(
     /** An agent accepted the suggestion or set the field; clears "Needs review". */
     reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
-    /** The value an agent chose instead of the AI's (null = kept or not changed). */
+    /**
+     * The value an agent chose instead of the AI's suggestion: null = agreed or never changed,
+     * "" = the agent cleared the category.
+     */
     categoryOverride: text("category_override"),
     priorityOverride: text("priority_override", { enum: TICKET_PRIORITIES }),
     latencyMs: integer("latency_ms"),
+    /**
+     * Warnings for the agent (D10e), e.g. "hidden_characters": invisible Unicode tag characters
+     * were removed from the prompt copy. A flagged run is never applied automatically.
+     */
+    flags: text("flags", { enum: TRIAGE_FLAGS })
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

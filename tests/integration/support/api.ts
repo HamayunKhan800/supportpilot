@@ -6,6 +6,7 @@ import * as trackingMessagesRoute from "@/app/api/v1/portal/t/[token]/messages/r
 import * as ticketsRoute from "@/app/api/v1/tickets/route";
 import * as ticketRoute from "@/app/api/v1/tickets/[id]/route";
 import * as ticketMessagesRoute from "@/app/api/v1/tickets/[id]/messages/route";
+import * as triageAcceptRoute from "@/app/api/v1/tickets/[id]/triage/accept/route";
 import * as kbDocumentsRoute from "@/app/api/v1/kb/documents/route";
 import * as kbDocumentRoute from "@/app/api/v1/kb/documents/[id]/route";
 import * as kbRetryRoute from "@/app/api/v1/kb/documents/[id]/retry/route";
@@ -26,6 +27,7 @@ export const handlers: Record<OpId, RouteHandler> = {
   listTickets: ticketsRoute.GET,
   getTicket: ticketRoute.GET,
   updateTicket: ticketRoute.PATCH,
+  acceptTriageSuggestion: triageAcceptRoute.POST,
   addTicketMessage: ticketMessagesRoute.POST,
   listKbDocuments: kbDocumentsRoute.GET,
   uploadKbDocument: kbDocumentsRoute.POST,

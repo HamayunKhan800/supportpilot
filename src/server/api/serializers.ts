@@ -1,6 +1,7 @@
 import { ingestErrorMessage } from "@/server/modules/kb/ingest-errors";
 import type { KbChunkView, KbDocument } from "@/server/modules/kb/repository";
 import type { Message, Ticket } from "@/server/modules/tickets/repository";
+import type { TriageRun } from "@/server/modules/triage/repository";
 
 /**
  * Explicit mapping from domain rows to API shapes: fields are opted in one by one, so
@@ -20,6 +21,32 @@ export function apiTicket(t: Ticket, assigneeName?: string | null) {
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
     lastActivityAt: t.lastActivityAt,
+  };
+}
+
+export function apiTriage(r: TriageRun) {
+  return {
+    status: r.status,
+    errorCode: r.errorCode,
+    suggestion:
+      r.status === "succeeded" && r.category && r.priority && r.sentiment && r.confidence !== null
+        ? {
+            category: r.category,
+            priority: r.priority,
+            sentiment: r.sentiment,
+            language: r.language,
+            confidence: r.confidence,
+            reason: r.reason,
+          }
+        : null,
+    applied: { category: r.appliedCategory, priority: r.appliedPriority },
+    needsReview: r.needsReview && r.reviewedAt === null,
+    reviewedAt: r.reviewedAt,
+    overrides: { category: r.categoryOverride, priority: r.priorityOverride },
+    flags: r.flags,
+    model: r.model,
+    promptVersion: r.promptVersion,
+    createdAt: r.createdAt,
   };
 }
 

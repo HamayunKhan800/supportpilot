@@ -215,6 +215,8 @@ export interface TicketFilters {
   assignee?: string;
   /** websearch syntax ("refund -annual"), or a ticket number like "#12". */
   q?: string;
+  /** Only tickets whose AI triage suggestion awaits an agent (M5 D5). */
+  needsReview?: boolean;
 }
 
 export interface ListTicketsOptions extends TicketFilters {
@@ -226,7 +228,12 @@ export interface ListTicketsOptions extends TicketFilters {
 
 export interface TicketListItem extends Ticket {
   assigneeName: string | null;
+  /** The AI's triage suggestion is waiting for an agent. */
+  needsReview: boolean;
 }
+
+/** Uses the partial index ticket_triage_open_review_idx. */
+const openReview = sql<boolean>`EXISTS (SELECT 1 FROM ticket_triage tt WHERE tt.workspace_id = ${ticket.workspaceId} AND tt.ticket_id = ${ticket.id} AND tt.needs_review AND tt.reviewed_at IS NULL)`;
 
 export async function listTickets(workspaceId: string, opts: ListTicketsOptions) {
   const conditions: (SQL | undefined)[] = [eq(ticket.workspaceId, workspaceId)];
@@ -235,6 +242,7 @@ export async function listTickets(workspaceId: string, opts: ListTicketsOptions)
   if (opts.category) conditions.push(eq(ticket.category, opts.category));
   if (opts.assignee === "unassigned") conditions.push(isNull(ticket.assigneeId));
   else if (opts.assignee) conditions.push(eq(ticket.assigneeId, opts.assignee));
+  if (opts.needsReview) conditions.push(openReview);
 
   const q = opts.q?.trim();
   if (q) {
@@ -258,7 +266,7 @@ export async function listTickets(workspaceId: string, opts: ListTicketsOptions)
 
   const order = newest ? [desc(ticket.createdAt), desc(ticket.id)] : [asc(ticket.createdAt), asc(ticket.id)];
   const rows = await getDb()
-    .db.select({ ...ticketColumns, assigneeName: user.name })
+    .db.select({ ...ticketColumns, assigneeName: user.name, needsReview: openReview })
     .from(ticket)
     .leftJoin(user, eq(ticket.assigneeId, user.id))
     .where(and(...conditions))

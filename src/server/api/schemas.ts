@@ -3,8 +3,11 @@ import {
   KB_DOCUMENT_STATUSES,
   KB_MIME_TYPES,
   MESSAGE_AUTHOR_TYPES,
+  SENTIMENTS,
   TICKET_PRIORITIES,
   TICKET_STATUSES,
+  TRIAGE_FLAGS,
+  TRIAGE_RUN_STATUSES,
 } from "@/server/platform/db/schema";
 
 /**
@@ -68,15 +71,60 @@ export const Message = z
   })
   .register(apiRegistry, { id: "Message" });
 
+export const TicketListItem = Ticket.extend({
+  needsReview: z.boolean().describe("The AI's triage suggestion is waiting for an agent."),
+}).register(apiRegistry, { id: "TicketListItem" });
+
 export const TicketList = z
   .strictObject({
-    items: z.array(Ticket),
+    items: z.array(TicketListItem),
     nextCursor: z.uuid().nullable().describe("Pass as `after` to get the next page."),
   })
   .register(apiRegistry, { id: "TicketList" });
 
+export const TicketTriage = z
+  .strictObject({
+    status: z.enum(TRIAGE_RUN_STATUSES),
+    errorCode: z
+      .string()
+      .nullable()
+      .describe("Why the run failed or was skipped, e.g. ai_budget_exhausted or ai_invalid_output."),
+    suggestion: z
+      .strictObject({
+        category: z.string(),
+        priority: z.enum(TICKET_PRIORITIES),
+        sentiment: z.enum(SENTIMENTS),
+        language: z.string().nullable().describe("ISO 639-1 code of the customer's language."),
+        confidence: z.number().min(0).max(1),
+        reason: z.string().nullable().describe("Model-written; display as plain text only."),
+      })
+      .nullable()
+      .describe("Null when the run did not succeed."),
+    applied: z
+      .strictObject({ category: z.boolean(), priority: z.boolean() })
+      .describe("Labels written to the ticket automatically (confident, and not set by an agent)."),
+    needsReview: z
+      .boolean()
+      .describe("A suggestion differs from the ticket and no agent has reviewed it yet."),
+    reviewedAt: dateTime.nullable(),
+    overrides: z
+      .strictObject({ category: z.string().nullable(), priority: z.enum(TICKET_PRIORITIES).nullable() })
+      .describe('What an agent chose instead of the suggestion (null: agreed or unchanged; "": cleared).'),
+    flags: z.array(z.enum(TRIAGE_FLAGS)).describe("hidden_characters: invisible characters were removed."),
+    model: z.string().nullable(),
+    promptVersion: z.string().nullable(),
+    createdAt: dateTime,
+  })
+  .register(apiRegistry, { id: "TicketTriage", description: "The newest AI triage run of a ticket." });
+
 export const TicketDetail = z
-  .strictObject({ ticket: Ticket, messages: z.array(Message) })
+  .strictObject({
+    ticket: Ticket,
+    messages: z.array(Message),
+    triage: TicketTriage.nullable().describe(
+      "Null until the triage job has run (or for tickets never triaged).",
+    ),
+  })
   .register(apiRegistry, { id: "TicketDetail" });
 
 export const MessageCreated = z

@@ -72,6 +72,9 @@ export default defineConfig({
         // SQL only (budget sum, atomic daily-cap upsert, usage insert); tested against
         // PostgreSQL in tests/integration/ai-ledger.test.ts, including concurrent reservations.
         "src/server/modules/ai/repository.ts",
+        // Triage job and its SQL (locks, idempotency, overrides, audit-based "human set");
+        // 26 tests in tests/integration/triage-job.test.ts, 16 deliberate breaks all caught.
+        "src/server/modules/triage/{job,repository}.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

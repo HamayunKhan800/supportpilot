@@ -93,8 +93,15 @@ export const ticketListQuery = z.object({
   sort: z.enum(["newest", "oldest"]).default("newest"),
   after: z.uuid().optional().describe("`nextCursor` from the previous page."),
   limit: z.coerce.number().int().min(1).max(100).default(25),
+  needsReview: z
+    .enum(["true"])
+    .optional() // kept as a string: the service parses queries the route already parsed
+    .describe('"true": only tickets whose AI triage suggestion is waiting for an agent.'),
 });
 export type TicketListQuery = z.input<typeof ticketListQuery>;
+
+/** Accepting the AI's triage suggestion: the version the agent was looking at (409 if stale). */
+export const triageAcceptInput = z.strictObject({ version: z.int().positive() });
 
 export const ticketId = z.uuid();
 export const ticketNumber = z.coerce.number().int().positive().max(2_147_483_647);

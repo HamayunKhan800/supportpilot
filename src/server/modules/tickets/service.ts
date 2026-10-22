@@ -3,10 +3,12 @@ import { insertAuditEvent, type AuditEvent } from "@/server/platform/auth/audit"
 import { requireWorkspace, type WorkspaceContext } from "@/server/platform/auth/context";
 import { getWorkspaceSettings } from "@/server/platform/auth/workspace-settings";
 import { getEnv } from "@/server/platform/env";
+import { enqueueTriage } from "@/server/platform/jobs/boss";
 import { Errors } from "@/server/platform/errors";
 import { logger } from "@/server/platform/logger";
 import { consumeRateLimit, rateLimitKey, type RateLimitRule } from "@/server/platform/rate-limit";
 import { listMembers } from "@/server/modules/workspaces/repository";
+import * as triageRepo from "@/server/modules/triage/repository";
 import { canAgentPost, canAgentTransition, canCustomerReply, statusAfterCustomerReply } from "./lifecycle";
 import * as repo from "./repository";
 import {
@@ -17,6 +19,7 @@ import {
   ticketListQuery,
   ticketNumber,
   ticketPatchInput,
+  triageAcceptInput,
 } from "./schemas";
 import { generateTrackingToken, hashTrackingToken } from "./tracking-token";
 
@@ -101,6 +104,8 @@ export async function createPortalTicket(
       firstMessage: input.message,
     });
     await insertAuditEvent(tx, ticketEvent(ws.id, t.id, "ticket.created", "customer", { number: t.number }));
+    // M5 D4: the triage job commits with the ticket, or not at all.
+    await enqueueTriage(tx, { workspaceId: ws.id, ticketId: t.id });
     return t;
   });
   logger.info({ event: "ticket.created", workspaceId: ws.id, ticketId: created.id }, "ticket created");
@@ -190,22 +195,26 @@ export async function listTicketsForAgent(headers: Headers, rawQuery: unknown) {
     sort: q.sort,
     limit: q.limit,
     afterId: q.after,
+    needsReview: q.needsReview === "true",
   });
   return { ctx, ...page };
 }
 
 async function ticketDetail(ctx: WorkspaceContext, t: repo.Ticket) {
-  const [messages, members, settings] = await Promise.all([
+  const [messages, members, settings, triage] = await Promise.all([
     repo.listMessages(ctx.workspace.id, t.id, { includeInternal: true }),
     listMembers(ctx.workspace.id),
     getWorkspaceSettings(getDb().db, ctx.workspace.id),
+    triageRepo.findLatestTriage(getDb().db, ctx.workspace.id, t.id),
   ]);
   return {
     ctx,
     ticket: t,
     messages,
+    triage,
     assignees: members.map((m) => ({ id: m.userId, name: m.name })),
     categories: settings?.categories ?? [],
+    triageThreshold: settings?.triageConfidenceThreshold ?? 0.7,
   };
 }
 
@@ -301,6 +310,13 @@ export async function updateTicketForAgent(headers: Headers, rawId: string, rawP
       const updated = await repo.updateTicket(tx, ws, id, patch.version, changes);
       if (!updated) throw staleConflict();
       for (const e of events) await insertAuditEvent(tx, e);
+      if (changes.category !== undefined || changes.priority !== undefined) {
+        // D5: an agent's choice reviews the AI's suggestion and is kept as an override.
+        await triageRepo.recordAgentDecision(tx, ws, id, ctx.user.id, {
+          category: changes.category,
+          priority: changes.priority,
+        });
+      }
       return updated;
     });
   } catch (err) {
@@ -311,6 +327,69 @@ export async function updateTicketForAgent(headers: Headers, rawId: string, rawP
     }
     throw err;
   }
+}
+
+/**
+ * FR-AI2, D5: an agent accepts the AI's suggested category and priority. Same rules as a manual
+ * edit (version check, one audit entry per changed field, as the agent), and the run is marked
+ * reviewed even when the labels were already applied.
+ */
+export async function acceptTriageSuggestion(headers: Headers, rawId: string, rawInput: unknown) {
+  const ctx = await requireWorkspace(headers, { ticket: ["update"] });
+  const id = parseId(rawId);
+  const input = triageAcceptInput.parse(rawInput);
+  const ws = ctx.workspace.id;
+
+  if (!(await repo.findTicketById(ws, id))) throw Errors.notFound();
+  const triage = await triageRepo.findLatestTriage(getDb().db, ws, id);
+  if (triage?.status !== "succeeded" || !triage.category || !triage.priority) {
+    throw Errors.conflict("There is no AI suggestion to accept for this request.");
+  }
+  const suggestion = { category: triage.category, priority: triage.priority };
+  const settings = await getWorkspaceSettings(getDb().db, ws);
+  if (!settings?.categories.includes(suggestion.category)) {
+    throw Errors.conflict("The suggested category no longer exists. Choose a category instead.");
+  }
+
+  await repo.transaction(async (tx) => {
+    const current = await triageRepo.lockTicketLabels(tx, ws, id);
+    if (!current) throw Errors.notFound();
+    if (current.version !== input.version) throw staleConflict();
+
+    const changes: repo.TicketPatch = {};
+    const events: AuditEvent[] = [];
+    const actor = { userId: ctx.user.id };
+    const meta = { number: current.number, source: "ai_suggestion" };
+    if (current.category !== suggestion.category) {
+      changes.category = suggestion.category;
+      events.push(
+        ticketEvent(ws, id, "ticket.category_changed", actor, {
+          ...meta,
+          from: current.category,
+          to: suggestion.category,
+        }),
+      );
+    }
+    if (current.priority !== suggestion.priority) {
+      changes.priority = suggestion.priority;
+      events.push(
+        ticketEvent(ws, id, "ticket.priority_changed", actor, {
+          ...meta,
+          from: current.priority,
+          to: suggestion.priority,
+        }),
+      );
+    }
+    if (events.length) {
+      if (!(await repo.updateTicket(tx, ws, id, input.version, changes))) throw staleConflict();
+      for (const e of events) await insertAuditEvent(tx, e);
+    }
+    await triageRepo.recordAgentDecision(tx, ws, id, ctx.user.id, suggestion);
+  });
+
+  const updated = await repo.findTicketById(ws, id);
+  if (!updated) throw Errors.notFound();
+  return updated;
 }
 
 /** FR-T5. Public reply or internal note. */

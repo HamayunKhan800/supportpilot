@@ -8,6 +8,7 @@ import {
   portalTicketInput,
   ticketListQuery,
   ticketPatchInput,
+  triageAcceptInput,
 } from "@/server/modules/tickets/schemas";
 import {
   CustomerTicket,
@@ -147,6 +148,22 @@ export const operations = {
     permission: { ticket: ["update"] },
     params: TicketIdParams,
     body: ticketPatchInput,
+    success: { status: 200, description: "The updated ticket.", schema: Ticket },
+    errors: [400, 401, 403, 404, 409, 413, 415],
+  }),
+  acceptTriageSuggestion: define({
+    id: "acceptTriageSuggestion",
+    method: "POST",
+    path: "/api/v1/tickets/{id}/triage/accept",
+    summary: "Accept the AI's suggested category and priority",
+    description:
+      "Applies the newest triage suggestion as the signed-in agent and marks it reviewed. Send the `version` " +
+      "you last read; a stale version returns 409, as does a ticket with no successful triage run.",
+    tag: "Tickets",
+    auth: "session",
+    permission: { ticket: ["update"] },
+    params: TicketIdParams,
+    body: triageAcceptInput,
     success: { status: 200, description: "The updated ticket.", schema: Ticket },
     errors: [400, 401, 403, 404, 409, 413, 415],
   }),

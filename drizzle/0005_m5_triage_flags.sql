@@ -1,0 +1,1 @@
+ALTER TABLE "ticket_triage" ADD COLUMN "flags" text[] DEFAULT '{}'::text[] NOT NULL;

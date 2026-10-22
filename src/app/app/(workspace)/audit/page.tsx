@@ -46,7 +46,8 @@ function detail(metadata: Record<string, unknown>) {
   const slug = s("slug") && `address: ${s("slug")}`;
   const reason = s("reason") === "customer_reply" ? "customer replied" : null;
   const title = s("title") && `“${s("title")}”`;
-  return [number, title, change, role, slug, reason].filter(Boolean).join(" · ");
+  const source = s("source") === "ai_suggestion" ? "accepted AI suggestion" : null;
+  return [number, title, change, role, slug, reason, source].filter(Boolean).join(" · ");
 }
 
 export default async function AuditPage({ searchParams }: PageProps<"/app/audit">) {
@@ -92,7 +93,11 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
                   <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
                     <time dateTime={e.createdAt.toISOString()}>{fmt.format(e.createdAt)}</time>
                   </td>
-                  <td className="px-4 py-3">{e.actorName ?? ACTORS[e.actorType] ?? "Unknown"}</td>
+                  <td className="px-4 py-3">
+                    {e.actorName ??
+                      (e.metadata.source === "ai_triage" ? "AI triage" : ACTORS[e.actorType]) ??
+                      "Unknown"}
+                  </td>
                   <td className="px-4 py-3">
                     <div>{labelFor(e.action)}</div>
                     <div className="text-muted-foreground">{detail(e.metadata)}</div>

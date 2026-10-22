@@ -12,12 +12,14 @@ import { requireAppWorkspace } from "../../workspace-context";
 import { dateFormat, PRIORITY_CLASS, PRIORITY_LABEL, STATUS_LABEL } from "../labels";
 import { Composer } from "./composer";
 import { TicketProperties } from "./properties";
+import { TriageCard } from "./triage-card";
 
 /** One lookup per request; 404 covers unknown numbers and other workspaces' tickets alike. */
 const load = cache(async (number: string) => {
   await requireAppWorkspace();
   try {
-    return await getTicketByNumberForAgent(await headers(), number);
+    const d = await getTicketByNumberForAgent(await headers(), number);
+    return { ...d, loadedAt: Date.now() };
   } catch (err) {
     if (err instanceof AppError && err.status === 404) return null;
     throw err;
@@ -110,20 +112,28 @@ export default async function TicketPage({ params }: PageProps<"/app/tickets/[nu
           </section>
           <Composer ticketId={t.id} closed={t.status === "closed"} customerName={t.customerName} />
         </div>
-        <TicketProperties
-          key={`${t.id}:${t.version}`}
-          ticket={{
-            id: t.id,
-            version: t.version,
-            status: t.status,
-            priority: t.priority,
-            category: t.category,
-            assigneeId: t.assigneeId,
-          }}
-          assignees={d.assignees}
-          categories={d.categories}
-          currentUserId={d.ctx.user.id}
-        />
+        <div className="flex flex-col gap-6">
+          <TriageCard
+            triage={d.triage}
+            ticket={{ id: t.id, version: t.version, createdAt: t.createdAt }}
+            threshold={d.triageThreshold}
+            now={d.loadedAt}
+          />
+          <TicketProperties
+            key={`${t.id}:${t.version}`}
+            ticket={{
+              id: t.id,
+              version: t.version,
+              status: t.status,
+              priority: t.priority,
+              category: t.category,
+              assigneeId: t.assigneeId,
+            }}
+            assignees={d.assignees}
+            categories={d.categories}
+            currentUserId={d.ctx.user.id}
+          />
+        </div>
       </div>
     </div>
   );

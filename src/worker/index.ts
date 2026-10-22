@@ -1,18 +1,20 @@
 /**
  * Background worker process (plan M4 D13, docs/02 §7): `pnpm worker` from source, or
- * `node .build/worker.mjs` from the production image. It processes kb.ingest jobs. The
- * web server never parses uploaded files.
+ * `node .build/worker.mjs` from the production image. It processes kb.ingest jobs (the web
+ * server never parses uploaded files) and ai.triage jobs.
  *
- * Needs only DATABASE_URL, AI_PROVIDER (+ GEMINI_API_KEY) and LOG_LEVEL. Run the release
+ * Needs only DATABASE_URL, AI_PROVIDER (+ GEMINI_API_KEY), AI_DAILY_CALL_LIMIT and LOG_LEVEL. Run the release
  * step (`node .build/migrate.mjs`) first: it installs pg-boss's tables and the queues.
  */
+import { createAiGatewayFromEnv } from "@/server/modules/ai/gateway";
 import { createEmbedderFromEnv } from "@/server/modules/kb/embedder";
+import { mockTriageResponder } from "@/server/modules/triage/mock-responder";
 import { getDb } from "@/server/platform/db/client";
 import { EnvValidationError, getWorkerEnv } from "@/server/platform/env";
 import { createBoss } from "@/server/platform/jobs/boss";
 import { logger } from "@/server/platform/logger";
 
-import { registerKbHandlers } from "./handlers";
+import { registerKbHandlers, registerTriageHandlers } from "./handlers";
 
 // Replaced at bundle time (scripts/bundle.ts) with the bundled PDF thread's file name. When
 // run from source it is undefined, and the PDF code uses thread.ts next to itself.
@@ -31,6 +33,9 @@ async function main(): Promise<void> {
   // A few attempts so the worker can start alongside a database that is still booting.
   await boss.start({ attempts: 5 });
   await registerKbHandlers(boss, { embedder, prepare: { pdf: { threadUrl: pdfThreadUrl } } });
+  // One gateway per process: its circuit breakers must see every call this worker makes.
+  const gateway = createAiGatewayFromEnv(env, getDb().db, { triage: mockTriageResponder });
+  await registerTriageHandlers(boss, { gateway });
   logger.info({ provider: env.AI_PROVIDER, model: embedder.modelId }, "worker started");
 
   let stopping = false;

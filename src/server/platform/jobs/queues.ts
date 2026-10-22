@@ -18,6 +18,19 @@ export const kbIngestPayloadSchema = z
 
 export type KbIngestPayload = z.infer<typeof kbIngestPayloadSchema>;
 
+export const AI_TRIAGE_QUEUE = "ai.triage";
+/** Receives ai.triage jobs that failed every attempt, or whose worker died mid-job. */
+export const AI_TRIAGE_DEAD_LETTER_QUEUE = "ai.triage.dead";
+
+export const aiTriagePayloadSchema = z
+  .object({
+    workspaceId: z.string().min(1).max(64),
+    ticketId: z.uuid(),
+  })
+  .strict();
+
+export type AiTriagePayload = z.infer<typeof aiTriagePayloadSchema>;
+
 export interface QueueSettings {
   /** Retries after the first attempt (pg-boss default: 2). */
   retryLimit: number;
@@ -54,7 +67,33 @@ export const QUEUE_SETTINGS: Record<string, QueueSettings> = {
     retryBackoff: true,
     expireInSeconds: 60,
   },
+  /**
+   * ai.triage (M5 D4, D13): the AI SDK makes no retries of its own, so the queue retries a
+   * busy or unreachable provider 3 times at about 30-60 s, 60-120 s and 120-240 s. One attempt
+   * is at most two model calls (one retry for invalid output) of 20 s each plus a few queries,
+   * so 2 minutes is a safe ceiling.
+   */
+  [AI_TRIAGE_QUEUE]: {
+    retryLimit: 3,
+    retryDelay: 30,
+    retryBackoff: true,
+    retryDelayMax: 600,
+    expireInSeconds: 120,
+    heartbeatSeconds: 30,
+    deadLetter: AI_TRIAGE_DEAD_LETTER_QUEUE,
+  },
+  [AI_TRIAGE_DEAD_LETTER_QUEUE]: {
+    retryLimit: 5,
+    retryDelay: 10,
+    retryBackoff: true,
+    expireInSeconds: 60,
+  },
 };
 
 /** Dead-letter queues are created first, because a queue may only name an existing one. */
-export const QUEUE_INSTALL_ORDER = [KB_INGEST_DEAD_LETTER_QUEUE, KB_INGEST_QUEUE] as const;
+export const QUEUE_INSTALL_ORDER = [
+  KB_INGEST_DEAD_LETTER_QUEUE,
+  KB_INGEST_QUEUE,
+  AI_TRIAGE_DEAD_LETTER_QUEUE,
+  AI_TRIAGE_QUEUE,
+] as const;

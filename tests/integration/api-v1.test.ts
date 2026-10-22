@@ -7,6 +7,7 @@ import { operations, type Operation } from "@/server/api/operations";
 import { MAX_BODY_BYTES } from "@/server/api/route";
 import { Problem } from "@/server/api/schemas";
 import * as kbRepo from "@/server/modules/kb/repository";
+import { insertTriageRun } from "@/server/modules/triage/repository";
 import { getAuth } from "@/server/platform/auth";
 import { getSessionContext } from "@/server/platform/auth/context";
 import { can, ROLES } from "@/server/platform/auth/permissions";
@@ -43,6 +44,7 @@ const sampleBody: Partial<Record<OpId, () => unknown>> = {
   createPortalTicket: () => form(),
   addCustomerReply: () => ({ message: "Any update on this?" }),
   updateTicket: () => ({ version: currentVersion, priority: "high" }),
+  acceptTriageSuggestion: () => ({ version: currentVersion }),
   addTicketMessage: () => ({ body: "Looking into it now.", internal: true }),
   uploadKbDocument: () => sampleUpload(),
   searchKb: () => ({ query: "How long do refunds take?" }),
@@ -123,6 +125,21 @@ beforeAll(async () => {
   ticketId = first.ticket.id;
   token = first.token;
   currentVersion = first.ticket.version;
+  // A triage result to accept (no worker runs here; the job itself is tested in triage-job).
+  await transaction((tx) =>
+    insertTriageRun(tx, acmeId, ticketId, {
+      status: "succeeded",
+      model: "mock-llm",
+      promptVersion: "triage.v1",
+      category: "bug",
+      priority: "urgent",
+      sentiment: "negative",
+      language: "en",
+      confidence: 0.5,
+      reason: "Sync stopped working.",
+      needsReview: true,
+    }),
+  );
   kbDocId = await newKbDocument();
 });
 
@@ -176,6 +193,7 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
       "listTickets",
       "getTicket",
       "updateTicket",
+      "acceptTriageSuggestion",
       "addTicketMessage",
       "uploadKbDocument",
       "listKbDocuments",
@@ -203,7 +221,7 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
       expect(res.status, `${id}: ${JSON.stringify(res.json)}`).toBe(op.success.status);
       expect(res.headers.get("cache-control"), id).toBe("no-store");
       if (op.success.schema) op.success.schema.parse(res.json);
-      if (id === "updateTicket") currentVersion = res.json.version;
+      if (id === "updateTicket" || id === "acceptTriageSuggestion") currentVersion = res.json.version;
     }
   });
 
@@ -259,6 +277,24 @@ describe("errors are RFC 9457 Problem Details", () => {
     expect(res.status).toBe(400);
   });
 
+  it("a valid comma-separated status filter works (the 400 above is for the bad value only)", async () => {
+    // Finding #84: the route validated the query and the service parsed it again, so the
+    // already-split array failed the second parse and every status filter returned 400.
+    const all = await call("listTickets", { as: owner, query: { limit: "100" } });
+    expect(all.status).toBe(200);
+    const openOnes = all.json.items.filter((t: { status: string }) => t.status === "open");
+    expect(openOnes.length).toBeGreaterThan(0);
+
+    const res = await call("listTickets", { as: owner, query: { status: "open,pending", limit: "100" } });
+    expect(res.status).toBe(200);
+    expect(res.json.items.length).toBeGreaterThanOrEqual(openOnes.length);
+    for (const t of res.json.items) expect(["open", "pending"]).toContain(t.status);
+
+    const none = await call("listTickets", { as: owner, query: { status: "closed" } });
+    expect(none.status).toBe(200);
+    for (const t of none.json.items) expect(t.status).toBe("closed");
+  });
+
   it("stale version is 409", async () => {
     expect(currentVersion).toBeGreaterThan(1); // the contract test above already updated it
     const stale = { version: currentVersion - 1, priority: "low" };
@@ -275,6 +311,7 @@ describe("tenant isolation (NFR-SEC1): other workspaces' resources are 404", () 
 
   it("covers every id route", () => {
     expect(idOps.sort()).toEqual([
+      "acceptTriageSuggestion",
       "addTicketMessage",
       "deleteKbDocument",
       "getKbDocument",
@@ -339,7 +376,9 @@ describe("authentication and roles (docs/01 §2.1 permission matrix)", () => {
       const res = await call(id, { as: clients[role], params, body: sampleBody[id]?.() });
       const expected = can(role, operations[id].permission!) ? operations[id].success.status : 403;
       expect(res.status, `${id} as ${role}: ${JSON.stringify(res.json)}`).toBe(expected);
-      if (id === "updateTicket" && res.status === 200) currentVersion = res.json.version;
+      if ((id === "updateTicket" || id === "acceptTriageSuggestion") && res.status === 200) {
+        currentVersion = res.json.version;
+      }
       // A refused change really changed nothing.
       if (res.status === 403 && params.id && operations[id].tag === "Knowledge") {
         expect(await kbRepo.findDocument(acmeId, params.id)).not.toBeNull();

@@ -5,10 +5,13 @@ import type { Transaction } from "../db/tx";
 import { getDatabaseEnv } from "../env";
 import { logger } from "../logger";
 import {
+  AI_TRIAGE_QUEUE,
+  aiTriagePayloadSchema,
   KB_INGEST_QUEUE,
   kbIngestPayloadSchema,
   QUEUE_INSTALL_ORDER,
   QUEUE_SETTINGS,
+  type AiTriagePayload,
   type KbIngestPayload,
   type QueueSettings,
 } from "./queues";
@@ -95,6 +98,19 @@ export async function enqueueKbIngest(tx: Transaction, payload: KbIngestPayload)
     db: fromDrizzle(tx, sql),
   });
   if (!id) throw new Error("kb.ingest job was not created");
+  return id;
+}
+
+/**
+ * Queues AI triage for a new ticket (M5 D4) inside the caller's transaction, so the job
+ * exists if and only if the ticket does.
+ */
+export async function enqueueTriage(tx: Transaction, payload: AiTriagePayload): Promise<string> {
+  const boss = await getWebBoss();
+  const id = await boss.send(AI_TRIAGE_QUEUE, aiTriagePayloadSchema.parse(payload), {
+    db: fromDrizzle(tx, sql),
+  });
+  if (!id) throw new Error("ai.triage job was not created");
   return id;
 }
 

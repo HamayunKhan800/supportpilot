@@ -36,6 +36,13 @@
       "when": 1792675279975,
       "tag": "0004_m5_ai_features",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792677180622,
+      "tag": "0005_m5_triage_flags",
+      "breakpoints": true
     }
   ]
 }
