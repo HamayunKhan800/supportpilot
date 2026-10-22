@@ -21,12 +21,17 @@ export default async function OverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              <h2>Ticket queue</h2>
+              <h2>Customer portal</h2>
             </CardTitle>
             <CardDescription>
-              Customer tickets, replies and internal notes arrive in milestone M3.
+              Share this page with your customers so they can send requests. The agent inbox is coming next.
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Link href={`/p/${ctx.workspace.slug}`} className="text-sm font-medium break-all underline">
+              /p/{ctx.workspace.slug}
+            </Link>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>

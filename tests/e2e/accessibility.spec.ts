@@ -52,3 +52,32 @@ test("forms show errors accessibly", async ({ page }) => {
   await expect(alert).toBeFocused();
   await audit(page, "/sign-in (error)");
 });
+
+test("customer portal and tracking pages have no serious accessibility violations", async ({ page }) => {
+  const who = email(`a11y-portal-${test.info().project.name}`);
+  const slug = `a11y-portal-${Date.now().toString(36)}-${test.info().project.name}`;
+  await signUp(page, "Ada Access", who);
+  await signIn(page, who);
+  await expect(page).toHaveURL(/\/app\/onboarding/);
+  await page.getByLabel("Workspace name").fill("Accessible Portal Co");
+  await page.getByLabel("Workspace address").fill(slug);
+  await page.getByRole("button", { name: "Create workspace" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Accessible Portal Co" })).toBeVisible();
+
+  await page.goto(`/p/${slug}`);
+  await audit(page, "/p/{slug}");
+  await page.getByRole("button", { name: "Send request" }).click();
+  await audit(page, "/p/{slug} (errors)");
+  await page.getByLabel("Your name").fill("Casey Customer");
+  await page.getByLabel("Email").fill("casey@example.test");
+  await page.getByLabel("Subject").fill("Accessibility check");
+  await page.getByLabel("How can we help?").fill("Checking the customer pages with axe.");
+  await page.getByRole("button", { name: "Send request" }).click();
+  await expect(page.getByRole("heading", { name: "Request received" })).toBeVisible();
+  await audit(page, "/p/{slug} (received)");
+
+  await page.goto(await page.getByLabel("Your private tracking link").inputValue());
+  await audit(page, "/t/{token}");
+  await page.getByRole("button", { name: "Send reply" }).click();
+  await audit(page, "/t/{token} (error)");
+});

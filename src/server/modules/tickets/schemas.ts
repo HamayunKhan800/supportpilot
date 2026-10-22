@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TICKET_PRIORITIES, TICKET_STATUSES } from "@/server/platform/db/schema";
+import { LIMITS, MIN } from "./limits";
 
 /**
  * Input validation for every ticket entry point (REST API and Server Actions share
@@ -33,19 +34,19 @@ const line = (min: number, max: number, label: string) =>
         .max(max, `${label} must be at most ${max} characters.`),
     );
 
-export const LIMITS = { name: 100, email: 254, subject: 200, message: 10_000, query: 200 } as const;
+export { LIMITS, MIN } from "./limits";
 
 export const portalTicketInput = z.object({
-  name: line(1, LIMITS.name, "Name"),
+  name: line(MIN.name, LIMITS.name, "Name"),
   email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address.").max(LIMITS.email)),
-  subject: line(3, LIMITS.subject, "Subject"),
-  message: text(10, LIMITS.message, "Message"),
+  subject: line(MIN.subject, LIMITS.subject, "Subject"),
+  message: text(MIN.message, LIMITS.message, "Message"),
   /** Honeypot: hidden from people, often filled by bots (plan D7). */
   website: z.string().max(500).optional().default(""),
 });
 export type PortalTicketInput = z.input<typeof portalTicketInput>;
 
-export const customerReplyInput = z.object({ message: text(1, LIMITS.message, "Message") });
+export const customerReplyInput = z.object({ message: text(MIN.reply, LIMITS.message, "Message") });
 
 export const agentMessageInput = z.object({
   body: text(1, LIMITS.message, "Message"),
