@@ -15,7 +15,13 @@ import { detectFile } from "./file-type";
 import { IngestError } from "./ingest-errors";
 import { KB_MAX_DOCUMENTS_PER_WORKSPACE, KB_MAX_UPLOAD_BYTES, KB_MAX_WORKSPACE_BYTES } from "./limits";
 import * as repo from "./repository";
-import { fuseRankings, RETRIEVAL_CANDIDATES, RETRIEVAL_TOP_K, type FusedHit } from "./retrieval";
+import {
+  fuseRankings,
+  RETRIEVAL_CANDIDATES,
+  RETRIEVAL_FUSION,
+  RETRIEVAL_TOP_K,
+  type FusedHit,
+} from "./retrieval";
 import { kbDocumentId, kbSearchInput } from "./schemas";
 
 /**
@@ -305,7 +311,7 @@ export async function hybridSearch(
     });
     const vectorHits = await repo.vectorSearch(tx, workspaceId, queryEmbedding.embedding, candidates);
     const keywordHits = await repo.keywordSearch(tx, workspaceId, query, candidates);
-    const fusedHits = fuseRankings(vectorHits, keywordHits, { topK });
+    const fusedHits = fuseRankings(vectorHits, keywordHits, { ...RETRIEVAL_FUSION, topK });
     return {
       fused: fusedHits,
       chunks: await repo.findChunksForDisplay(

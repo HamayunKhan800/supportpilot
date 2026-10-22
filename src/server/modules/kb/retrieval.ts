@@ -36,6 +36,30 @@ export interface FusedHit {
   keyword: { rank: number; score: number } | null;
 }
 
+export interface FusionOptions {
+  k?: number;
+  topK?: number;
+  /**
+   * Weight of each list's RRF contribution (weighted RRF); both default to 1. A weight of 0
+   * keeps that list's hits as labels and as fill-ins after every hit from the other list.
+   */
+  vectorWeight?: number;
+  keywordWeight?: number;
+}
+
+/**
+ * The app's weights (ADR-0014). With real Gemini embeddings, equal-weight fusion ranked worse
+ * than meaning search alone on 23 of 110 eval questions and better on 6, so results are ranked
+ * by meaning. Keyword search still runs, to label results ("Keywords #n" in test search) and so
+ * fusion can be switched back on here if a larger eval shows it helps (e.g. exact error codes).
+ * Its hits would only fill slots if vector search returned fewer than topK passages, which in
+ * practice it doesn't: every passage has an embedding and both searches see the same documents.
+ */
+export const RETRIEVAL_FUSION: Readonly<Required<Pick<FusionOptions, "vectorWeight" | "keywordWeight">>> = {
+  vectorWeight: 1,
+  keywordWeight: 0,
+};
+
 /**
  * Merges two ranked lists (each already sorted best first) and returns the best `topK`.
  * Ties are broken by the better single rank, then by chunk id, so results are stable.
@@ -43,8 +67,12 @@ export interface FusedHit {
 export function fuseRankings(
   vectorHits: readonly VectorHit[],
   keywordHits: readonly KeywordHit[],
-  { k = RRF_K, topK = RETRIEVAL_TOP_K }: { k?: number; topK?: number } = {},
+  { k = RRF_K, topK = RETRIEVAL_TOP_K, vectorWeight = 1, keywordWeight = 1 }: FusionOptions = {},
 ): FusedHit[] {
+  const valid = (w: number) => Number.isFinite(w) && w >= 0;
+  if (!valid(vectorWeight) || !valid(keywordWeight) || vectorWeight + keywordWeight === 0) {
+    throw new RangeError("Fusion weights must be finite, non-negative and not both zero");
+  }
   const byId = new Map<string, FusedHit>();
   const entry = (chunkId: string): FusedHit => {
     let hit = byId.get(chunkId);
@@ -59,14 +87,14 @@ export function fuseRankings(
     const hit = entry(h.chunkId);
     if (hit.vector) return; // a list should not repeat a chunk; count only its best rank
     hit.vector = { rank: i + 1, similarity: h.similarity };
-    hit.rrfScore += 1 / (k + i + 1);
+    hit.rrfScore += vectorWeight / (k + i + 1);
     hit.matchedBy.push("vector");
   });
   keywordHits.forEach((h, i) => {
     const hit = entry(h.chunkId);
     if (hit.keyword) return;
     hit.keyword = { rank: i + 1, score: h.score };
-    hit.rrfScore += 1 / (k + i + 1);
+    hit.rrfScore += keywordWeight / (k + i + 1);
     hit.matchedBy.push("keyword");
   });
 

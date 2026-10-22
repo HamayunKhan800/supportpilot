@@ -106,7 +106,7 @@ Indexes: `kb_chunk` HNSW on `embedding` (cosine) and GIN on `tsv`; `ticket (work
 | `GET/POST /api/v1/kb/documents`          | read: agent+ · write: admin+ | list / upload (multipart)                            |
 | `GET/DELETE /api/v1/kb/documents/{id}`   | read: agent+ · write: admin+ | status + passages / delete doc + chunks              |
 | `POST /api/v1/kb/documents/{id}/retry`   | admin+                       | re-queue a failed document                           |
-| `POST /api/v1/kb/search`                 | admin+                       | test search (hybrid retrieval)                       |
+| `POST /api/v1/kb/search`                 | admin+                       | test search (ranked by meaning, ADR-0014)            |
 | `GET/PATCH /api/v1/workspace/settings`   | read: agent+ · write: admin+ | settings                                             |
 | `GET /api/v1/analytics/summary`          | agent+                       | dashboard metrics                                    |
 | `GET /api/v1/audit`                      | admin+                       | audit log                                            |
@@ -145,7 +145,7 @@ extract text (PDF page cap checked before extraction; PDFs parsed in a `worker_t
 
 1. Policy check (agent+), AI enabled, **budget check**, per-user rate limit.
 2. Build the query from the subject and recent customer messages, then embed it.
-3. **Hybrid retrieval:** pgvector top-k (k=8) + Postgres full-text top-k, merged with Reciprocal Rank Fusion → top 5.
+3. **Retrieval:** pgvector top 8 + Postgres full-text top 8 → top 5, ranked by vector similarity. Full-text matches are labelled but don't change the order: equal-weight Reciprocal Rank Fusion ranked worse on the Gemini eval ([ADR-0014](adr/0014-retrieval-ranking.md)).
 4. If the best vector score < `retrieval_min_score` (calibrated at M6), store a `refused` draft and **skip the LLM**.
 5. Prompt (versioned file, e.g. `draft.v1`): rules, then sources wrapped in `<source id="1">…</source>` and labelled _untrusted data_, then the customer message wrapped and labelled the same way.
 6. `streamText` to the client (TTFT and total time measured). Timeout 30 s.

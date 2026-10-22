@@ -145,9 +145,6 @@ export function SearchPanel() {
                         Keywords #{r.keyword.rank}
                       </Badge>
                     )}
-                    <span className="text-muted-foreground tabular-nums">
-                      Combined score {r.rrfScore.toFixed(4)}
-                    </span>
                   </div>
                 </li>
               ))}

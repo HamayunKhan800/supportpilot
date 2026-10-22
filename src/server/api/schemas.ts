@@ -222,7 +222,13 @@ export const KbSearchResults = z
         rank: z.int().positive(),
         chunk: KbChunk,
         document: z.strictObject({ id: z.uuid(), title: z.string() }),
-        rrfScore: z.number().positive().describe("Reciprocal Rank Fusion score (k = 60)."),
+        rrfScore: z
+          .number()
+          .nonnegative()
+          .describe(
+            "Weighted Reciprocal Rank Fusion score (k = 60). Keyword matches have weight 0 (ADR-0014), " +
+              "so this follows the meaning-based rank; 0 means only keyword search found the passage.",
+          ),
         matchedBy: z.array(z.enum(["vector", "keyword"])).min(1),
         vector: z
           .strictObject({ rank: z.int().positive(), similarity: z.number().describe("Cosine similarity.") })

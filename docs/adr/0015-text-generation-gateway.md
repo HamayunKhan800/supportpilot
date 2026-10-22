@@ -2,8 +2,6 @@
 
 Status: Accepted · Date: 2026-10-22 · Details: [M5 plan](../plans/m5-ai-features.md) D1–D3, D6, D12–D14 · Code: `src/server/modules/ai/`
 
-(ADR-0014 is reserved for the M4 search-fusion decision, which waits for the full Gemini retrieval run.)
-
 ## Context
 
 M5 adds the first features where a language model writes something: ticket triage (structured labels) and reply drafts (streamed prose with citations). Some decisions are expensive to get wrong:

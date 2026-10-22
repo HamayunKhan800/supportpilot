@@ -22,7 +22,9 @@ import { resetDatabase } from "./support/client";
  * between runs. Vector search with the mock is exactly repeatable.
  */
 const FLOORS = {
-  hybrid: { recall: 0.8, mrr: 0.64 },
+  // "hybrid" is the app's own search (hybridSearch), which ranks by meaning since ADR-0014,
+  // so it shares vector's floor.
+  hybrid: { recall: 0.83, mrr: 0.59 },
   vector: { recall: 0.83, mrr: 0.59 },
   keyword: { recall: 0.77, mrr: 0.54 },
 } as const;
@@ -50,10 +52,11 @@ describe("retrieval eval (mock embedder, default chunking)", () => {
     expect(m.mrrAtK).toBeGreaterThanOrEqual(FLOORS[name].mrr);
   });
 
-  it("fusion ranks the right passage higher than either search alone", () => {
-    // If keyword search broke, hybrid would quietly become vector-only: same recall, lower MRR.
-    expect(mode("hybrid").mrrAtK).toBeGreaterThan(mode("vector").mrrAtK + 0.03);
-    expect(mode("hybrid").mrrAtK).toBeGreaterThan(mode("keyword").mrrAtK + 0.03);
+  it("the app's search ranks exactly like vector search, question by question (ADR-0014)", () => {
+    // Keyword matches may label results or fill empty slots, but must never reorder them.
+    const ranks = (name: keyof typeof FLOORS) => mode(name).questions.map((q) => [q.id, q.firstGoldRank]);
+    expect(ranks("hybrid")).toEqual(ranks("vector"));
+    expect(mode("hybrid").mrrAtK).toBe(mode("vector").mrrAtK);
   });
 
   it("ingests every article, PDFs included, without splitting any evidence", () => {

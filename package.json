@@ -30,6 +30,7 @@
     "test:e2e": "playwright test",
     "db:seed-demo": "tsx scripts/seed-demo.ts",
     "eval:retrieval": "tsx scripts/eval-retrieval.ts",
+    "eval:fusion": "tsx scripts/eval-fusion.ts",
     "kb:reembed": "tsx scripts/kb-reembed.ts"
   },
   "dependencies": {

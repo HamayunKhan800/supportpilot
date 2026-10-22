@@ -330,7 +330,7 @@ describe("FR-K3 delete", () => {
   });
 });
 
-describe("FR-K4 test search (hybrid retrieval, D10)", () => {
+describe("FR-K4 test search (ranked by meaning, keyword matches labelled; ADR-0014)", () => {
   it("returns the best passages first, saying which search found each", async () => {
     await uploadReady(owner, acmeId, "help.md", REFUNDS);
     await uploadReady(

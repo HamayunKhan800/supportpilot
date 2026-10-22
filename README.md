@@ -15,7 +15,7 @@ Reasons for each choice are in [`docs/adr/`](docs/adr/).
 
 - Admins upload **Markdown, text or PDF** files. Uploads follow the OWASP file-upload rules: extension allowlist plus content check, size and quota limits, and files are never served back.
 - A **background worker** (pg-boss on PostgreSQL) extracts text, splits it into passages and embeds them. **PDFs are parsed in a sandboxed thread** with a memory cap and a hard 30 s kill ([ADR-0013](docs/adr/0013-embeddings-and-pdf-sandbox.md)). Temporary failures are retried; bad files fail with a plain-language reason.
-- **Hybrid search:** meaning (Gemini `gemini-embedding-2` embeddings in pgvector) plus keywords (PostgreSQL full-text), merged with Reciprocal Rank Fusion. Admins can try it on a **test search** page that shows why each passage was found.
+- **Measured search:** passages are ranked by meaning (Gemini `gemini-embedding-2` embeddings in pgvector), and a PostgreSQL full-text search labels keyword matches. Equal-weight hybrid fusion was the plan, but on a 110-question eval meaning alone ranked better (recall@5 99.1% vs 97.3%), so it was dropped ([ADR-0014](docs/adr/0014-retrieval-ranking.md)). Admins can try it on a **test search** page that shows why each passage was found.
 - **Measured, not assumed:** `pnpm eval:retrieval` runs the real pipeline on a synthetic 35-article help centre with 110 labelled questions and reports recall@5, MRR@5, latency, tokens and cost. CI guards the baseline on every push ([retrieval baseline](docs/eval/retrieval-baseline.md)).
 
 | Knowledge base                                               | Test search                                            |

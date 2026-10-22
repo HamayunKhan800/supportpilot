@@ -19,9 +19,9 @@ export default async function TestSearchPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Test search</h1>
         <p className="text-muted-foreground">
-          Ask a question the way a customer would, and see which passages an AI draft would be given. Two
-          searches run side by side: one by meaning and one by keywords. Their rankings are combined
-          (Reciprocal Rank Fusion) and the top 5 passages are shown.
+          Ask a question the way a customer would, and see which passages an AI draft would be given. The top
+          5 passages are ranked by meaning. A keyword search also runs, and its badge shows where it would
+          have ranked each passage.
         </p>
       </div>
       <SearchPanel />

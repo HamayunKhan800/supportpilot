@@ -177,7 +177,9 @@ export function embeddingKey(modelId: string, kind: "document" | "query", input:
   return createHash("sha256").update(`${modelId}\0${kind}\0${input}`).digest("hex");
 }
 
-const documentInput = (item: { title: string; text: string }) => JSON.stringify([item.title, item.text]);
+/** The cache key input for a passage (title and text). */
+export const documentInput = (item: { title: string; text: string }) =>
+  JSON.stringify([item.title, item.text]);
 
 export function memoryEmbeddingCache(): EmbeddingCache {
   const map = new Map<string, CachedEmbedding>();
@@ -347,26 +349,43 @@ async function rank(
   return { ids: hits.map((h) => h.chunkId), ms: performance.now() - start };
 }
 
-async function runConfig(
+/** A temporary workspace with the corpus ingested at one chunk setting. */
+export interface EvalWorkspace {
+  workspaceId: string;
+  rows: { id: string; documentId: string; headingPath: string; content: string }[];
+  chunks: EvalChunk[];
+  /** Chunk ids that contain each question's evidence. */
+  gold: Map<string, Set<string>>;
+  /** Questions whose evidence was split across chunks. */
+  splitEvidence: string[];
+  remove(): Promise<void>;
+}
+
+/**
+ * Creates a temporary workspace, ingests the corpus through the real ingest job and finds
+ * each question's gold chunks. Call `remove()` when done (it also removes on failure here).
+ */
+export async function setUpEvalWorkspace(
   chunk: ChunkOptions,
-  opts: Required<Pick<EvalOptions, "corpus" | "questions" | "modes">> & {
-    unanswerable?: readonly UnanswerableQuestion[];
+  opts: {
+    corpus: readonly CorpusArticle[];
+    questions: readonly EvalQuestion[];
     embedder: Embedder;
     log: (line: string) => void;
     logger?: Logger;
-    metrics: ReturnType<typeof instrument>["metrics"];
   },
-): Promise<ConfigResult> {
+): Promise<EvalWorkspace> {
   const { db } = getDb();
   const workspaceId = randomUUID();
-  const docStart = opts.metrics.documentMs.length;
-  const tokensStart = opts.metrics.documentTokens;
   await db.insert(organization).values({
     id: workspaceId,
     name: "Retrieval eval (temporary)",
     slug: `retrieval-eval-${workspaceId}`,
     createdAt: new Date(),
   });
+  const remove = async () => {
+    await db.delete(organization).where(eq(organization.id, workspaceId));
+  };
   try {
     const articleByDocument = new Map<string, string>();
     for (const article of opts.corpus) {
@@ -419,7 +438,29 @@ async function runConfig(
       if (g.split) splitEvidence.push(q.id);
       gold.set(q.id, g.ids);
     }
+    return { workspaceId, rows, chunks, gold, splitEvidence, remove };
+  } catch (err) {
+    await remove();
+    throw err;
+  }
+}
 
+async function runConfig(
+  chunk: ChunkOptions,
+  opts: Required<Pick<EvalOptions, "corpus" | "questions" | "modes">> & {
+    unanswerable?: readonly UnanswerableQuestion[];
+    embedder: Embedder;
+    log: (line: string) => void;
+    logger?: Logger;
+    metrics: ReturnType<typeof instrument>["metrics"];
+  },
+): Promise<ConfigResult> {
+  const { db } = getDb();
+  const docStart = opts.metrics.documentMs.length;
+  const tokensStart = opts.metrics.documentTokens;
+  const ws = await setUpEvalWorkspace(chunk, opts);
+  const { workspaceId, rows, chunks, gold, splitEvidence } = ws;
+  try {
     const article = new Map(chunks.map((c) => [c.id, c.article]));
     const modes: ModeResult[] = [];
     for (const mode of opts.modes) {
@@ -500,7 +541,7 @@ async function runConfig(
       modes,
     };
   } finally {
-    await db.delete(organization).where(eq(organization.id, workspaceId));
+    await ws.remove();
   }
 }
 

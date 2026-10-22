@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { fuseRankings, RETRIEVAL_TOP_K, RRF_K } from "@/server/modules/kb/retrieval";
+
+import { KbSearchResults } from "@/server/api/schemas";
+import { fuseRankings, RETRIEVAL_FUSION, RETRIEVAL_TOP_K, RRF_K } from "@/server/modules/kb/retrieval";
 
 const v = (...ids: string[]) => ids.map((chunkId, i) => ({ chunkId, similarity: 0.9 - i * 0.1 }));
 const k = (...ids: string[]) => ids.map((chunkId, i) => ({ chunkId, score: 1 - i * 0.1 }));
@@ -58,5 +60,64 @@ describe("Reciprocal Rank Fusion (plan D10, Cormack et al. 2009)", () => {
   it("respects a custom k and handles empty input", () => {
     expect(fuseRankings(v("a"), [], { k: 0 })[0]!.rrfScore).toBe(1);
     expect(fuseRankings([], [])).toEqual([]);
+  });
+});
+
+describe("weighted fusion (ADR-0014)", () => {
+  const ids = (hits: { chunkId: string }[]) => hits.map((h) => h.chunkId);
+
+  it("defaults to equal weights, so existing callers are unchanged", () => {
+    const vec = v("a", "b", "c");
+    const kw = k("c", "d", "a");
+    expect(fuseRankings(vec, kw)).toEqual(fuseRankings(vec, kw, { vectorWeight: 1, keywordWeight: 1 }));
+  });
+
+  it("multiplies each list's contribution by its weight", () => {
+    const [hit] = fuseRankings(v("a"), k("a"), { vectorWeight: 2, keywordWeight: 0.5 });
+    expect(hit!.rrfScore).toBeCloseTo(2 / (RRF_K + 1) + 0.5 / (RRF_K + 1), 12);
+  });
+
+  it("a heavier vector weight lets a vector-only hit beat a keyword-only hit at the same rank", () => {
+    expect(ids(fuseRankings(v("a"), k("b")))).toEqual(["a", "b"]); // equal: tie broken by id
+    expect(ids(fuseRankings(v("b"), k("a"), { vectorWeight: 2 }))).toEqual(["b", "a"]);
+  });
+
+  it("keyword weight 0 keeps the vector order exactly, whatever the keyword list says", () => {
+    const vec = v("e", "d", "c", "b", "a", "f", "g", "h");
+    const kw = k("a", "b", "x", "c");
+    expect(ids(fuseRankings(vec, kw, { keywordWeight: 0, topK: 8 }))).toEqual(ids(vec));
+  });
+
+  it("keyword weight 0 still labels keyword matches", () => {
+    const [first] = fuseRankings(v("a"), k("a"), { keywordWeight: 0 });
+    expect(first!.matchedBy).toEqual(["vector", "keyword"]);
+    expect(first!.keyword).toEqual({ rank: 1, score: 1 });
+  });
+
+  it("keyword weight 0 fills empty slots with keyword-only hits, in keyword order", () => {
+    const fused = fuseRankings(v("a", "b"), k("z", "a", "y"), { keywordWeight: 0 });
+    expect(ids(fused)).toEqual(["a", "b", "z", "y"]);
+    expect(fused[2]!.rrfScore).toBe(0);
+  });
+
+  it("rejects negative, non-finite or all-zero weights", () => {
+    for (const bad of [
+      { vectorWeight: -1 },
+      { keywordWeight: Number.NaN },
+      { vectorWeight: Infinity },
+      { vectorWeight: 0, keywordWeight: 0 },
+    ]) {
+      expect(() => fuseRankings(v("a"), k("a"), bad)).toThrow(RangeError);
+    }
+  });
+
+  it("the search API accepts the 0 score a keyword-only fill-in gets (and still rejects negatives)", () => {
+    const rrfScore = KbSearchResults.shape.results.element.shape.rrfScore;
+    expect(rrfScore.safeParse(0).success).toBe(true);
+    expect(rrfScore.safeParse(-0.01).success).toBe(false);
+  });
+
+  it("the app ranks by meaning, with keywords as labels and fill-ins", () => {
+    expect(RETRIEVAL_FUSION).toEqual({ vectorWeight: 1, keywordWeight: 0 });
   });
 });

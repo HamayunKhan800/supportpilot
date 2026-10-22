@@ -261,8 +261,9 @@ export const operations = {
     path: "/api/v1/kb/search",
     summary: "Test search: which passages would retrieval use for this question?",
     description:
-      "Hybrid retrieval: meaning-based (vector) top 8 and keyword top 8, merged with Reciprocal " +
-      "Rank Fusion (k = 60), best 5 returned. Each result says which search found it. " +
+      "Runs a meaning-based (vector) search and a keyword search (top 8 each) and returns the best 5, " +
+      "ranked by meaning (ADR-0014: on the Gemini eval, mixing in keyword ranks made results worse). " +
+      "Each result says which searches found it. " +
       "Returns 409 if the workspace's documents were embedded with different models. Rate limited per user.",
     tag: "Knowledge",
     auth: "session",
