@@ -53,6 +53,12 @@ export default defineConfig({
         // real (valid, 50/51-page, encrypted, scanned, truncated PDFs) by
         // tests/unit/kb-pdf-and-prepare.test.ts; key checks mutation-tested.
         "src/server/modules/kb/pdf/thread.ts",
+        // Job orchestration over the DB (locks, transactions, retries, races); 12 tests in
+        // tests/integration/kb-ingest-job.test.ts, mutation-checked.
+        "src/server/modules/kb/ingest-job.ts",
+        // pg-boss wiring (install, transactional enqueue); exercised end to end against
+        // PostgreSQL in tests/integration/kb-ingest-job.test.ts.
+        "src/server/platform/jobs/boss.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

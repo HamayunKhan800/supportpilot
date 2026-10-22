@@ -11,8 +11,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:scripts": "esbuild scripts/migrate.ts --bundle --platform=node --target=node24 --format=esm --external:pg-native --outfile=.build/migrate.mjs --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "build:scripts": "tsx scripts/bundle.ts",
     "start": "next start",
+    "worker": "tsx src/worker/index.ts",
     "lint": "eslint --max-warnings=0 .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

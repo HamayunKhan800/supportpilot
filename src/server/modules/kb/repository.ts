@@ -7,7 +7,7 @@ import {
   kbDocumentBlob,
   type AI_USAGE_FEATURES,
   type KB_DOCUMENT_STATUSES,
-  type KB_MIME_TYPES,
+  type KbMimeType,
 } from "@/server/platform/db/schema";
 import type { Executor, Transaction } from "@/server/platform/db/tx";
 
@@ -19,7 +19,7 @@ import type { Executor, Transaction } from "@/server/platform/db/tx";
  */
 
 export type KbDocumentStatus = (typeof KB_DOCUMENT_STATUSES)[number];
-export type KbMimeType = (typeof KB_MIME_TYPES)[number];
+export type { KbMimeType };
 export type AiUsageFeature = (typeof AI_USAGE_FEATURES)[number];
 
 export type KbDocument = typeof kbDocument.$inferSelect;

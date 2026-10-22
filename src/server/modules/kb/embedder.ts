@@ -220,3 +220,13 @@ export function embeddingCostMicros(modelId: string, tokens: number): number {
     ? Math.round(tokens * GEMINI_EMBEDDING_USD_PER_MILLION_TOKENS)
     : 0;
 }
+
+/** Chooses the embedder from validated settings (AI_PROVIDER, GEMINI_API_KEY). */
+export function createEmbedderFromEnv(env: {
+  AI_PROVIDER: "mock" | "gemini";
+  GEMINI_API_KEY?: string;
+}): Embedder {
+  if (env.AI_PROVIDER === "mock") return createMockEmbedder();
+  if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini");
+  return createGeminiEmbedder({ apiKey: env.GEMINI_API_KEY });
+}

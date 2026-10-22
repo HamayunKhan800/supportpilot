@@ -1,6 +1,6 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { getEnv } from "../env";
+import { getDatabaseEnv } from "../env";
 import { logger } from "../logger";
 import * as schema from "./schema";
 
@@ -33,7 +33,8 @@ export function createPool(
 
 export function getDb(): DbHandles {
   if (!globalForDb.__spDb) {
-    const env = getEnv();
+    // Database settings only, so the worker can use the pool without web-app secrets.
+    const env = getDatabaseEnv();
     const pool = createPool(env.DATABASE_URL, {
       max: env.DATABASE_POOL_MAX,
       statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EnvValidationError, parseEnv } from "@/server/platform/env";
+import { EnvValidationError, parseDatabaseEnv, parseEnv, parseWorkerEnv } from "@/server/platform/env";
 
 const AUTH = {
   BETTER_AUTH_SECRET: "x".repeat(32),
@@ -172,5 +172,66 @@ describe("getEnv memoization", () => {
       process.env.DATABASE_URL = original;
       resetEnvCache();
     }
+  });
+
+  it.each(["getWorkerEnv", "getDatabaseEnv"] as const)(
+    "%s caches separately and is cleared by resetEnvCache",
+    async (name) => {
+      const env = await import("@/server/platform/env");
+      const original = process.env.DATABASE_URL;
+      try {
+        env.resetEnvCache();
+        process.env.DATABASE_URL = "postgres://a:b@host1/db";
+        expect(env[name]().DATABASE_URL).toBe("postgres://a:b@host1/db");
+        process.env.DATABASE_URL = "postgres://a:b@host2/db";
+        expect(env[name]().DATABASE_URL).toBe("postgres://a:b@host1/db");
+        env.resetEnvCache();
+        expect(env[name]().DATABASE_URL).toBe("postgres://a:b@host2/db");
+      } finally {
+        process.env.DATABASE_URL = original;
+        env.resetEnvCache();
+      }
+    },
+  );
+});
+
+describe("worker and database settings (least privilege)", () => {
+  const DB = { DATABASE_URL: "postgres://user:pass@localhost:5432/db" };
+  const issues = (fn: () => unknown) => {
+    try {
+      fn();
+      return [];
+    } catch (e) {
+      return (e as EnvValidationError).issues;
+    }
+  };
+
+  it("the worker starts without any web-app auth secret", () => {
+    const env = parseWorkerEnv(DB);
+    expect(env.AI_PROVIDER).toBe("mock");
+    expect(env).not.toHaveProperty("BETTER_AUTH_SECRET");
+    // Unrelated variables in the process are ignored, not copied into the settings.
+    expect(parseWorkerEnv({ ...DB, BETTER_AUTH_SECRET: "x".repeat(32) })).not.toHaveProperty(
+      "BETTER_AUTH_SECRET",
+    );
+  });
+
+  it("the worker applies the same AI provider rules as the web app", () => {
+    expect(issues(() => parseWorkerEnv({ ...DB, NODE_ENV: "production" })).join()).toContain("AI_PROVIDER");
+    expect(issues(() => parseWorkerEnv({ ...DB, AI_PROVIDER: "gemini" })).join()).toContain("GEMINI_API_KEY");
+    expect(parseWorkerEnv({ ...DB, AI_PROVIDER: "gemini", GEMINI_API_KEY: "k" }).AI_PROVIDER).toBe("gemini");
+  });
+
+  it("the worker still validates the database URL", () => {
+    expect(issues(() => parseWorkerEnv({})).join()).toContain("DATABASE_URL");
+  });
+
+  it("the connection pool needs only database settings", () => {
+    expect(parseDatabaseEnv(DB)).toEqual({
+      ...DB,
+      DATABASE_POOL_MAX: 10,
+      DATABASE_STATEMENT_TIMEOUT_MS: 10_000,
+    });
+    expect(issues(() => parseDatabaseEnv({ DATABASE_URL: "mysql://h/db" })).join()).toContain("DATABASE_URL");
   });
 });

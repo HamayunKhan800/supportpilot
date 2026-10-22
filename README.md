@@ -44,14 +44,20 @@ Prerequisites: Node.js 24 (`.nvmrc`), pnpm via Corepack (`corepack enable`), Doc
 cp .env.example .env.local          # dev-only defaults
 docker compose up -d db             # PostgreSQL 17 + pgvector (creates the test DB too)
 pnpm install --frozen-lockfile
-pnpm db:migrate                     # apply SQL migrations
+pnpm db:migrate                     # apply SQL migrations + install job queues
 pnpm dev                            # http://localhost:3000
+pnpm worker                         # background jobs (document ingestion), in a second terminal
 DEMO_PASSWORD='choose a long passphrase' pnpm db:seed-demo   # optional demo workspace
 ```
 
 The demo seed creates "Nimbus Cloud Storage" with `owner@`, `admin@` and `agent@demo.supportpilot.dev`, all using your `DEMO_PASSWORD`, plus **25 synthetic tickets**. Every person in them is invented, and addresses use the reserved `.test` domain. The tickets carry correct category and priority labels and double as the evaluation set for AI triage (M5/M6). Running the seed again is safe: it only adds tickets to an empty workspace.
 
-Run the production image locally instead: `docker compose --profile full up --build`.
+Run the production image locally instead (web, worker and the migration step from one image):
+
+```bash
+export BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
+docker compose --profile full up --build
+```
 
 ## Scripts
 
@@ -60,9 +66,11 @@ Run the production image locally instead: `docker compose --profile full up --bu
 | `pnpm check`                      | lint + typecheck + format check + unit tests                                                 |
 | `pnpm test:coverage`              | unit tests with coverage thresholds (80% lines/functions)                                    |
 | `pnpm test:integration`           | tests against real PostgreSQL (`TEST_DATABASE_URL`)                                          |
-| `pnpm test:smoke`                 | HTTP checks against a running server (`SMOKE_BASE_URL`)                                      |
+| `pnpm test:smoke`                 | checks against a running server (`SMOKE_BASE_URL`) and worker (`SMOKE_DATABASE_URL`)         |
 | `pnpm test:e2e`                   | Playwright + axe against the production build (run `pnpm build` and `pnpm db:migrate` first) |
 | `pnpm build`                      | production build (needs **no** runtime secrets)                                              |
+| `pnpm worker`                     | background worker from source (needs only `DATABASE_URL` and `AI_PROVIDER`)                  |
+| `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                    |
 | `pnpm db:generate` / `db:migrate` | create / apply migrations                                                                    |
 
 ## Configuration

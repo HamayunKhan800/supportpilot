@@ -1,12 +1,15 @@
 /**
- * Applies committed SQL migrations from ./drizzle.
- * Run as a release step before new code receives traffic (docs/02-architecture.md §7).
+ * Release step, run before new code receives traffic (docs/02-architecture.md §7):
+ *  1. applies committed SQL migrations from ./drizzle;
+ *  2. installs or upgrades pg-boss's job tables and applies the queue settings (ADR-0005).
  * Bundled to a single file (.build/migrate.mjs) for the production image.
  */
 import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
+
+import { installJobs } from "@/server/platform/jobs/boss";
 
 async function main() {
   const url = process.env.DATABASE_URL;
@@ -19,12 +22,11 @@ async function main() {
   const started = Date.now();
   try {
     await migrate(drizzle(pool), { migrationsFolder });
-    console.log(
-      JSON.stringify({ level: "info", msg: "migrations applied", durationMs: Date.now() - started }),
-    );
   } finally {
     await pool.end();
   }
+  await installJobs(url);
+  console.log(JSON.stringify({ level: "info", msg: "migrations applied", durationMs: Date.now() - started }));
 }
 
 main().catch((err: Error) => {

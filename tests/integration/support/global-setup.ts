@@ -3,7 +3,9 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 
-/** Applies all migrations to the test database once before integration tests run. */
+import { installJobs } from "../../../src/server/platform/jobs/boss";
+
+/** Applies all migrations and installs the job queues in the test database once. */
 export default async function setup() {
   const url = process.env.TEST_DATABASE_URL;
   if (!url) throw new Error("TEST_DATABASE_URL must be set for integration tests");
@@ -13,4 +15,5 @@ export default async function setup() {
   } finally {
     await pool.end();
   }
+  await installJobs(url);
 }

@@ -5,16 +5,61 @@ import { z } from "zod";
  * `next build` does not require runtime secrets, and eagerly at server start
  * via `instrumentation.ts` so a misconfigured deployment fails fast.
  */
+const commonFields = {
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+};
+
+const databaseFields = {
+  DATABASE_URL: z
+    .url({ protocol: /^postgres(ql)?$/, error: "DATABASE_URL must be a postgres:// URL" })
+    .describe("PostgreSQL connection string"),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+  /** Per-statement timeout so a slow query cannot pin a connection forever. */
+  DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(10_000),
+};
+
+const aiFields = {
+  /**
+   * AI provider (ADR-0006). `mock` = deterministic offline embeddings for tests and local
+   * work. `gemini` = Google Gemini API (needs GEMINI_API_KEY). Defaults to `mock` except in
+   * production, where it must be chosen explicitly so a deployment never silently runs on
+   * fake embeddings.
+   */
+  AI_PROVIDER: z.enum(["mock", "gemini"]).optional(),
+  /** Gemini API key from Google AI Studio. Required when AI_PROVIDER=gemini. */
+  GEMINI_API_KEY: z.string().min(1).optional(),
+};
+
+function refineAi(
+  env: { NODE_ENV: string; AI_PROVIDER?: string; GEMINI_API_KEY?: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (env.NODE_ENV === "production" && !env.AI_PROVIDER) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["AI_PROVIDER"],
+      message: "AI_PROVIDER must be set explicitly in production (gemini, or mock for test deployments)",
+    });
+  }
+  if (env.AI_PROVIDER === "gemini" && !env.GEMINI_API_KEY) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["GEMINI_API_KEY"],
+      message: "GEMINI_API_KEY is required when AI_PROVIDER=gemini",
+    });
+  }
+}
+
+const withAiDefault = <T extends { AI_PROVIDER?: "mock" | "gemini" }>(env: T) => ({
+  ...env,
+  AI_PROVIDER: env.AI_PROVIDER ?? ("mock" as const),
+});
+
 const envSchema = z
   .object({
-    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
-    DATABASE_URL: z
-      .url({ protocol: /^postgres(ql)?$/, error: "DATABASE_URL must be a postgres:// URL" })
-      .describe("PostgreSQL connection string"),
-    DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
-    /** Per-statement timeout so a slow query cannot pin a connection forever. */
-    DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(10_000),
+    ...commonFields,
+    ...databaseFields,
 
     /** Signs/encrypts sessions and tokens. Generate with `openssl rand -base64 32`. */
     BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters"),
@@ -62,15 +107,7 @@ const envSchema = z
       .enum(["true", "false"])
       .default("true")
       .transform((v) => v === "true"),
-    /**
-     * AI provider (ADR-0006). `mock` = deterministic offline embeddings for tests and local
-     * work. `gemini` = Google Gemini API (needs GEMINI_API_KEY). Defaults to `mock` except in
-     * production, where it must be chosen explicitly so a deployment never silently runs on
-     * fake embeddings.
-     */
-    AI_PROVIDER: z.enum(["mock", "gemini"]).optional(),
-    /** Gemini API key from Google AI Studio. Required when AI_PROVIDER=gemini. */
-    GEMINI_API_KEY: z.string().min(1).optional(),
+    ...aiFields,
     /** Optional GitHub OAuth. Both values or neither. */
     GITHUB_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
@@ -83,20 +120,7 @@ const envSchema = z
         message: "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set together",
       });
     }
-    if (env.NODE_ENV === "production" && !env.AI_PROVIDER) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["AI_PROVIDER"],
-        message: "AI_PROVIDER must be set explicitly in production (gemini, or mock for test deployments)",
-      });
-    }
-    if (env.AI_PROVIDER === "gemini" && !env.GEMINI_API_KEY) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["GEMINI_API_KEY"],
-        message: "GEMINI_API_KEY is required when AI_PROVIDER=gemini",
-      });
-    }
+    refineAi(env, ctx);
     // Production must use https, except loopback (CI smoke tests run the production build locally).
     const url = new URL(env.BETTER_AUTH_URL);
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
@@ -108,9 +132,25 @@ const envSchema = z
       });
     }
   })
-  .transform((env) => ({ ...env, AI_PROVIDER: env.AI_PROVIDER ?? ("mock" as const) }));
+  .transform(withAiDefault);
 
 export type Env = z.infer<typeof envSchema>;
+
+/**
+ * The background worker's settings: database, AI provider and logging only. The worker
+ * never receives the web app's auth secrets (least privilege).
+ */
+const workerEnvSchema = z
+  .object({ ...commonFields, ...databaseFields, ...aiFields })
+  .superRefine(refineAi)
+  .transform(withAiDefault);
+
+export type WorkerEnv = z.infer<typeof workerEnvSchema>;
+
+/** Database settings only: what the connection pool needs, in any process. */
+const databaseEnvSchema = z.object(databaseFields);
+
+export type DatabaseEnv = z.infer<typeof databaseEnvSchema>;
 
 export class EnvValidationError extends Error {
   constructor(public readonly issues: string[]) {
@@ -120,8 +160,8 @@ export class EnvValidationError extends Error {
   }
 }
 
-export function parseEnv(source: Record<string, string | undefined>): Env {
-  const result = envSchema.safeParse(source);
+function parseWith<S extends z.ZodType>(schema: S, source: Record<string, string | undefined>): z.output<S> {
+  const result = schema.safeParse(source);
   if (!result.success) {
     throw new EnvValidationError(
       result.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`),
@@ -130,14 +170,41 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
   return result.data;
 }
 
-let cached: Env | undefined;
+export function parseEnv(source: Record<string, string | undefined>): Env {
+  return parseWith(envSchema, source);
+}
 
+export function parseWorkerEnv(source: Record<string, string | undefined>): WorkerEnv {
+  return parseWith(workerEnvSchema, source);
+}
+
+export function parseDatabaseEnv(source: Record<string, string | undefined>): DatabaseEnv {
+  return parseWith(databaseEnvSchema, source);
+}
+
+let cached: Env | undefined;
+let cachedWorker: WorkerEnv | undefined;
+let cachedDatabase: DatabaseEnv | undefined;
+
+/** Full web-app settings (validated eagerly at server start by instrumentation.ts). */
 export function getEnv(): Env {
   cached ??= parseEnv(process.env);
   return cached;
 }
 
+export function getWorkerEnv(): WorkerEnv {
+  cachedWorker ??= parseWorkerEnv(process.env);
+  return cachedWorker;
+}
+
+export function getDatabaseEnv(): DatabaseEnv {
+  cachedDatabase ??= parseDatabaseEnv(process.env);
+  return cachedDatabase;
+}
+
 /** Test helper: reset memoized env. */
 export function resetEnvCache(): void {
   cached = undefined;
+  cachedWorker = undefined;
+  cachedDatabase = undefined;
 }

@@ -167,6 +167,18 @@ jobs:
           env -u DATABASE_URL NODE_ENV=production PORT=3999 timeout 20 node server.js
           code=$?
           test "$code" -eq 1 || { echo "expected exit 1, got $code"; exit 1; }
+      - name: Fail-fast check (worker must exit 1 without required settings)
+        run: |
+          set +e
+          env -u DATABASE_URL NODE_ENV=production timeout 20 node .build/worker.mjs
+          code=$?; test "$code" -eq 1 || { echo "no DATABASE_URL: expected exit 1, got $code"; exit 1; }
+          env -u AI_PROVIDER NODE_ENV=production timeout 20 node .build/worker.mjs
+          code=$?; test "$code" -eq 1 || { echo "no AI_PROVIDER: expected exit 1, got $code"; exit 1; }
+      - name: Start worker (bundled, without web-app secrets)
+        run: |
+          NODE_ENV=production node .build/worker.mjs > "$RUNNER_TEMP/worker.log" 2>&1 &
+          for _ in $(seq 1 20); do grep -q "worker started" "$RUNNER_TEMP/worker.log" && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/worker.log"; exit 1
       - name: Generate a throwaway auth secret for this run
         run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
       - name: Start server
@@ -178,9 +190,13 @@ jobs:
       - run: pnpm test:smoke
         env:
           SMOKE_BASE_URL: http://127.0.0.1:3000
+          SMOKE_DATABASE_URL: ${{ env.DATABASE_URL }}
       - name: Server logs
         if: always()
         run: cat "$RUNNER_TEMP/server.log" || true
+      - name: Worker logs
+        if: always()
+        run: cat "$RUNNER_TEMP/worker.log" || true
 
   docker:
     name: Docker image build + container smoke test
@@ -203,7 +219,7 @@ jobs:
       - name: Start database
         run: |
           docker network create sp
-          docker run -d --name db --network sp \
+          docker run -d --name db --network sp -p 5432:5432 \
             -e POSTGRES_USER=supportpilot -e POSTGRES_PASSWORD=supportpilot -e POSTGRES_DB=supportpilot \
             "$PG_IMAGE"
           for _ in $(seq 1 30); do docker exec db pg_isready -U supportpilot && break; sleep 1; done
@@ -221,10 +237,20 @@ jobs:
             -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL=http://localhost:3000 -e AI_PROVIDER=mock \
             supportpilot:ci
           for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && break; sleep 1; done
-      - name: Container runs as non-root
+      - name: Start worker container (same image, no web-app secrets)
+        # The image's HEALTHCHECK probes the web port, so it does not apply to the worker.
         run: |
-          uid=$(docker exec app id -u)
-          echo "uid=$uid"; test "$uid" != "0"
+          docker run -d --name worker --network sp --no-healthcheck \
+            -e DATABASE_URL=postgres://supportpilot:supportpilot@db:5432/supportpilot -e AI_PROVIDER=mock \
+            supportpilot:ci node .build/worker.mjs
+          for _ in $(seq 1 20); do docker logs worker 2>&1 | grep -q "worker started" && exit 0; sleep 1; done
+          docker logs worker; exit 1
+      - name: Containers run as non-root
+        run: |
+          for c in app worker; do
+            uid=$(docker exec "$c" id -u)
+            echo "$c uid=$uid"; test "$uid" != "0"
+          done
       - name: Docker HEALTHCHECK reports healthy
         run: |
           for _ in $(seq 1 30); do
@@ -241,8 +267,11 @@ jobs:
       - run: pnpm test:smoke
         env:
           SMOKE_BASE_URL: http://127.0.0.1:3000
+          SMOKE_DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot
       - name: Image size
         run: docker image ls supportpilot:ci
       - name: Container logs
         if: always()
-        run: docker logs app || true
+        run: |
+          docker logs app || true
+          echo "--- worker"; docker logs worker || true

@@ -35,9 +35,29 @@ services:
     build: .
     environment:
       DATABASE_URL: postgres://supportpilot:supportpilot@db:5432/supportpilot
+      # Required in production mode. Generate with: export BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in your shell first}
+      BETTER_AUTH_URL: http://localhost:3000
+      # mock = offline embeddings. For Gemini set AI_PROVIDER=gemini and add GEMINI_API_KEY here.
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
       LOG_LEVEL: info
     ports:
       - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Background jobs (document ingestion). Same image, different command, no auth secrets.
+  worker:
+    profiles: ["full"]
+    build: .
+    command: ["node", ".build/worker.mjs"]
+    environment:
+      DATABASE_URL: postgres://supportpilot:supportpilot@db:5432/supportpilot
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      LOG_LEVEL: info
+    healthcheck:
+      disable: true # the image's check probes the web port
     depends_on:
       migrate:
         condition: service_completed_successfully
