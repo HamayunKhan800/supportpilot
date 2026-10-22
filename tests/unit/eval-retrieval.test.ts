@@ -13,9 +13,11 @@ import {
 import { prepareDocument } from "@/server/modules/kb/prepare";
 
 import {
+  articlesContaining,
   CORPUS_DIR,
   loadCorpus,
   loadQuestions,
+  loadUnanswerable,
   markdownToPdfPages,
   questionTargets,
 } from "../../scripts/lib/kb-corpus";
@@ -187,5 +189,41 @@ describe("the Nimbus eval corpus and questions", () => {
         expect(text, q.id).toContain(normalizeForMatch(q.evidence));
       }
     }
+  });
+});
+
+describe("the unanswerable questions", () => {
+  const corpus = loadCorpus();
+  const unanswerable = loadUnanswerable();
+
+  it("finds whole words and phrases across line breaks and emphasis, and nothing else", () => {
+    expect(articlesContaining("NC-507", corpus)).toEqual(expect.arrayContaining(["storage-quota.md"]));
+    expect(articlesContaining("72-hour   WAITING period", corpus)).toEqual(["account-recovery.md"]); // **bold** in the source
+    expect(articlesContaining("print", corpus)).toEqual([]); // only "printed" appears
+    expect(articlesContaining("printed", corpus)).toEqual(["two-step-verification.md"]);
+    expect(articlesContaining("a.b", corpus)).toEqual([]); // regex characters are literal
+  });
+
+  it("have none of their key terms anywhere in the help centre", () => {
+    expect(unanswerable.length).toBeGreaterThanOrEqual(30);
+    const found = unanswerable.flatMap((q) =>
+      q.absentTerms
+        .map((t) => [q.id, t, articlesContaining(t, corpus)] as const)
+        .filter(([, , hits]) => hits.length),
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("point only at real articles and never repeat an answerable question", () => {
+    const files = new Set(corpus.map((a) => a.file));
+    const answerable = new Set(loadQuestions().map((q) => q.question.toLowerCase()));
+    for (const q of unanswerable) {
+      for (const f of q.nearArticles) expect(files.has(f), `${q.id}: unknown article ${f}`).toBe(true);
+      expect(answerable.has(q.question.toLowerCase()), q.id).toBe(false);
+    }
+    // Mostly near-misses: off-topic questions are too easy to refuse to test much.
+    expect(
+      unanswerable.filter((q) => q.nearArticles.length > 0).length / unanswerable.length,
+    ).toBeGreaterThan(0.8);
   });
 });

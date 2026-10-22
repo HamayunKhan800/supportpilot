@@ -6,7 +6,7 @@ import { createMockEmbedder } from "@/server/modules/kb/embedder";
 import { getDb } from "@/server/platform/db/client";
 import { aiUsage, kbDocument, organization } from "@/server/platform/db/schema";
 
-import { loadCorpus, loadQuestions } from "../../scripts/lib/kb-corpus";
+import { loadCorpus, loadQuestions, loadUnanswerable } from "../../scripts/lib/kb-corpus";
 import { type EvalReport, runRetrievalEval } from "../../scripts/lib/retrieval-eval";
 import { resetDatabase } from "./support/client";
 
@@ -36,6 +36,7 @@ beforeAll(async () => {
     corpus: loadCorpus(),
     questions: loadQuestions(),
     configs: [DEFAULT_CHUNK_OPTIONS],
+    unanswerable: loadUnanswerable(),
   });
 }, 120_000);
 
@@ -60,8 +61,28 @@ describe("retrieval eval (mock embedder, default chunking)", () => {
     expect(report.documentCount).toBe(loadCorpus().length);
     expect(config.chunkCount).toBeGreaterThan(report.documentCount);
     expect(config.splitEvidence).toEqual([]);
-    expect(report.queryEmbedMs.calls).toBe(report.questionCount); // cached across modes
+    expect(report.queryEmbedMs.calls).toBe(report.questionCount + loadUnanswerable().length); // each once, cached across modes
     expect(report.estCostMicros).toBe(0); // the mock is free
+  });
+
+  it("saves what search finds for each unanswerable question, for the human check", () => {
+    const result = report.configs[0]!.unanswerable!;
+    const articles = new Set(loadCorpus().map((a) => a.file));
+    expect(result.questions.map((q) => q.id)).toEqual(loadUnanswerable().map((q) => q.id));
+    for (const q of result.questions) {
+      expect(q.vector).toHaveLength(report.k);
+      const sims = q.vector.map((p) => p.similarity!);
+      expect(sims).toEqual([...sims].sort((a, b) => b - a));
+      expect(result.unanswerableTop1.max).toBeGreaterThanOrEqual(sims[0]!);
+      for (const p of [...q.vector, ...q.keyword]) {
+        expect(articles.has(p.article)).toBe(true);
+        expect(p.content.length).toBeGreaterThan(0);
+      }
+    }
+    for (const s of [result.answerableTop1, result.unanswerableTop1]) {
+      expect(s.min).toBeLessThanOrEqual(s.p50);
+      expect(s.p50).toBeLessThanOrEqual(s.max);
+    }
   });
 
   it("removes its temporary workspace and everything in it", async () => {

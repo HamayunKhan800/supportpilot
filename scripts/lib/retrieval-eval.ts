@@ -37,7 +37,12 @@ import { getDb } from "../../src/server/platform/db/client";
 import { kbChunk, organization } from "../../src/server/platform/db/schema";
 import { transaction } from "../../src/server/platform/db/tx";
 
-import { type CorpusArticle, type EvalQuestion, questionTargets } from "./kb-corpus";
+import {
+  type CorpusArticle,
+  type EvalQuestion,
+  questionTargets,
+  type UnanswerableQuestion,
+} from "./kb-corpus";
 
 export const EVAL_MODES = ["hybrid", "vector", "keyword"] as const;
 export type EvalMode = (typeof EVAL_MODES)[number];
@@ -48,6 +53,12 @@ export interface EvalOptions {
   questions: EvalQuestion[];
   configs: ChunkOptions[];
   modes?: readonly EvalMode[];
+  /**
+   * Questions the corpus does not answer. The eval saves what search finds for them (for the
+   * human check that they really are unanswerable) and compares their best vector match
+   * with the answerable questions' (a first look at refusing by score, calibrated in M6).
+   */
+  unanswerable?: readonly UnanswerableQuestion[];
   /** Wait this long before each real embedding call (free-tier rate limits). */
   paceMs?: number;
   /** Reuse embeddings across configurations and runs (see fileEmbeddingCache). */
@@ -87,6 +98,28 @@ export interface ConfigResult {
   documentEmbedMs: { p50: number; p95: number };
   documentTokens: number;
   modes: ModeResult[];
+  unanswerable?: UnanswerableResult;
+}
+
+export interface FoundPassage {
+  article: string;
+  headingPath: string;
+  /** Cosine similarity for vector hits; absent for keyword hits. */
+  similarity?: number;
+  content: string;
+}
+
+export interface UnanswerableResult {
+  /** Best vector similarity per question: can a score threshold tell the two groups apart? */
+  answerableTop1: ScoreSpread;
+  unanswerableTop1: ScoreSpread;
+  questions: { id: string; vector: FoundPassage[]; keyword: FoundPassage[] }[];
+}
+
+export interface ScoreSpread {
+  min: number;
+  p50: number;
+  max: number;
 }
 
 export interface EvalReport {
@@ -109,6 +142,13 @@ export interface EvalReport {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const round = (n: number) => Math.round(n * 10) / 10;
+const spread = (values: number[]): ScoreSpread => ({
+  min: round3(Math.min(...values)),
+  p50: round3(percentile(values, 50)),
+  max: round3(Math.max(...values)),
+});
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
 const stats = (values: number[]) => ({
   p50: round(percentile(values, 50)),
   p95: round(percentile(values, 95)),
@@ -237,7 +277,7 @@ function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache) {
 export async function countNewEmbeddings(
   modelId: string,
   corpus: readonly CorpusArticle[],
-  questions: readonly EvalQuestion[],
+  queries: readonly string[],
   configs: readonly ChunkOptions[],
   cache: EmbeddingCache,
 ): Promise<number> {
@@ -251,7 +291,7 @@ export async function countNewEmbeddings(
       }
     }
   }
-  for (const q of questions) keys.add(embeddingKey(modelId, "query", q.question));
+  for (const q of queries) keys.add(embeddingKey(modelId, "query", q));
   return [...keys].filter((k) => !cache.get(k)).length;
 }
 
@@ -279,6 +319,7 @@ async function rank(
 async function runConfig(
   chunk: ChunkOptions,
   opts: Required<Pick<EvalOptions, "corpus" | "questions" | "modes">> & {
+    unanswerable?: readonly UnanswerableQuestion[];
     embedder: Embedder;
     log: (line: string) => void;
     logger?: Logger;
@@ -320,7 +361,12 @@ async function runConfig(
     }
 
     const rows = await db
-      .select({ id: kbChunk.id, documentId: kbChunk.documentId, content: kbChunk.content })
+      .select({
+        id: kbChunk.id,
+        documentId: kbChunk.documentId,
+        headingPath: kbChunk.headingPath,
+        content: kbChunk.content,
+      })
       .from(kbChunk)
       .where(eq(kbChunk.workspaceId, workspaceId));
     const chunks: EvalChunk[] = rows.map((r) => ({
@@ -372,9 +418,51 @@ async function runConfig(
         `    ${mode.padEnd(7)} recall@5 ${(summary.recallAtK * 100).toFixed(1)}%  MRR@5 ${summary.mrrAtK.toFixed(3)}`,
       );
     }
+    let unanswerable: UnanswerableResult | undefined;
+    if (opts.unanswerable?.length) {
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const passage = (id: string, similarity?: number): FoundPassage => {
+        const row = byId.get(id)!;
+        return {
+          article: article.get(id) ?? "?",
+          headingPath: row.headingPath,
+          ...(similarity === undefined ? {} : { similarity: round3(similarity) }),
+          content: row.content,
+        };
+      };
+      const vectorHits = async (question: string) => {
+        const { embedding } = await opts.embedder.embedQuery(question);
+        return transaction((tx) => repo.vectorSearch(tx, workspaceId, embedding, RETRIEVAL_TOP_K));
+      };
+      const answerableTop1: number[] = [];
+      for (const q of opts.questions) answerableTop1.push((await vectorHits(q.question))[0]?.similarity ?? 0);
+      const unanswerableTop1: number[] = [];
+      const found: UnanswerableResult["questions"] = [];
+      for (const q of opts.unanswerable) {
+        const vector = await vectorHits(q.question);
+        const keyword = await repo.keywordSearch(db, workspaceId, q.question, RETRIEVAL_TOP_K);
+        unanswerableTop1.push(vector[0]?.similarity ?? 0);
+        found.push({
+          id: q.id,
+          vector: vector.map((h) => passage(h.chunkId, h.similarity)),
+          keyword: keyword.map((h) => passage(h.chunkId)),
+        });
+      }
+      unanswerable = {
+        answerableTop1: spread(answerableTop1),
+        unanswerableTop1: spread(unanswerableTop1),
+        questions: found,
+      };
+      opts.log(
+        `    best vector match: answerable ${unanswerable.answerableTop1.min}–${unanswerable.answerableTop1.max} ` +
+          `(median ${unanswerable.answerableTop1.p50}), unanswerable ${unanswerable.unanswerableTop1.min}–` +
+          `${unanswerable.unanswerableTop1.max} (median ${unanswerable.unanswerableTop1.p50})`,
+      );
+    }
     return {
       chunk,
       chunkCount: chunks.length,
+      ...(unanswerable ? { unanswerable } : {}),
       splitEvidence,
       documentEmbedMs: stats(opts.metrics.documentMs.slice(docStart)),
       documentTokens: opts.metrics.documentTokens - tokensStart,
@@ -392,7 +480,7 @@ export async function runRetrievalEval(options: EvalOptions): Promise<EvalReport
     const needed = await countNewEmbeddings(
       options.embedder.modelId,
       options.corpus,
-      options.questions,
+      [...options.questions.map((q) => q.question), ...(options.unanswerable ?? []).map((q) => q.question)],
       options.configs,
       cache,
     );
@@ -426,6 +514,7 @@ export async function runRetrievalEval(options: EvalOptions): Promise<EvalReport
         corpus: options.corpus,
         questions: options.questions,
         modes: options.modes ?? EVAL_MODES,
+        ...(options.unanswerable ? { unanswerable: options.unanswerable } : {}),
         embedder,
         log,
         ...(options.logger ? { logger: options.logger } : {}),

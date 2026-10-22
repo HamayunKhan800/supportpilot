@@ -101,7 +101,7 @@
 
 - **AI triage, drafts, citations and "source removed" labels (M5).** M4 delivers the deletion side of FR-K3; M5 shows deleted sources in drafts.
 - **Prompt-injection evaluation (M5/M6).** M4 only stores the poisoned article and each chunk's provenance.
-- **Unanswerable questions and calibrating `retrieval_min_score` (M6).**
+- **Measuring refusals and calibrating `retrieval_min_score` (M6).** The unanswerable question set itself was added in M4 step 6 (30 questions, finding #73).
 - **OCR for scanned PDFs, `.docx`/HTML uploads, and editing documents in the app.**
 - **Antivirus scanning or Content Disarm & Reconstruct.** This is recorded as accepted risk **AR-006**, mitigated by text-only extraction in a sandboxed thread and never serving files back.
 - **Worker health endpoint and alerting (M8).**

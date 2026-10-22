@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "description": "Questions the Nimbus help centre does NOT answer, for refusal tests (M5/M6). Mostly near-misses: topics close to an article but not covered. Rule: no question may be answered by a closed list in the articles (e.g. 'Can I pay with Bitcoin?' is answerable: the payment article lists every accepted method). Checked three ways: `absentTerms` must not appear in any article (unit test), the top passages from vector and keyword search are saved by the eval, and a human reviews them (docs/eval/unanswerable-check.md).",
+  "questions": [
+    {
+      "id": "u001",
+      "question": "Can I buy extra storage on top of the 2 TB in my Personal plan without changing plans?",
+      "nearArticles": ["plans-and-pricing.md", "storage-quota.md"],
+      "why": "Plans list fixed storage amounts and upgrading between plans; no add-on storage is mentioned.",
+      "absentTerms": [
+        "add-on",
+        "additional storage",
+        "buy more storage",
+        "storage pack",
+        "extra storage pack"
+      ]
+    },
+    {
+      "id": "u002",
+      "question": "Do teachers or school staff get a discount?",
+      "nearArticles": ["student-discount.md", "plans-and-pricing.md"],
+      "why": "Discounts exist for students (Personal) and registered non-profits (Business); nothing about teachers or staff.",
+      "absentTerms": ["teacher", "teachers", "educator", "faculty", "staff discount"]
+    },
+    {
+      "id": "u003",
+      "question": "Can I transfer my whole Nimbus account to someone else, like a family member?",
+      "nearArticles": ["business-admin-console.md", "shared-folders.md", "delete-account.md"],
+      "why": "Shared-folder ownership, a departing employee's files and a Family plan can be transferred; transferring a personal account is not covered.",
+      "absentTerms": [
+        "transfer my account",
+        "transfer your account",
+        "account transfer",
+        "transfer the account"
+      ]
+    },
+    {
+      "id": "u004",
+      "question": "What's the maximum number of people I can invite to a single shared folder?",
+      "nearArticles": ["shared-folders.md"],
+      "why": "Roles and invitations are described, but no limit on members per shared folder.",
+      "absentTerms": ["member limit", "maximum number of people", "people per folder", "members per folder"]
+    },
+    {
+      "id": "u005",
+      "question": "Can I protect a file request with a password?",
+      "nearArticles": ["file-requests.md", "sharing-links.md"],
+      "why": "File requests have deadlines; passwords exist for sharing links only. Password protection for file requests is not mentioned.",
+      "absentTerms": ["request password", "password-protected request", "password for the request"]
+    },
+    {
+      "id": "u006",
+      "question": "How do I change the language the Nimbus app is displayed in?",
+      "nearArticles": ["contact-support.md"],
+      "why": "Only the languages of the support team are listed, not app display languages.",
+      "absentTerms": ["app language", "display language", "change the language", "interface language"]
+    },
+    {
+      "id": "u007",
+      "question": "Does the web app have a dark mode?",
+      "nearArticles": ["web-app.md"],
+      "why": "Not mentioned anywhere.",
+      "absentTerms": ["dark mode", "dark theme", "night mode"]
+    },
+    {
+      "id": "u008",
+      "question": "Can I pause my subscription for a few months instead of cancelling it?",
+      "nearArticles": ["cancel-subscription.md", "change-plan.md"],
+      "why": "Cancelling, undoing a cancellation and changing plans are covered; pausing a subscription is not. (\"Pause\" only appears for syncing.)",
+      "absentTerms": [
+        "pause my subscription",
+        "pause your subscription",
+        "pause the subscription",
+        "pause your plan",
+        "pause my plan"
+      ]
+    },
+    {
+      "id": "u009",
+      "question": "Is there a free trial of the Business plan?",
+      "nearArticles": ["plans-and-pricing.md"],
+      "why": "Not mentioned.",
+      "absentTerms": ["trial"]
+    },
+    {
+      "id": "u010",
+      "question": "Will my free account be deleted if I don't sign in for a year?",
+      "nearArticles": ["delete-account.md", "getting-started.md"],
+      "why": "Only deliberate account deletion is described; no inactivity policy.",
+      "absentTerms": ["inactive", "inactivity", "don't sign in", "dormant"]
+    },
+    {
+      "id": "u011",
+      "question": "Is there a Nimbus widget for my phone's home screen?",
+      "nearArticles": ["mobile-app.md"],
+      "why": "Not mentioned.",
+      "absentTerms": ["widget", "widgets", "home screen"]
+    },
+    {
+      "id": "u012",
+      "question": "Does Nimbus scan my files for viruses or malware?",
+      "nearArticles": ["security-and-encryption.md", "file-size-limits.md", "sync-troubleshooting.md"],
+      "why": "Antivirus appears only as third-party software slowing sync, and executable previews are disabled; scanning by Nimbus is not stated.",
+      "absentTerms": ["malware", "virus scan", "scan for viruses", "scans your files", "scan your files for"]
+    },
+    {
+      "id": "u013",
+      "question": "Can I access my Nimbus files over WebDAV or FTP?",
+      "nearArticles": ["integrations-and-api.md"],
+      "why": "Only the REST API, apps and integrations are described.",
+      "absentTerms": ["webdav", "ftp", "sftp"]
+    },
+    {
+      "id": "u014",
+      "question": "Can I edit a PDF in Nimbus, for example to fill in a form or sign it?",
+      "nearArticles": ["web-app.md", "mobile-app.md"],
+      "why": "PDFs can be previewed and documents scanned to PDF; editing Office files is via Microsoft 365 or Google Docs. Editing PDFs is not mentioned.",
+      "absentTerms": ["edit pdf", "pdf editor", "fill in a form", "annotate", "e-signature", "sign a pdf"]
+    },
+    {
+      "id": "u015",
+      "question": "Is Nimbus HIPAA compliant for storing medical records?",
+      "nearArticles": ["security-and-encryption.md"],
+      "why": "Only ISO 27001, SOC 2 Type II and a DPA are mentioned.",
+      "absentTerms": ["hipaa", "medical", "health"]
+    },
+    {
+      "id": "u016",
+      "question": "How many computers and phones can I connect to one account?",
+      "nearArticles": ["desktop-app.md", "mobile-app.md", "business-admin-console.md"],
+      "why": "Devices can be listed and signed out; no device limit is stated.",
+      "absentTerms": ["device limit", "number of devices", "devices per account", "maximum number of devices"]
+    },
+    {
+      "id": "u017",
+      "question": "Do I get free storage for inviting friends to Nimbus?",
+      "nearArticles": ["getting-started.md", "storage-quota.md"],
+      "why": "No referral programme is mentioned.",
+      "absentTerms": ["referral", "refer a friend", "invite friends", "bonus space", "bonus storage"]
+    },
+    {
+      "id": "u018",
+      "question": "Can I print a document straight from the Nimbus mobile app?",
+      "nearArticles": ["mobile-app.md"],
+      "why": "Not mentioned.",
+      "absentTerms": ["print", "printing", "printer"]
+    },
+    {
+      "id": "u019",
+      "question": "Can I limit how much bandwidth the desktop app uses when uploading?",
+      "nearArticles": ["desktop-app.md", "sync-troubleshooting.md"],
+      "why": "Not mentioned (the API's request limit is unrelated).",
+      "absentTerms": ["bandwidth", "upload speed", "download speed", "throttle", "throttling"]
+    },
+    {
+      "id": "u020",
+      "question": "Is there a limit on how many sharing links I can create?",
+      "nearArticles": ["sharing-links.md"],
+      "why": "Not mentioned.",
+      "absentTerms": ["number of links", "links per", "link limit", "maximum number of links"]
+    },
+    {
+      "id": "u021",
+      "question": "How do I merge two Nimbus accounts into one?",
+      "nearArticles": ["change-email.md"],
+      "why": "Not mentioned.",
+      "absentTerms": ["merge", "merging", "combine accounts", "combine two accounts"]
+    },
+    {
+      "id": "u022",
+      "question": "Can I use Nimbus to host a website?",
+      "nearArticles": ["sharing-links.md"],
+      "why": "Not mentioned.",
+      "absentTerms": ["host a website", "website hosting", "web hosting", "static site"]
+    },
+    {
+      "id": "u023",
+      "question": "How do I reset the password for my Google account?",
+      "nearArticles": ["reset-password.md"],
+      "why": "Off-topic but close: the article covers Nimbus passwords and \"Continue with Google\" sign-in, not Google's own password reset.",
+      "absentTerms": ["google account password", "reset your google", "google password"]
+    },
+    {
+      "id": "u024",
+      "question": "What will the weather be like in London tomorrow?",
+      "nearArticles": [],
+      "why": "Off-topic.",
+      "absentTerms": ["weather", "london", "forecast"]
+    },
+    {
+      "id": "u025",
+      "question": "Can you recommend a good laptop for video editing?",
+      "nearArticles": [],
+      "why": "Off-topic.",
+      "absentTerms": ["video editing", "recommend a laptop", "laptop for"]
+    },
+    {
+      "id": "u026",
+      "question": "Can I sync my Nimbus files to a NAS drive like a Synology?",
+      "nearArticles": ["desktop-app.md", "selective-sync.md"],
+      "why": "Only Windows, macOS and Linux desktop apps are described; NAS devices are not mentioned.",
+      "absentTerms": ["nas", "synology", "network drive", "network-attached", "network attached"]
+    },
+    {
+      "id": "u027",
+      "question": "Can I schedule a file to be deleted automatically on a certain date?",
+      "nearArticles": ["deleted-files.md", "sharing-links.md"],
+      "why": "Links can expire and the trash empties after 30 or 90 days; scheduled deletion of files is not mentioned.",
+      "absentTerms": [
+        "auto-delete",
+        "automatically delete",
+        "scheduled deletion",
+        "delete automatically",
+        "schedule a deletion"
+      ]
+    },
+    {
+      "id": "u028",
+      "question": "Is there a Nimbus app for Apple Watch or smart TVs?",
+      "nearArticles": ["mobile-app.md"],
+      "why": "Only iPhone, iPad and Android phones and tablets are mentioned.",
+      "absentTerms": ["apple watch", "smart tv", "android tv", "watchos", "tvos"]
+    },
+    {
+      "id": "u029",
+      "question": "Do you have an office where I can get help in person?",
+      "nearArticles": ["contact-support.md"],
+      "why": "Support channels are online (help centre, email, chat, phone); no in-person help is mentioned.",
+      "absentTerms": ["in person", "in-person", "walk-in", "visit us", "visit our office"]
+    },
+    {
+      "id": "u030",
+      "question": "Is there a tool to import all my files from Google Drive into Nimbus?",
+      "nearArticles": ["integrations-and-api.md"],
+      "why": "Integrations open Google Docs and connect via Zapier; importing or migrating from another storage service is not mentioned.",
+      "absentTerms": ["google drive", "import from", "migrate", "migration", "dropbox"]
+    }
+  ]
+}

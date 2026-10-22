@@ -21,6 +21,7 @@ import { buildPdf } from "../../tests/support/pdf";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const CORPUS_DIR = path.join(ROOT, "eval/corpus/nimbus");
 export const QUESTIONS_FILE = path.join(ROOT, "eval/retrieval/questions.json");
+export const UNANSWERABLE_FILE = path.join(ROOT, "eval/retrieval/unanswerable.json");
 
 const manifestSchema = z.object({
   version: z.literal(1),
@@ -52,6 +53,27 @@ const questionsSchema = z.object({
 });
 
 export type EvalQuestion = z.infer<typeof questionsSchema>["questions"][number];
+
+const unanswerableSchema = z.object({
+  version: z.literal(1),
+  questions: z
+    .array(
+      z.object({
+        id: z.string().regex(/^u\d{3}$/),
+        question: z.string().min(5).max(500),
+        /** Articles on a nearby topic (empty for off-topic questions). */
+        nearArticles: z.array(z.string().regex(/^[a-z0-9-]+\.md$/)),
+        /** What the help centre says nearby, and what it doesn't say. */
+        why: z.string().min(5),
+        /** Terms an answer would need; none may appear in any article. */
+        absentTerms: z.array(z.string().min(2)).min(1),
+      }),
+    )
+    .min(1),
+});
+
+/** A question the help centre does not answer: the right response is to refuse or escalate. */
+export type UnanswerableQuestion = z.infer<typeof unanswerableSchema>["questions"][number];
 
 export interface CorpusArticle {
   /** Source file, e.g. "refunds.md"; questions refer to articles by this name. */
@@ -150,6 +172,40 @@ export function loadQuestions(file = QUESTIONS_FILE): EvalQuestion[] {
     ids.add(q.id);
   }
   return questions;
+}
+
+export function loadUnanswerable(file = UNANSWERABLE_FILE): UnanswerableQuestion[] {
+  const { questions } = unanswerableSchema.parse(JSON.parse(readFileSync(file, "utf8")));
+  const ids = new Set<string>();
+  for (const q of questions) {
+    if (ids.has(q.id)) throw new Error(`Duplicate unanswerable question id: ${q.id}`);
+    ids.add(q.id);
+  }
+  return questions;
+}
+
+/**
+ * Articles containing `term` as a whole word or phrase, ignoring case, line breaks and
+ * Markdown emphasis ("print" doesn't match "printed"). The first of the three checks that
+ * an unanswerable question really is unanswerable.
+ */
+export function articlesContaining(term: string, corpus: readonly CorpusArticle[]): string[] {
+  const words = term
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${words.join("\\s+")}(?![\\p{L}\\p{N}])`, "u");
+  return corpus
+    .filter((a) =>
+      pattern.test(
+        a.source
+          .toLowerCase()
+          .replace(/[*`]/g, "")
+          .replace(/[\u2018\u2019]/g, "'"),
+      ),
+    )
+    .map((a) => a.file);
 }
 
 /** Every evidence target of a question: its own article plus any equally good passages. */

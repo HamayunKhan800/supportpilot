@@ -9,7 +9,7 @@ import { createMockEmbedder, type Embedder } from "@/server/modules/kb/embedder"
 import { getDb } from "@/server/platform/db/client";
 import { organization } from "@/server/platform/db/schema";
 
-import { loadCorpus, loadQuestions, questionTargets } from "../../scripts/lib/kb-corpus";
+import { loadCorpus, loadQuestions, loadUnanswerable, questionTargets } from "../../scripts/lib/kb-corpus";
 import {
   countNewEmbeddings,
   type EvalReport,
@@ -26,6 +26,7 @@ import { resetDatabase } from "./support/client";
 const corpus = loadCorpus().slice(0, 3);
 const files = new Set(corpus.map((a) => a.file));
 const questions = loadQuestions().filter((q) => questionTargets(q).every((t) => files.has(t.article)));
+const queries = questions.map((q) => q.question);
 const configs = [
   { targetTokens: 300, overlapRatio: 0 },
   { targetTokens: 500, overlapRatio: 0.15 },
@@ -72,7 +73,7 @@ describe("retrieval eval embedding cache and budget", () => {
     const predicted = await countNewEmbeddings(
       first.embedder.modelId,
       corpus,
-      questions,
+      queries,
       configs,
       fileEmbeddingCache(dir),
     );
@@ -131,16 +132,27 @@ describe("retrieval eval embedding cache and budget", () => {
     );
   });
 
+  it("counts the unanswerable questions in the budget", async () => {
+    const unanswerable = loadUnanswerable().slice(0, 2);
+    const cache = fileEmbeddingCache(tempDir());
+    const answerableOnly = await countNewEmbeddings("mock-hash@768", corpus, queries, configs, cache);
+    const { embedder, sent } = countingEmbedder();
+    await expect(
+      runRetrievalEval({ embedder, corpus, questions, configs, unanswerable, cache, budget: answerableOnly }),
+    ).rejects.toThrow(`needs ${answerableOnly + 2} new embeddings`);
+    expect(sent.calls).toBe(0);
+  });
+
   it("keys the cache by model, so a different embedding model starts from zero", async () => {
     const dir = tempDir();
     const cache = fileEmbeddingCache(dir);
-    const needed = await countNewEmbeddings("mock-hash@768", corpus, questions, configs, cache);
+    const needed = await countNewEmbeddings("mock-hash@768", corpus, queries, configs, cache);
     await runRetrievalEval({ embedder: createMockEmbedder(), corpus, questions, configs, cache });
+    expect(await countNewEmbeddings("mock-hash@768", corpus, queries, configs, fileEmbeddingCache(dir))).toBe(
+      0,
+    );
     expect(
-      await countNewEmbeddings("mock-hash@768", corpus, questions, configs, fileEmbeddingCache(dir)),
-    ).toBe(0);
-    expect(
-      await countNewEmbeddings("other-model@768", corpus, questions, configs, fileEmbeddingCache(dir)),
+      await countNewEmbeddings("other-model@768", corpus, queries, configs, fileEmbeddingCache(dir)),
     ).toBe(needed);
   }, 60_000);
 });

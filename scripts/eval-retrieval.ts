@@ -25,7 +25,7 @@ import { createGeminiEmbedder, createMockEmbedder } from "../src/server/modules/
 import { getDb } from "../src/server/platform/db/client";
 import { createLogger } from "../src/server/platform/logger";
 
-import { loadCorpus, loadQuestions } from "./lib/kb-corpus";
+import { loadCorpus, loadQuestions, loadUnanswerable } from "./lib/kb-corpus";
 import {
   EVAL_MODES,
   type EvalMode,
@@ -34,6 +34,7 @@ import {
   memoryEmbeddingCache,
   runRetrievalEval,
 } from "./lib/retrieval-eval";
+import { formatUnanswerableReview, withoutPassageText } from "./lib/unanswerable-review";
 
 const GRID: ChunkOptions[] = [300, 500, 800].flatMap((targetTokens) =>
   [0, 0.15].map((overlapRatio) => ({ targetTokens, overlapRatio })),
@@ -91,6 +92,8 @@ async function main() {
       cache: { type: "string", default: "eval/cache" },
       "no-cache": { type: "boolean", default: false },
       budget: { type: "string" },
+      "no-unanswerable": { type: "boolean", default: false },
+      review: { type: "string" },
     },
   });
 
@@ -124,11 +127,13 @@ async function main() {
     if (!values.out) return;
     const file = path.resolve(values.out);
     mkdirSync(path.dirname(file), { recursive: true });
-    writeFileSync(file, `${JSON.stringify({ generatedAt: new Date().toISOString(), ...report }, null, 2)}\n`);
+    const saved = withoutPassageText(report);
+    writeFileSync(file, `${JSON.stringify({ generatedAt: new Date().toISOString(), ...saved }, null, 2)}\n`);
   };
 
   const corpus = loadCorpus();
   const questions = loadQuestions();
+  const unanswerable = values["no-unanswerable"] ? [] : loadUnanswerable();
   console.log(
     `Retrieval eval: ${embedder.modelId}, ${configs.length} configuration(s), modes ${modes.join(", ")}`,
   );
@@ -138,6 +143,7 @@ async function main() {
     questions,
     configs,
     modes,
+    unanswerable,
     paceMs: Number(values["pace-ms"]),
     cache,
     ...(budget !== undefined ? { budget } : {}),
@@ -150,6 +156,22 @@ async function main() {
 
   write(report);
   if (values.out) console.log(`\nWrote ${values.out}`);
+  if (values.review) {
+    // The shipped default configuration if it ran, else the first one.
+    const config =
+      report.configs.find(
+        (c) =>
+          c.chunk.targetTokens === DEFAULT_CHUNK_OPTIONS.targetTokens &&
+          c.chunk.overlapRatio === DEFAULT_CHUNK_OPTIONS.overlapRatio,
+      ) ?? report.configs[0]!;
+    const file = path.resolve(values.review);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(
+      file,
+      formatUnanswerableReview(report, config, unanswerable, new Date().toISOString().slice(0, 10)),
+    );
+    console.log(`Wrote ${values.review}`);
+  }
 }
 
 main()

@@ -141,5 +141,7 @@ Mark each ✅ or ❌, and add a note if something is off. Any ❌ gets fixed and
 
 ## Result
 
+- **Reviewer feedback (2026-10-22):** all 22 sampled questions have an answer passage; none are "unanswerable", so refusals couldn't be tested, and any unanswerable question should be checked to make sure the answer is truly absent. **Acted on:** 30 unanswerable questions added and checked three ways (`eval/retrieval/unanswerable.json`, `docs/eval/unanswerable-check.md`, finding #73).
+
 - Checked by: (name), (date)
 - ✅ __ of 22 · ❌ __ (fixed in commit …)
