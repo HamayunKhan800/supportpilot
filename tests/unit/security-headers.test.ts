@@ -3,6 +3,7 @@ import {
   contentSecurityPolicy,
   createNonce,
   normalizeFrameAncestors,
+  referrerPolicyFor,
   securityHeaders,
 } from "@/server/platform/security-headers";
 
@@ -79,4 +80,23 @@ describe("nonce-based CSP (T11 XSS)", () => {
     expect(Buffer.from(a, "base64")).toHaveLength(16);
     expect(() => csp({ nonce: a })).not.toThrow();
   });
+});
+
+describe("Referrer-Policy (T6: tracking tokens must not leak via Referer)", () => {
+  it.each(["/t/abc", "/api/v1/portal/t/abc", "/api/v1/portal/t/abc/messages"])(
+    "no-referrer on %s",
+    (path) => {
+      expect(referrerPolicyFor(path)).toBe("no-referrer");
+      expect(securityHeaders({ nonce, isProduction: true, pathname: path })["Referrer-Policy"]).toBe(
+        "no-referrer",
+      );
+    },
+  );
+
+  it.each(["/", "/app/tickets", "/api/v1/tickets", "/terms", "/tickets/t/x"])(
+    "strict-origin-when-cross-origin on %s",
+    (path) => {
+      expect(referrerPolicyFor(path)).toBe("strict-origin-when-cross-origin");
+    },
+  );
 });

@@ -40,7 +40,7 @@ async function limit(key: string, rule: RateLimitRule) {
   const result = await consumeRateLimit(key, rule);
   if (!result.allowed) {
     logger.warn({ event: "portal.rate_limited", scope: key.split(":")[0] }, "portal rate limit hit");
-    throw Errors.tooManyRequests();
+    throw Errors.tooManyRequests(result.retryAfterSeconds);
   }
 }
 

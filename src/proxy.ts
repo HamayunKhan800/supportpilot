@@ -20,14 +20,15 @@ const PROTECTED_PREFIXES = ["/app"];
 export function proxy(request: NextRequest) {
   const requestId = resolveRequestId(request.headers.get(REQUEST_ID_HEADER));
   const nonce = createNonce();
+  const { pathname, search } = request.nextUrl;
   const headers = securityHeaders({
     nonce,
     frameAncestors: process.env.CSP_FRAME_ANCESTORS,
     isDevelopment: process.env.NODE_ENV === "development",
     isProduction: process.env.NODE_ENV === "production",
+    pathname,
   });
 
-  const { pathname, search } = request.nextUrl;
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   let response: NextResponse;
   if (isProtected && !getSessionCookie(request)) {

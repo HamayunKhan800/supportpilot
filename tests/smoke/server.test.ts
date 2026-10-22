@@ -66,4 +66,26 @@ describe(`smoke: ${BASE_URL}`, () => {
   it("unknown API route → 404", async () => {
     expect((await get("/api/does-not-exist")).status).toBe(404);
   });
+
+  it("serves the OpenAPI 3.1 document", async () => {
+    const res = await get("/api/v1/openapi.json");
+    expect(res.status).toBe(200);
+    const doc = await res.json();
+    expect(doc.openapi).toMatch(/^3\.1\./);
+    expect(Object.keys(doc.paths)).toContain("/api/v1/tickets");
+  });
+
+  it("agent API answers 401 Problem Details when signed out (not a sign-in redirect)", async () => {
+    const res = await get("/api/v1/tickets");
+    expect(res.status).toBe(401);
+    expect(res.headers.get("content-type")).toBe("application/problem+json");
+  });
+
+  it("tracking-token API sends Referrer-Policy: no-referrer through the proxy (regression)", async () => {
+    const token = "A".repeat(43);
+    const res = await get(`/api/v1/portal/t/${token}`);
+    expect(res.status).toBe(404);
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(await res.text()).not.toContain(token);
+  });
 });

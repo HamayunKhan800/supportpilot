@@ -59,6 +59,21 @@ Run the production image locally instead: `docker compose --profile full up --bu
 
 The server **refuses to start** (exit 1) when configuration is invalid. Every response carries an `x-request-id` that matches the structured JSON logs.
 
+## REST API (`/api/v1`)
+
+The machine-readable contract is served at **`GET /api/v1/openapi.json`** (OpenAPI 3.1), generated from the same Zod schemas that validate requests. Errors use RFC 9457 Problem Details.
+
+| Endpoint                                 | Who                         |
+| ---------------------------------------- | --------------------------- |
+| `POST /api/v1/portal/{slug}/tickets`     | public (rate limited)       |
+| `GET /api/v1/portal/t/{token}`           | customer with tracking link |
+| `POST /api/v1/portal/t/{token}/messages` | customer with tracking link |
+| `GET /api/v1/tickets`                    | workspace member            |
+| `GET` / `PATCH /api/v1/tickets/{id}`     | workspace member            |
+| `POST /api/v1/tickets/{id}/messages`     | workspace member            |
+
+Agent endpoints use the browser session and accept writes only from the app's own origin.
+
 ## Quality gates (CI)
 
 Lint (incl. accessibility rules, zero warnings) · strict typecheck · Prettier · unit tests + coverage · integration tests on PostgreSQL + pgvector · production build + smoke tests · Playwright E2E + axe accessibility scans (fail on any CSP violation) · fail-fast config check · Docker build + container smoke (non-root, HEALTHCHECK) · CodeQL · gitleaks · dependency review · `pnpm audit` (production deps blocking). All actions are pinned to commit SHAs. Dependabot keeps them current.

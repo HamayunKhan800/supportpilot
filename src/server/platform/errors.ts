@@ -12,6 +12,8 @@ export class AppError extends Error {
     public readonly title: string,
     detail?: string,
     public readonly fieldErrors?: Record<string, string[]>,
+    /** Extra response headers, e.g. Retry-After on 429. */
+    public readonly headers?: Record<string, string>,
   ) {
     super(detail ?? title);
     this.name = "AppError";
@@ -26,8 +28,30 @@ export const Errors = {
   /** Used for cross-tenant access too, so resource existence is not revealed. */
   notFound: () => new AppError(404, "not_found", "Not Found", "The requested resource was not found."),
   conflict: (detail?: string) => new AppError(409, "conflict", "Conflict", detail),
-  tooManyRequests: () =>
-    new AppError(429, "rate_limited", "Too Many Requests", "Too many requests. Please retry later."),
+  payloadTooLarge: (maxBytes: number) =>
+    new AppError(
+      413,
+      "payload_too_large",
+      "Payload Too Large",
+      `Request bodies are limited to ${maxBytes} bytes.`,
+    ),
+  unsupportedMediaType: () =>
+    new AppError(
+      415,
+      "unsupported_media_type",
+      "Unsupported Media Type",
+      "Send a JSON body (application/json).",
+    ),
+  /** RFC 9110 §10.2.3: Retry-After tells well-behaved clients when to come back. */
+  tooManyRequests: (retryAfterSeconds?: number) =>
+    new AppError(
+      429,
+      "rate_limited",
+      "Too Many Requests",
+      "Too many requests. Please retry later.",
+      undefined,
+      retryAfterSeconds ? { "retry-after": String(retryAfterSeconds) } : undefined,
+    ),
   serviceUnavailable: (detail?: string) =>
     new AppError(503, "service_unavailable", "Service Unavailable", detail),
 };

@@ -71,14 +71,26 @@ const csv = <T extends readonly [string, ...string[]]>(values: T) =>
     .pipe(z.array(z.enum(values)).max(values.length));
 
 export const ticketListQuery = z.object({
-  status: csv(TICKET_STATUSES).optional(),
+  status: csv(TICKET_STATUSES)
+    .optional()
+    .describe(`Comma-separated statuses, e.g. "open,pending". One of: ${TICKET_STATUSES.join(", ")}.`),
   priority: z.enum(TICKET_PRIORITIES).optional(),
   category: z.string().trim().min(1).max(50).optional(),
-  /** A user id, "me" or "unassigned". */
-  assignee: z.string().trim().min(1).max(100).optional(),
-  q: z.string().trim().max(LIMITS.query).optional(),
+  assignee: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('A member\'s user id, "me" or "unassigned".'),
+  q: z
+    .string()
+    .trim()
+    .max(LIMITS.query)
+    .optional()
+    .describe('Full-text search (websearch syntax, e.g. "refund -annual") or a ticket number like "#12".'),
   sort: z.enum(["newest", "oldest"]).default("newest"),
-  after: z.uuid().optional(),
+  after: z.uuid().optional().describe("`nextCursor` from the previous page."),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
 export type TicketListQuery = z.input<typeof ticketListQuery>;

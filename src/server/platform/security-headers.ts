@@ -53,11 +53,25 @@ export function contentSecurityPolicy(opts: {
   return directives.join("; ");
 }
 
+/**
+ * Paths whose URL contains a secret (the customer tracking token, plan D1). Browsers must
+ * not leak them in the Referer header to any site, including links customers click there.
+ */
+const SECRET_PATH_PREFIXES = ["/t/", "/api/v1/portal/t/"];
+
+export function referrerPolicyFor(pathname: string): string {
+  return SECRET_PATH_PREFIXES.some((p) => pathname.startsWith(p))
+    ? "no-referrer"
+    : "strict-origin-when-cross-origin";
+}
+
 export function securityHeaders(opts: {
   nonce: string;
   frameAncestors?: string;
   isDevelopment?: boolean;
   isProduction: boolean;
+  /** Request path, used to pick the Referrer-Policy. */
+  pathname?: string;
 }): Record<string, string> {
   const frameAncestors = normalizeFrameAncestors(opts.frameAncestors);
   const headers: Record<string, string> = {
@@ -68,7 +82,7 @@ export function securityHeaders(opts: {
       isProduction: opts.isProduction,
     }),
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Referrer-Policy": referrerPolicyFor(opts.pathname ?? "/"),
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
     "Cross-Origin-Opener-Policy": "same-origin",
   };
