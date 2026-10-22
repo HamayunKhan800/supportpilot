@@ -50,3 +50,6 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 /blob-report/
+
+# Embedding cache of pnpm eval:retrieval (vectors keyed by hash; regenerated on demand)
+eval/cache/

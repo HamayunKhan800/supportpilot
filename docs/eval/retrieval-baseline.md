@@ -57,7 +57,19 @@ What this shows:
 
 ## Results: Gemini (`gemini-embedding-2`, 768 dimensions)
 
-**Pending.** Runs with the free-tier key at the end of M4 step 6; the numbers, latency and cost go here.
+**Preliminary: partial run of 2026-10-22.** 5 of the 6 configurations finished before the free tier's daily quota ran out (finding #70); latency and tokens were not saved (finding #72, now fixed). The full run, with latency and cost, replaces this table.
+
+| Chunk tokens / overlap | Chunks | Hybrid recall@5 / MRR@5 | Vector         | Keyword       |
+| ---------------------- | -----: | ----------------------- | -------------- | ------------- |
+| 300 / 0                |    156 | 97.3% / 0.849           | 100.0% / 0.932 | 80.9% / 0.578 |
+| 300 / 0.15             |    156 | 98.2% / 0.835           | 99.1% / 0.934  | 79.1% / 0.578 |
+| 500 / 0                |    153 | 97.3% / 0.825           | 99.1% / 0.918  | 80.9% / 0.569 |
+| 500 / 0.15             |    153 | 96.4% / 0.824           | 99.1% / 0.918  | 81.8% / 0.569 |
+| 800 / 0                |    153 | 97.3% / 0.824           | 99.1% / 0.918  | 82.7% / 0.560 |
+| 800 / 0.15             |    153 | not run (quota)         |                |               |
+
+- **The ≥ 90% recall@5 target is met** by hybrid and vector search in every configuration measured. Keyword-only is about 80%, as with the mock (it doesn't use embeddings).
+- **Vector-only beats hybrid** on both recall and MRR, by about 0.09 MRR (finding #71). With a strong embedding model, equal-weight fusion with an OR keyword search adds noise: passages sharing common words climb into the top 5. This is from one partial run on developer-written questions, so the default (plan D10) is not changed yet; fusion variants are compared next, from cached embeddings, at no API cost.
 
 ## CI guard
 
@@ -71,7 +83,7 @@ Mutation check: 6 deliberate bugs, all caught. Keyword search returning nothing,
 - **One labeller.** Mitigated by the automated label checks and a human spot-check of 20%.
 - **Answerable questions only.** Questions the knowledge base can't answer, and a minimum-score threshold for refusing, belong to M6 (refusal rate ≥ 90% target).
 - **PDF page breaks split sentences.** PDFs are chunked per page, so a sentence crossing a page break lands in two passages (seen in the admin-guide PDF). No question depends on it here; carrying overlap across pages is a candidate fix (finding #64).
-- **Gemini free-tier rate limits** are no longer published as a fixed table; Google shows them per project in AI Studio ([rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), checked 2026-10-22). The eval paces calls (`--pace-ms`) and the SDK retries 429 responses.
+- **Gemini free-tier rate limits** are no longer published as a fixed table; Google shows them per project in AI Studio ([rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), checked 2026-10-22). The eval paces calls (`--pace-ms`) and the SDK retries 429 responses. The free tier's **daily** limit, as reported in the 429 response on 2026-10-22, is 1,000 embedded texts per project and model, counting each passage; it resets at midnight Pacific time. So the eval caches every embedding on disk (`eval/cache`) and refuses to start a run that would need more than `--budget` new ones (default 900 for Gemini).
 
 ## Reproduce
 

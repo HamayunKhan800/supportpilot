@@ -105,6 +105,7 @@
 - **OCR for scanned PDFs, `.docx`/HTML uploads, and editing documents in the app.**
 - **Antivirus scanning or Content Disarm & Reconstruct.** This is recorded as accepted risk **AR-006**, mitigated by text-only extraction in a sandboxed thread and never serving files back.
 - **Worker health endpoint and alerting (M8).**
+- **Global daily embedding budget for the live demo (M8).** The Gemini free tier allows 1,000 embedded texts per day per project (finding #70), and every search embeds the question; the demo needs a counter that stops embedding calls before the quota and shows a clear "demo limit reached" message.
 
 ## 6. Needs your input before step 6
 

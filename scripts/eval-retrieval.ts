@@ -4,8 +4,13 @@
  *
  *   pnpm eval:retrieval                          # mock embedder, default chunking, 3 modes
  *   pnpm eval:retrieval --grid                   # chunk 300/500/800 x overlap 0/0.15
- *   GEMINI_API_KEY=... pnpm eval:retrieval --provider gemini --grid --pace-ms 700 \
+ *   GEMINI_API_KEY=... pnpm eval:retrieval --provider gemini --grid --pace-ms 1000 \
  *     --out eval/results/retrieval-gemini.json
+ *
+ * Embeddings are cached in eval/cache (git-ignored), so each passage and question is only
+ * ever embedded once; later runs and experiments reuse them without API calls (--no-cache
+ * to disable). Gemini runs refuse to start if they need more new embeddings than --budget
+ * (default 900): the free tier allows 1,000 embedded texts per day and counts each passage.
  *
  * Needs DATABASE_URL (with migrations applied). It creates a temporary workspace per
  * configuration and deletes it afterwards; it never touches other workspaces. Refuses to
@@ -21,7 +26,14 @@ import { getDb } from "../src/server/platform/db/client";
 import { createLogger } from "../src/server/platform/logger";
 
 import { loadCorpus, loadQuestions } from "./lib/kb-corpus";
-import { EVAL_MODES, type EvalMode, type EvalReport, runRetrievalEval } from "./lib/retrieval-eval";
+import {
+  EVAL_MODES,
+  type EvalMode,
+  type EvalReport,
+  fileEmbeddingCache,
+  memoryEmbeddingCache,
+  runRetrievalEval,
+} from "./lib/retrieval-eval";
 
 const GRID: ChunkOptions[] = [300, 500, 800].flatMap((targetTokens) =>
   [0, 0.15].map((overlapRatio) => ({ targetTokens, overlapRatio })),
@@ -46,15 +58,18 @@ export function formatReport(report: EvalReport): string {
   }
   lines.push("");
   for (const c of report.configs) {
+    const embedMs = c.documentTokens
+      ? `document embedding p50 ${c.documentEmbedMs.p50} ms, p95 ${c.documentEmbedMs.p95} ms per call`
+      : "all passages from the cache";
     lines.push(
-      `Chunks ${c.chunk.targetTokens}/${c.chunk.overlapRatio}: document embedding p50 ${c.documentEmbedMs.p50} ms, ` +
-        `p95 ${c.documentEmbedMs.p95} ms per document; ${c.documentTokens} tokens; ` +
+      `Chunks ${c.chunk.targetTokens}/${c.chunk.overlapRatio}: ${embedMs}; ${c.documentTokens} new tokens; ` +
         `evidence split by chunking: ${c.splitEvidence.length ? c.splitEvidence.join(", ") : "none"}`,
     );
   }
   lines.push(
     `Query embedding: p50 ${report.queryEmbedMs.p50} ms, p95 ${report.queryEmbedMs.p95} ms (${report.queryEmbedMs.calls} calls)`,
-    `Tokens: ${report.totalTokens} (queries ${report.queryTokens}) · est. cost at paid-tier price: ` +
+    `Embedded texts sent: ${report.embeddedTexts} · cache hits: ${report.cacheHits}`,
+    `Tokens sent: ${report.totalTokens} (queries ${report.queryTokens}) · est. cost at paid-tier price: ` +
       `$${(report.estCostMicros / 1e6).toFixed(4)} (free tier: $0)`,
   );
   return lines.join("\n");
@@ -73,6 +88,9 @@ async function main() {
       modes: { type: "string", default: EVAL_MODES.join(",") },
       "pace-ms": { type: "string", default: "0" },
       out: { type: "string" },
+      cache: { type: "string", default: "eval/cache" },
+      "no-cache": { type: "boolean", default: false },
+      budget: { type: "string" },
     },
   });
 
@@ -99,6 +117,16 @@ async function main() {
     embedder = createMockEmbedder();
   }
 
+  const budget =
+    values.budget !== undefined ? Number(values.budget) : provider === "gemini" ? 900 : undefined;
+  const cache = values["no-cache"] ? memoryEmbeddingCache() : fileEmbeddingCache(path.resolve(values.cache));
+  const write = (report: EvalReport) => {
+    if (!values.out) return;
+    const file = path.resolve(values.out);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, `${JSON.stringify({ generatedAt: new Date().toISOString(), ...report }, null, 2)}\n`);
+  };
+
   const corpus = loadCorpus();
   const questions = loadQuestions();
   console.log(
@@ -111,18 +139,17 @@ async function main() {
     configs,
     modes,
     paceMs: Number(values["pace-ms"]),
+    cache,
+    ...(budget !== undefined ? { budget } : {}),
+    onProgress: write,
     log: (line) => console.log(line),
     // Warnings and failures only; one "document ingested" line per document is noise here.
     logger: createLogger({ level: process.env.EVAL_LOG_LEVEL ?? "warn" }),
   });
   console.log(`\n${formatReport(report)}`);
 
-  if (values.out) {
-    const file = path.resolve(values.out);
-    mkdirSync(path.dirname(file), { recursive: true });
-    writeFileSync(file, `${JSON.stringify({ generatedAt: new Date().toISOString(), ...report }, null, 2)}\n`);
-    console.log(`\nWrote ${path.relative(process.cwd(), file)}`);
-  }
+  write(report);
+  if (values.out) console.log(`\nWrote ${values.out}`);
 }
 
 main()

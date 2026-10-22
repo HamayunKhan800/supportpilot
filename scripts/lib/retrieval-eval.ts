@@ -11,7 +11,9 @@
  * Query embeddings are cached, so each question is embedded once per run whatever the
  * number of configurations and modes; embedding latency is measured on those real calls only.
  */
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 import { eq } from "drizzle-orm";
 import type { Logger } from "pino";
@@ -26,7 +28,8 @@ import {
 } from "../../src/server/modules/eval/retrieval-metrics";
 import type { ChunkOptions } from "../../src/server/modules/kb/chunker";
 import { embeddingCostMicros, type Embedder } from "../../src/server/modules/kb/embedder";
-import { runIngestJob } from "../../src/server/modules/kb/ingest-job";
+import { chunkTitle, runIngestJob } from "../../src/server/modules/kb/ingest-job";
+import { prepareDocument } from "../../src/server/modules/kb/prepare";
 import * as repo from "../../src/server/modules/kb/repository";
 import { RETRIEVAL_TOP_K } from "../../src/server/modules/kb/retrieval";
 import { hybridSearch } from "../../src/server/modules/kb/service";
@@ -47,6 +50,15 @@ export interface EvalOptions {
   modes?: readonly EvalMode[];
   /** Wait this long before each real embedding call (free-tier rate limits). */
   paceMs?: number;
+  /** Reuse embeddings across configurations and runs (see fileEmbeddingCache). */
+  cache?: EmbeddingCache;
+  /**
+   * Refuse to start if the run needs more new embeddings than this. The Gemini free tier
+   * allows 1,000 embedded texts per day per project and counts each passage in a batch.
+   */
+  budget?: number;
+  /** Called with the report so far after each configuration, so a failure loses nothing. */
+  onProgress?: (report: EvalReport) => void;
   log?: (line: string) => void;
   /** For the ingest job's own logs (default: the app logger). */
   logger?: Logger;
@@ -86,6 +98,11 @@ export interface EvalReport {
   queryEmbedMs: { p50: number; p95: number; calls: number };
   queryTokens: number;
   totalTokens: number;
+  /** Embedded texts sent to the provider in this run (cache misses), and cache hits. */
+  embeddedTexts: number;
+  cacheHits: number;
+  /** False while configurations are still running (partial report). */
+  complete: boolean;
   /** At the paid-tier list price; the free tier costs $0. */
   estCostMicros: number;
 }
@@ -97,39 +114,145 @@ const stats = (values: number[]) => ({
   p95: round(percentile(values, 95)),
 });
 
-/** Wraps the embedder: caches query vectors, times and counts only real calls. */
-function instrument(inner: Embedder, paceMs: number) {
-  const queryCache = new Map<string, Promise<{ embedding: number[]; tokenEstimate: number }>>();
-  const m = { documentMs: [] as number[], documentTokens: 0, queryMs: [] as number[], queryTokens: 0 };
+// --- Embedding cache ----------------------------------------------------------------------
+
+export interface CachedEmbedding {
+  embedding: number[];
+  tokenEstimate: number;
+}
+
+export interface EmbeddingCache {
+  get(key: string): CachedEmbedding | undefined;
+  set(key: string, value: CachedEmbedding): void;
+}
+
+/** Key for one text: model (with dimensions), kind and the exact input. */
+export function embeddingKey(modelId: string, kind: "document" | "query", input: string): string {
+  return createHash("sha256").update(`${modelId}\0${kind}\0${input}`).digest("hex");
+}
+
+const documentInput = (item: { title: string; text: string }) => JSON.stringify([item.title, item.text]);
+
+export function memoryEmbeddingCache(): EmbeddingCache {
+  const map = new Map<string, CachedEmbedding>();
+  return { get: (k) => map.get(k), set: (k, v) => void map.set(k, v) };
+}
+
+/**
+ * Embeddings stored as JSON lines in `dir/embeddings.jsonl` (git-ignored). Vectors only, no
+ * text: keys are hashes. Lets a later run (other chunking, other fusion settings) reuse every
+ * embedding already paid for in free-tier quota.
+ */
+export function fileEmbeddingCache(dir: string): EmbeddingCache {
+  const file = path.join(dir, "embeddings.jsonl");
+  const map = new Map<string, CachedEmbedding>();
+  if (existsSync(file)) {
+    for (const line of readFileSync(file, "utf8").split("\n")) {
+      if (!line) continue;
+      const { k, v, t } = JSON.parse(line) as { k: string; v: number[]; t: number };
+      map.set(k, { embedding: v, tokenEstimate: t });
+    }
+  } else {
+    mkdirSync(dir, { recursive: true });
+  }
+  return {
+    get: (k) => map.get(k),
+    set(k, value) {
+      map.set(k, value);
+      appendFileSync(file, `${JSON.stringify({ k, v: value.embedding, t: value.tokenEstimate })}\n`);
+    },
+  };
+}
+
+/**
+ * Wraps the embedder: serves cached texts, sends only the missing ones (one batch per call,
+ * as ingestion does), and times and counts real calls only.
+ */
+function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache) {
+  const m = {
+    documentMs: [] as number[],
+    documentTokens: 0,
+    queryMs: [] as number[],
+    queryTokens: 0,
+    embeddedTexts: 0,
+    cacheHits: 0,
+  };
+  const inflight = new Map<string, Promise<CachedEmbedding>>();
   const embedder: Embedder = {
     modelId: inner.modelId,
     async embedDocuments(items, signal) {
-      if (paceMs) await sleep(paceMs);
-      const start = performance.now();
-      const batch = await inner.embedDocuments(items, signal);
-      m.documentMs.push(performance.now() - start);
-      m.documentTokens += batch.tokenEstimate;
-      return batch;
+      const keys = items.map((i) => embeddingKey(inner.modelId, "document", documentInput(i)));
+      const missing = [...new Set(keys.filter((k) => !cache.get(k)))];
+      m.cacheHits += keys.length - missing.length;
+      let spent = 0;
+      if (missing.length > 0) {
+        const toEmbed = missing.map((k) => items[keys.indexOf(k)]!);
+        if (paceMs) await sleep(paceMs);
+        const start = performance.now();
+        const batch = await inner.embedDocuments(toEmbed, signal);
+        m.documentMs.push(performance.now() - start);
+        m.documentTokens += batch.tokenEstimate;
+        m.embeddedTexts += toEmbed.length;
+        spent = batch.tokenEstimate;
+        const totalChars = toEmbed.reduce((n, i) => n + i.title.length + i.text.length, 0) || 1;
+        missing.forEach((k, i) => {
+          const chars = toEmbed[i]!.title.length + toEmbed[i]!.text.length;
+          cache.set(k, {
+            embedding: batch.embeddings[i]!,
+            tokenEstimate: Math.round((batch.tokenEstimate * chars) / totalChars),
+          });
+        });
+      }
+      // Only tokens actually sent count as spent (ingestion records them in ai_usage).
+      return { embeddings: keys.map((k) => cache.get(k)!.embedding), tokenEstimate: spent };
     },
-    embedQuery(query, signal) {
-      let cached = queryCache.get(query);
-      if (!cached) {
-        cached = (async () => {
+    async embedQuery(query, signal) {
+      const key = embeddingKey(inner.modelId, "query", query);
+      const hit = cache.get(key);
+      if (hit) {
+        m.cacheHits++;
+        return hit;
+      }
+      let pending = inflight.get(key);
+      if (!pending) {
+        pending = (async () => {
           if (paceMs) await sleep(paceMs);
           const start = performance.now();
           const result = await inner.embedQuery(query, signal);
           m.queryMs.push(performance.now() - start);
           m.queryTokens += result.tokenEstimate;
+          m.embeddedTexts++;
+          cache.set(key, result);
           return result;
-        })();
-        // A failed call must not poison the cache.
-        cached.catch(() => queryCache.delete(query));
-        queryCache.set(query, cached);
+        })().finally(() => inflight.delete(key));
+        inflight.set(key, pending);
       }
-      return cached;
+      return pending;
     },
   };
   return { embedder, metrics: m };
+}
+
+/** New embeddings a run would need, worked out locally (chunking only, no API calls). */
+export async function countNewEmbeddings(
+  modelId: string,
+  corpus: readonly CorpusArticle[],
+  questions: readonly EvalQuestion[],
+  configs: readonly ChunkOptions[],
+  cache: EmbeddingCache,
+): Promise<number> {
+  const keys = new Set<string>();
+  for (const chunk of configs) {
+    for (const article of corpus) {
+      const prepared = await prepareDocument(article.mimeType, article.bytes, { chunk });
+      for (const c of prepared.chunks) {
+        const input = documentInput({ title: chunkTitle(article.title, c.headingPath), text: c.content });
+        keys.add(embeddingKey(modelId, "document", input));
+      }
+    }
+  }
+  for (const q of questions) keys.add(embeddingKey(modelId, "query", q.question));
+  return [...keys].filter((k) => !cache.get(k)).length;
 }
 
 async function rank(
@@ -263,9 +386,40 @@ async function runConfig(
 }
 
 export async function runRetrievalEval(options: EvalOptions): Promise<EvalReport> {
-  const { embedder, metrics } = instrument(options.embedder, options.paceMs ?? 0);
+  const cache = options.cache ?? memoryEmbeddingCache();
   const log = options.log ?? (() => {});
+  if (options.budget !== undefined) {
+    const needed = await countNewEmbeddings(
+      options.embedder.modelId,
+      options.corpus,
+      options.questions,
+      options.configs,
+      cache,
+    );
+    log(`New embeddings needed: ${needed} (budget ${options.budget})`);
+    if (needed > options.budget) {
+      throw new Error(`This run needs ${needed} new embeddings, more than the budget of ${options.budget}`);
+    }
+  }
+  const { embedder, metrics } = instrument(options.embedder, options.paceMs ?? 0, cache);
   const configs: ConfigResult[] = [];
+  const report = (complete: boolean): EvalReport => {
+    const totalTokens = metrics.documentTokens + metrics.queryTokens;
+    return {
+      model: embedder.modelId,
+      k: RETRIEVAL_TOP_K,
+      questionCount: options.questions.length,
+      documentCount: options.corpus.length,
+      configs: [...configs],
+      queryEmbedMs: { ...stats(metrics.queryMs), calls: metrics.queryMs.length },
+      queryTokens: metrics.queryTokens,
+      totalTokens,
+      estCostMicros: embeddingCostMicros(embedder.modelId, totalTokens),
+      embeddedTexts: metrics.embeddedTexts,
+      cacheHits: metrics.cacheHits,
+      complete,
+    };
+  };
   for (const chunk of options.configs) {
     configs.push(
       await runConfig(chunk, {
@@ -278,17 +432,7 @@ export async function runRetrievalEval(options: EvalOptions): Promise<EvalReport
         metrics,
       }),
     );
+    options.onProgress?.(report(false));
   }
-  const totalTokens = metrics.documentTokens + metrics.queryTokens;
-  return {
-    model: embedder.modelId,
-    k: RETRIEVAL_TOP_K,
-    questionCount: options.questions.length,
-    documentCount: options.corpus.length,
-    configs,
-    queryEmbedMs: { ...stats(metrics.queryMs), calls: metrics.queryMs.length },
-    queryTokens: metrics.queryTokens,
-    totalTokens,
-    estCostMicros: embeddingCostMicros(embedder.modelId, totalTokens),
-  };
+  return report(true);
 }

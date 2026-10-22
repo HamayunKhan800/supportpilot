@@ -1,0 +1,29 @@
+# pnpm eval:retrieval --provider gemini --grid --pace-ms 1000   (2026-10-22, free tier)
+# Console output kept as evidence. The run stopped in the 6th configuration when the free tier's
+# daily quota ran out: embed_content_free_tier_requests, limit 1000 per day per project per model
+# (quotaId EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier). The quota counts every
+# embedded text (each passage in a batch), not each HTTP request. The JSON report (latency, tokens)
+# is only written at the end, so it was lost; see docs/eval/retrieval-baseline.md.
+Retrieval eval: gemini-embedding-2@768, 6 configuration(s), modes hybrid, vector, keyword
+  chunks 300/0: 35 documents, 156 chunks
+    hybrid  recall@5 97.3%  MRR@5 0.849
+    vector  recall@5 100.0%  MRR@5 0.932
+    keyword recall@5 80.9%  MRR@5 0.578
+  chunks 300/0.15: 35 documents, 156 chunks
+    hybrid  recall@5 98.2%  MRR@5 0.835
+    vector  recall@5 99.1%  MRR@5 0.934
+    keyword recall@5 79.1%  MRR@5 0.578
+  chunks 500/0: 35 documents, 153 chunks
+    hybrid  recall@5 97.3%  MRR@5 0.825
+    vector  recall@5 99.1%  MRR@5 0.918
+    keyword recall@5 80.9%  MRR@5 0.569
+  chunks 500/0.15: 35 documents, 153 chunks
+    hybrid  recall@5 96.4%  MRR@5 0.824
+    vector  recall@5 99.1%  MRR@5 0.918
+    keyword recall@5 81.8%  MRR@5 0.569
+  chunks 800/0: 35 documents, 153 chunks
+    hybrid  recall@5 97.3%  MRR@5 0.824
+    vector  recall@5 99.1%  MRR@5 0.918
+    keyword recall@5 82.7%  MRR@5 0.560
+Error: Ingesting student-discount.md did not finish: {"status":"failed","errorCode":"embedding_unavailable"}
+  (cause: 429 RESOURCE_EXHAUSTED, "Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 1000, model: gemini-embedding-2. Please retry in 20h22m")
