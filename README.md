@@ -107,6 +107,7 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`                       | none                               | Optional GitHub sign-in                                                                                                                                                                                                                                        |
 | `AI_PROVIDER`                                                     | `mock` (must be set in production) | `gemini` for real embeddings, `mock` for deterministic offline embeddings (tests, local work). Production must choose explicitly, so a deployment never silently runs on fake embeddings                                                                       |
 | `GEMINI_API_KEY`                                                  | none                               | Google AI Studio key, required when `AI_PROVIDER=gemini`. Free-tier inputs may be used by Google to improve its products: demo data only                                                                                                                       |
+| `AI_DAILY_CALL_LIMIT`                                             | `200`                              | Triage + draft calls per day for the whole deployment, counted per Pacific-time day (when Google resets free quotas). `0` turns AI generation off                                                                                                              |
 | `LOG_LEVEL`, `DATABASE_POOL_MAX`, `DATABASE_STATEMENT_TIMEOUT_MS` | `info`, `10`, `10000`              | Logging and database tuning                                                                                                                                                                                                                                    |
 
 ## Operational endpoints
@@ -139,7 +140,7 @@ Lint (incl. accessibility rules, zero warnings) · strict typecheck · Prettier 
 | [00 · Research & plan](docs/00-research-and-plan.md)      | Market research with sources, stack choice, roadmap                  |
 | [01 · Requirements](docs/01-requirements.md)              | Roles, functional & non-functional requirements, acceptance criteria |
 | [02 · Architecture](docs/02-architecture.md)              | System design, data model, API contract, key flows                   |
-| [03 · Threat model](docs/03-threat-model.md)              | STRIDE, OWASP Top 10:2025 and OWASP LLM Top 10 mapping               |
+| [03 · Threat model](docs/03-threat-model.md)              | STRIDE, OWASP Top 10:2025 and OWASP LLM Top 10 2026 mapping          |
 | [04 · AI evaluation plan](docs/04-ai-evaluation-plan.md)  | Golden dataset, metrics, targets                                     |
 | [ADRs](docs/adr/)                                         | Architecture decision records                                        |
 | [Accepted risks](docs/security/accepted-risks.md)         | Known limitations with mitigations and a revisit date                |

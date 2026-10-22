@@ -8,7 +8,7 @@ AI produces suggestions only (triage labels, drafts). A human must approve befor
 
 ## Why
 
-Stack Overflow 2026: 48% of developers trust AI output when they can easily verify it, and only 6.6% trust it for important decisions. OWASP LLM06 (Excessive Agency) and LLM01 (Prompt Injection) say to limit impact rather than rely on prevention.
+Stack Overflow 2026: 48% of developers trust AI output when they can easily verify it, and only 6.6% trust it for important decisions. OWASP LLM06 (Excessive Agency; LLM03 in the 2026 edition) and LLM01 (Prompt Injection) say to limit impact rather than rely on prevention.
 
 ## Consequences
 

@@ -144,6 +144,18 @@ describe("env: AI provider (ADR-0006, plan M4 D4)", () => {
     );
   });
 
+  it("caps daily AI generation calls, shared by the web app and the worker (M5 D12b)", () => {
+    expect(parseEnv(valid).AI_DAILY_CALL_LIMIT).toBe(200);
+    expect(parseEnv({ ...valid, AI_DAILY_CALL_LIMIT: "0" }).AI_DAILY_CALL_LIMIT).toBe(0);
+    expect(parseEnv({ ...valid, AI_DAILY_CALL_LIMIT: "1500" }).AI_DAILY_CALL_LIMIT).toBe(1500);
+    for (const bad of ["-1", "2.5", "lots", "1000001"]) {
+      expect(() => parseEnv({ ...valid, AI_DAILY_CALL_LIMIT: bad }), bad).toThrowError(/AI_DAILY_CALL_LIMIT/);
+    }
+    const DB = { DATABASE_URL: "postgres://user:pass@localhost:5432/db" };
+    expect(parseWorkerEnv(DB).AI_DAILY_CALL_LIMIT).toBe(200);
+    expect(parseWorkerEnv({ ...DB, AI_DAILY_CALL_LIMIT: "50" }).AI_DAILY_CALL_LIMIT).toBe(50);
+  });
+
   it("rejects unknown providers and never echoes the API key", () => {
     expect(() => parseEnv({ ...valid, AI_PROVIDER: "openai" })).toThrowError(/AI_PROVIDER/);
     try {

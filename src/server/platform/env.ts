@@ -29,6 +29,13 @@ const aiFields = {
   AI_PROVIDER: z.enum(["mock", "gemini"]).optional(),
   /** Gemini API key from Google AI Studio. Required when AI_PROVIDER=gemini. */
   GEMINI_API_KEY: z.string().min(1).optional(),
+  /**
+   * Most text-generation calls (triage + drafts) the whole deployment may make per day
+   * (midnight-to-midnight Pacific time, when Google resets daily quotas). Shared by every
+   * workspace, the web app and the worker, so a public demo can't use up the provider's free
+   * daily quota (M5 D12b). 0 turns AI generation off.
+   */
+  AI_DAILY_CALL_LIMIT: z.coerce.number().int().min(0).max(1_000_000).default(200),
 };
 
 function refineAi(

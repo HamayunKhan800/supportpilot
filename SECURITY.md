@@ -8,7 +8,7 @@ Please **do not open a public issue**. Use GitHub's private vulnerability report
 
 ## Scope & design
 
-- Threat model: [`docs/03-threat-model.md`](docs/03-threat-model.md) (OWASP Top 10:2025 and OWASP LLM Top 10 2025 mappings)
+- Threat model: [`docs/03-threat-model.md`](docs/03-threat-model.md) (OWASP Top 10:2025 and OWASP LLM Top 10 2026 mappings)
 - Accepted risks: [`docs/security/accepted-risks.md`](docs/security/accepted-risks.md)
 - Automated checks: CodeQL, gitleaks, dependency review, `pnpm audit`, and Dependabot (see `.github/`)
 

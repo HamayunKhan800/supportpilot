@@ -86,7 +86,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await q(`TRUNCATE kb_chunk, kb_document_blob, kb_document, ai_usage, app_rate_limit`);
+  await q(`TRUNCATE ai_draft_citation, kb_chunk, kb_document_blob, kb_document, ai_usage, app_rate_limit`);
   await q(`DELETE FROM pgboss.job`);
 });
 

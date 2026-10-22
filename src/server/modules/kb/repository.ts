@@ -1,7 +1,6 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, sql, sum } from "drizzle-orm";
 import { getDb } from "@/server/platform/db/client";
 import {
-  aiUsage,
   kbChunk,
   kbDocument,
   kbDocumentBlob,
@@ -10,6 +9,7 @@ import {
   type KbMimeType,
 } from "@/server/platform/db/schema";
 import type { Executor, Transaction } from "@/server/platform/db/tx";
+import { insertAiUsageRecord } from "@/server/modules/ai/repository";
 
 /**
  * Knowledge-base data access. Every function takes `workspaceId` and filters by it
@@ -363,6 +363,7 @@ export async function replaceEmbeddings(
 // AI usage
 // ---------------------------------------------------------------------------
 
+/** Embedding usage. Thin wrapper over the shared AI usage ledger (src/server/modules/ai). */
 export async function insertAiUsage(
   tx: Executor,
   workspaceId: string,
@@ -374,14 +375,7 @@ export async function insertAiUsage(
     estCostMicros: number;
   },
 ): Promise<void> {
-  await tx.insert(aiUsage).values({
-    workspaceId,
-    feature: input.feature,
-    model: input.model,
-    inputTokens: input.inputTokens,
-    outputTokens: input.outputTokens ?? 0,
-    estCostMicros: input.estCostMicros,
-  });
+  await insertAiUsageRecord(tx, workspaceId, input);
 }
 
 // ---------------------------------------------------------------------------

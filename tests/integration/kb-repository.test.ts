@@ -108,7 +108,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await getDb().pool.query(`TRUNCATE "kb_chunk", "kb_document_blob", "kb_document", "ai_usage"`);
+  await getDb().pool.query(
+    `TRUNCATE "ai_draft_citation", "kb_chunk", "kb_document_blob", "kb_document", "ai_usage"`,
+  );
 });
 
 describe("FR-K1 upload storage", () => {

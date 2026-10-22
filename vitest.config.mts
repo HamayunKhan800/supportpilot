@@ -69,6 +69,9 @@ export default defineConfig({
         // pg-boss wiring (install, transactional enqueue); exercised end to end against
         // PostgreSQL in tests/integration/kb-ingest-job.test.ts.
         "src/server/platform/jobs/boss.ts",
+        // SQL only (budget sum, atomic daily-cap upsert, usage insert); tested against
+        // PostgreSQL in tests/integration/ai-ledger.test.ts, including concurrent reservations.
+        "src/server/modules/ai/repository.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

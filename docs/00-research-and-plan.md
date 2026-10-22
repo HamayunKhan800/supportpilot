@@ -40,7 +40,7 @@ Caveat: respondents choose to take the survey, so the sample is not random. Trea
 
 - **Next.js** is on 16.x (16.4 released 2026-10-06), and security releases come roughly every month (e.g., 16.3.8 on 2026-09-30). Automated dependency updates are therefore mandatory. ([Next.js blog](https://nextjs.org/blog), [Sept 2026 security release](https://nextjs.org/blog/september-2026-security-release))
 - **Auth.js/NextAuth** has been maintained by the Better Auth team since Sept 2025. Its maintainers recommend **Better Auth for new projects**. ([GitHub discussion](https://github.com/nextauthjs/next-auth/discussions/13252), [Better Auth blog](https://better-auth.com/blog/authjs-joins-better-auth))
-- **OWASP Top 10:2025** (A01 Broken Access Control … A10 Mishandling of Exceptional Conditions) ([owasp.org](https://owasp.org/Top10/2025/)) and the **OWASP Top 10 for LLM Applications 2025** ([genai.owasp.org](https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/)). One secondary site mentions a 2026 LLM edition that I could not find on the official site. I will check again at the security-review milestone.
+- **OWASP Top 10:2025** (A01 Broken Access Control … A10 Mishandling of Exceptional Conditions) ([owasp.org](https://owasp.org/Top10/2025/)) and the **OWASP Top 10 for LLM Applications 2025** ([genai.owasp.org](https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/)). One secondary site mentions a 2026 LLM edition that I could not find on the official site. I will check again at the security-review milestone. **Update 2026-10-22 (M5):** the 2026 edition is now published on the official OWASP GenAI repository (2026-08-04); the threat model was remapped to it.
 
 ---
 
@@ -151,9 +151,9 @@ flowchart LR
 Key design rules:
 
 - Every DB query is **scoped by `workspaceId`** through a repository layer, so no query skips the scope. This is tested per route (OWASP A01).
-- The LLM **never** gets tools that can mutate data. Its output is treated as untrusted: rendered as escaped text or sanitized Markdown, and citations are validated against retrieved IDs (LLM05/LLM06).
-- System prompts contain **no secrets**. Retrieved documents are wrapped and labelled as data, not instructions. A prompt-injection test set runs in CI (LLM01/LLM07).
-- Per-workspace token budgets, request rate limits, and max input sizes (LLM10 Unbounded Consumption).
+- The LLM **never** gets tools that can mutate data. Its output is treated as untrusted: rendered as escaped text or sanitized Markdown, and citations are validated against retrieved IDs (LLM05/LLM06, 2025 numbering; LLM10/LLM03 in the 2026 edition).
+- System prompts contain **no secrets**. Retrieved documents are wrapped and labelled as data, not instructions. A prompt-injection test set runs in CI (LLM01/LLM07, 2025 numbering; LLM01/LLM08 in the 2026 edition).
+- Per-workspace token budgets, request rate limits, and max input sizes (LLM10 Unbounded Consumption, 2025 numbering; LLM06 in the 2026 edition).
 
 ---
 

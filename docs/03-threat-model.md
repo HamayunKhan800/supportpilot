@@ -1,7 +1,7 @@
 # 03 · Threat Model
 
 > Milestone M0 · Status: **Draft for review** · Re-reviewed at M7 (security review).
-> References: [OWASP Top 10:2025](https://owasp.org/Top10/2025/) · [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/) · OWASP ASVS (used as checklist at M7). At M7 I will check whether a newer LLM Top 10 edition exists on the official site.
+> References: [OWASP Top 10:2025](https://owasp.org/Top10/2025/) · [OWASP Top 10 for LLM Applications 2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10) (published 2026-08-04; replaced the 2025 edition this document first used, remapped at M5 step 1) · [OWASP LLM Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html) · OWASP ASVS (used as checklist at M7).
 
 ## 1. Assets
 
@@ -63,20 +63,22 @@ Browser ↔ web app · web/worker ↔ Postgres · web/worker ↔ LLM provider (d
 | A09 Security Logging and Alerting Failures | Audit log, authz-denied & auth-failure events, Sentry alerts                                                                       |
 | A10 Mishandling of Exceptional Conditions  | Central error mapping, fail-closed authz, timeouts, no stack traces to clients                                                     |
 
-## 6. OWASP LLM Top 10 (2025) mapping
+## 6. OWASP LLM Top 10 (2026) mapping
 
-| Risk                                   | Control                                                                                            |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| LLM01 Prompt Injection                 | T8, T9; human approval; eval set in CI                                                             |
-| LLM02 Sensitive Information Disclosure | Retrieval scoped to the requesting workspace only; T17                                             |
-| LLM03 Supply Chain                     | Official provider SDKs only; pinned versions                                                       |
-| LLM04 Data & Model Poisoning           | Admin-only uploads; provenance on citations                                                        |
-| LLM05 Improper Output Handling         | T10, T11; structured output validated with Zod before use                                          |
-| LLM06 Excessive Agency                 | No tools, no autonomous sends, no write access for the model                                       |
-| LLM07 System Prompt Leakage            | No secrets in prompts; canary test                                                                 |
-| LLM08 Vector & Embedding Weaknesses    | `workspace_id` filter on every vector query (tested); no cross-tenant index sharing without filter |
-| LLM09 Misinformation                   | Citations required; refusal when retrieval is weak; groundedness eval                              |
-| LLM10 Unbounded Consumption            | Budgets, rate limits, input size caps, max output tokens, timeouts                                 |
+Remapped at M5 step 1 (2026-10-22). The 2026 edition renumbered the list. It also replaced "System Prompt Leakage" with the broader **Hidden Context Exposure** (anything placed in the model's context that the user should not see). The **Status** column says what exists today: _built_ (in code and tested), or the M5 step that adds it ([M5 plan](plans/m5-ai-features.md)). M7 re-reviews the whole table.
+
+| Risk (2026)                            | Control                                                                                                                                                                                                                | Status                                                     |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| LLM01 Prompt Injection                 | T8, T9. Impact limited rather than "prevented": no tools, human approval, untrusted text in labelled data blocks, canary check blocks the draft, Unicode tag characters stripped and flagged, injection eval set in CI | Human approval by design (ADR-0009); rest M5 steps 3 and 6 |
+| LLM02 Sensitive Information Disclosure | Retrieval scoped to the requesting workspace; customer email/name and internal notes never sent to the model (M5 D11); prompts never logged; T17                                                                       | Workspace scoping built (M4); D11 in M5 step 3             |
+| LLM03 Excessive Agency                 | No tools, no autonomous sends, no write access for the model; triage may only set category/priority on fields a human has not set, and only above a confidence threshold                                               | Design (ADR-0009); triage rule in M5 step 2                |
+| LLM04 Supply Chain                     | Official provider SDKs only (`ai`, `@ai-sdk/google`), exact pinned versions, Dependabot, `pnpm audit --prod` in CI; stable model IDs, never `-latest` aliases (ADR-0015)                                               | Built                                                      |
+| LLM05 Data & Model Poisoning           | KB uploads admin-only; provenance (title, heading) on every citation; poisoned test document in the eval corpus                                                                                                        | Built (M4); citation provenance in M5 step 3               |
+| LLM06 Unbounded Consumption            | Per-workspace monthly token budget, global daily call cap (`AI_DAILY_CALL_LIMIT`, atomic counter), circuit breaker, rate limits, input size caps, max output tokens, timeouts (ADR-0015)                               | Built in M5 step 1 (rate limits on draft route: step 3)    |
+| LLM07 Misinformation                   | Citations required and validated by code; refusal before the LLM call when retrieval is weak; human review of every draft; groundedness eval in M6                                                                     | M5 step 3; eval in M6                                      |
+| LLM08 Hidden Context Exposure          | No secrets or other tenants' data in prompts; the model sees only what the agent can already see; canary string test                                                                                                   | M5 steps 3 and 6                                           |
+| LLM09 Vector & Embedding Weaknesses    | `workspace_id` filter on every vector query (tested); embedding model recorded per chunk (mismatch → 409)                                                                                                              | Built (M4)                                                 |
+| LLM10 Improper Output Handling         | T10, T11. Output rendered as plain escaped text (no Markdown, no HTML); citation markers validated against retrieved IDs; structured output validated with Zod; links/emails not in the sources flagged                | Zod validation built (step 1); rest M5 steps 3–4           |
 
 ## 7. Accepted risks (v1)
 

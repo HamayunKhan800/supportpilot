@@ -1,0 +1,372 @@
+import { generateText, NoObjectGeneratedError, Output, streamText, type LanguageModelUsage } from "ai";
+import type { z } from "zod";
+import type { AiUsageOutcome } from "@/server/platform/db/schema";
+import type { Executor } from "@/server/platform/db/tx";
+import { logger as defaultLogger } from "@/server/platform/logger";
+import { CircuitBreaker, type CircuitState } from "./circuit-breaker";
+import {
+  AI_FEATURES,
+  CIRCUIT_BREAKER,
+  DAILY_CALL_SCOPE,
+  estimateCostMicros,
+  FEATURE_SETTINGS,
+  type AiFeature,
+  type FeatureSettings,
+} from "./config";
+import { AiError, classifyAiError } from "./errors";
+import { createModelsFromEnv, type AiModels } from "./models";
+import type { MockResponder } from "./mock-model";
+import {
+  getAiPolicy,
+  insertAiUsageRecord,
+  reserveDailyCall,
+  type AiPolicy,
+  type AiUsageRecord,
+} from "./repository";
+
+/**
+ * The only way the app calls a language model (M5 D3, D12–D14; ADR-0015). Every call, in order:
+ *
+ *  1. AI enabled for the workspace?            no → ai_disabled
+ *  2. Monthly token budget left?               no → ai_budget_exhausted   (FR-AI7)
+ *  3. Circuit closed for this model?           no → ai_unavailable        (D13)
+ *  4. Reserve a slot in the daily cap          full → ai_daily_limit      (D12b)
+ *  5. Call the model: no SDK retries, timeouts, output cap, caller's abort signal
+ *  6. Record outcome, tokens, cost, latency and time to first token in ai_usage (D14)
+ *
+ * Steps 1–4 run before any network call, so a refused call costs nothing. SDK retries are off
+ * (maxRetries: 0) so each provider request is counted once by the cap and seen by the breaker;
+ * callers that should retry (the triage job) retry with their own back-off.
+ *
+ * Prompts and outputs are never logged (D11).
+ */
+
+export interface AiCallContext {
+  workspaceId: string;
+  /** Recorded with the usage row for per-ticket cost. */
+  ticketId?: string | null;
+  /** Cancels the call, e.g. when the agent closes the page (D13). */
+  signal?: AbortSignal;
+}
+
+interface AiRequest {
+  feature: AiFeature;
+  system: string;
+  prompt: string;
+}
+
+export interface AiUsageSummary {
+  inputTokens: number;
+  outputTokens: number;
+  estCostMicros: number;
+}
+
+export interface AiObjectResult<T> {
+  object: T;
+  modelId: string;
+  usage: AiUsageSummary;
+  latencyMs: number;
+}
+
+export interface AiTextResult {
+  text: string;
+  modelId: string;
+  usage: AiUsageSummary;
+  latencyMs: number;
+  /** Milliseconds to the first text chunk; null if the model returned no text. */
+  ttftMs: number | null;
+  /** "stop" normally; "length" means the output cap cut the text short. */
+  finishReason: string;
+}
+
+/** Storage the gateway needs. Postgres in the app; an in-memory fake in unit tests. */
+export interface AiLedger {
+  getPolicy(workspaceId: string): Promise<AiPolicy | null>;
+  reserveDailyCall(limit: number): Promise<boolean>;
+  recordUsage(workspaceId: string, row: AiUsageRecord): Promise<void>;
+}
+
+export function createPostgresLedger(db: Executor): AiLedger {
+  return {
+    getPolicy: (workspaceId) => getAiPolicy(db, workspaceId),
+    reserveDailyCall: (limit) => reserveDailyCall(db, DAILY_CALL_SCOPE, limit),
+    recordUsage: (workspaceId, row) => insertAiUsageRecord(db, workspaceId, row),
+  };
+}
+
+export interface AiGateway {
+  readonly provider: AiModels["provider"];
+  /** Structured output validated against `schema` (Zod). Invalid output → ai_invalid_output. */
+  generateObject<T>(
+    ctx: AiCallContext,
+    request: AiRequest & { schema: z.ZodType<T> },
+  ): Promise<AiObjectResult<T>>;
+  /**
+   * Streams text, calling `onDelta` for each chunk (awaited, so a slow client applies
+   * back-pressure). Resolves after the last chunk; rejects with an AiError on any failure,
+   * including mid-stream ones, which the AI SDK reports as stream parts rather than throwing.
+   */
+  streamText(
+    ctx: AiCallContext,
+    request: AiRequest & { onDelta: (text: string) => void | Promise<void> },
+  ): Promise<AiTextResult>;
+  circuitState(feature: AiFeature): CircuitState;
+}
+
+export interface AiGatewayOptions {
+  models: AiModels;
+  ledger: AiLedger;
+  /** AI_DAILY_CALL_LIMIT. */
+  dailyCallLimit: number;
+  /** Test hooks: shorter timeouts, a fake clock, a quiet logger. */
+  settings?: Partial<Record<AiFeature, Partial<FeatureSettings>>>;
+  clock?: () => number;
+  breakerClock?: () => number;
+  logger?: Pick<typeof defaultLogger, "warn">;
+}
+
+const estimateTokens = (text: string) => Math.ceil(text.length / 4);
+
+export function createAiGateway(options: AiGatewayOptions): AiGateway {
+  const { models, ledger, dailyCallLimit } = options;
+  const clock = options.clock ?? (() => performance.now());
+  const log = options.logger ?? defaultLogger;
+  const settingsFor = (feature: AiFeature): FeatureSettings => ({
+    ...FEATURE_SETTINGS[feature],
+    ...options.settings?.[feature],
+  });
+  const breakers = Object.fromEntries(
+    AI_FEATURES.map((feature) => [
+      feature,
+      new CircuitBreaker({ ...CIRCUIT_BREAKER, now: options.breakerClock }),
+    ]),
+  ) as Record<AiFeature, CircuitBreaker>;
+
+  /** Steps 1–4. Throws an AiError without calling the provider. */
+  async function admit(ctx: AiCallContext, feature: AiFeature): Promise<void> {
+    if (ctx.signal?.aborted) throw new AiError("ai_aborted");
+    const policy = await ledger.getPolicy(ctx.workspaceId);
+    if (!policy?.aiEnabled) throw new AiError("ai_disabled");
+    if (policy.tokensUsedThisMonth >= policy.monthlyTokenBudget) throw new AiError("ai_budget_exhausted");
+    const breaker = breakers[feature];
+    const permit = breaker.acquire();
+    if (!permit.allowed) throw new AiError("ai_unavailable", { retryAfterMs: permit.retryAfterMs });
+    let reserved: boolean;
+    try {
+      reserved = await ledger.reserveDailyCall(dailyCallLimit);
+    } catch (err) {
+      breaker.release();
+      throw err;
+    }
+    if (!reserved) {
+      breaker.release();
+      throw new AiError("ai_daily_limit");
+    }
+  }
+
+  function summarize(modelId: string, input: number, output: number): AiUsageSummary {
+    return {
+      inputTokens: input,
+      outputTokens: output,
+      estCostMicros: estimateCostMicros(modelId, input, output),
+    };
+  }
+
+  function fromSdkUsage(modelId: string, usage: LanguageModelUsage | undefined): AiUsageSummary {
+    return summarize(modelId, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0);
+  }
+
+  /** Step 6 plus the breaker update. Never throws: a logging failure must not hide the call's result. */
+  async function settle(
+    ctx: AiCallContext,
+    feature: AiFeature,
+    modelId: string,
+    result: { error?: AiError; usage: AiUsageSummary; latencyMs: number; ttftMs?: number | null },
+  ): Promise<void> {
+    const breaker = breakers[feature];
+    const code = result.error?.code;
+    if (code === "ai_unavailable" || code === "ai_timeout" || code === "ai_rejected") breaker.recordFailure();
+    else if (code === "ai_aborted") breaker.release();
+    else breaker.recordSuccess(); // ok, or invalid output: the provider answered
+
+    const outcome: AiUsageOutcome = result.error?.outcome ?? "ok";
+    if (result.error) {
+      const cause = result.error.cause as { statusCode?: unknown; name?: unknown } | undefined;
+      log.warn(
+        {
+          feature,
+          workspaceId: ctx.workspaceId,
+          code,
+          provider: models.provider,
+          status: typeof cause?.statusCode === "number" ? cause.statusCode : undefined,
+          causeName: typeof cause?.name === "string" ? cause.name : undefined,
+          circuit: breaker.state,
+        },
+        "ai call failed",
+      );
+    }
+    try {
+      await ledger.recordUsage(ctx.workspaceId, {
+        feature,
+        model: modelId,
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        estCostMicros: result.usage.estCostMicros,
+        outcome,
+        latencyMs: Math.round(result.latencyMs),
+        ttftMs: result.ttftMs == null ? null : Math.round(result.ttftMs),
+        ticketId: ctx.ticketId ?? null,
+      });
+    } catch (err) {
+      log.warn({ feature, workspaceId: ctx.workspaceId, err }, "could not record ai usage");
+    }
+  }
+
+  return {
+    provider: models.provider,
+
+    circuitState: (feature) => breakers[feature].state,
+
+    async generateObject<T>(ctx: AiCallContext, request: AiRequest & { schema: z.ZodType<T> }) {
+      const { feature } = request;
+      await admit(ctx, feature);
+      const settings = settingsFor(feature);
+      const { model, modelId } = models.models[feature];
+      const started = clock();
+      let output: T;
+      let usage: AiUsageSummary;
+      try {
+        const result = await generateText({
+          model,
+          system: request.system,
+          prompt: request.prompt,
+          output: Output.object({ schema: request.schema }),
+          maxOutputTokens: settings.maxOutputTokens,
+          reasoning: settings.reasoning,
+          maxRetries: 0,
+          abortSignal: ctx.signal,
+          timeout: { totalMs: settings.timeout.totalMs },
+        });
+        output = result.output as T;
+        usage = fromSdkUsage(modelId, result.totalUsage);
+      } catch (err) {
+        const error = classifyAiError(err, { clientAborted: ctx.signal?.aborted ?? false });
+        // Invalid output was still generated, and billed: record its tokens.
+        const failedUsage = NoObjectGeneratedError.isInstance(err) ? err.usage : undefined;
+        await settle(ctx, feature, modelId, {
+          error,
+          usage: fromSdkUsage(modelId, failedUsage),
+          latencyMs: clock() - started,
+        });
+        throw error;
+      }
+      const latencyMs = clock() - started;
+      await settle(ctx, feature, modelId, { usage, latencyMs });
+      return { object: output, modelId, usage, latencyMs };
+    },
+
+    async streamText(ctx, request) {
+      const { feature } = request;
+      await admit(ctx, feature);
+      const settings = settingsFor(feature);
+      const { model, modelId } = models.models[feature];
+      // Ours aborts the provider call when we stop early (delivery failed, error part).
+      const internal = new AbortController();
+      const signal = ctx.signal ? AbortSignal.any([ctx.signal, internal.signal]) : internal.signal;
+      const started = clock();
+
+      let text = "";
+      let ttftMs: number | null = null;
+      let failure: unknown;
+      let failed = false;
+      let deliveryFailed = false;
+      let abortReason: string | undefined;
+      let sdkAborted = false;
+      let finish: { finishReason: string; totalUsage: LanguageModelUsage } | undefined;
+
+      const result = streamText({
+        model,
+        system: request.system,
+        prompt: request.prompt,
+        maxOutputTokens: settings.maxOutputTokens,
+        reasoning: settings.reasoning,
+        maxRetries: 0,
+        abortSignal: signal,
+        timeout: settings.timeout,
+        // Errors arrive as stream parts and are handled below; this stops the SDK's console logging.
+        onError: () => {},
+      });
+
+      try {
+        for await (const part of result.fullStream) {
+          if (part.type === "text-delta") {
+            if (ttftMs === null) ttftMs = clock() - started;
+            text += part.text;
+            try {
+              await request.onDelta(part.text);
+            } catch (err) {
+              deliveryFailed = true;
+              failed = true;
+              failure = err;
+              break;
+            }
+          } else if (part.type === "error") {
+            failed = true;
+            failure = part.error;
+            break;
+          } else if (part.type === "abort") {
+            sdkAborted = true;
+            abortReason = part.reason;
+            break;
+          } else if (part.type === "finish") {
+            finish = { finishReason: part.finishReason, totalUsage: part.totalUsage };
+          }
+        }
+      } catch (err) {
+        failed = true;
+        failure = err;
+      } finally {
+        if (!finish) internal.abort();
+      }
+
+      const latencyMs = clock() - started;
+      let error: AiError | undefined;
+      const clientAborted = (ctx.signal?.aborted ?? false) || deliveryFailed;
+      if (failed) error = classifyAiError(failure, { clientAborted });
+      else if (sdkAborted) {
+        error = clientAborted
+          ? new AiError("ai_aborted", { cause: new Error(abortReason ?? "aborted") })
+          : new AiError("ai_timeout", { cause: new Error(abortReason ?? "timeout") });
+      } else if (!finish)
+        error = new AiError("ai_unavailable", { cause: new Error("stream ended without finishing") });
+
+      if (error) {
+        // The provider doesn't report usage for a broken stream. If it had started answering, it
+        // processed the prompt and generated the partial text: estimate both, so cost isn't hidden.
+        const usage =
+          text.length > 0
+            ? summarize(modelId, estimateTokens(request.system + request.prompt), estimateTokens(text))
+            : summarize(modelId, 0, 0);
+        await settle(ctx, feature, modelId, { error, usage, latencyMs, ttftMs });
+        throw error;
+      }
+
+      const usage = fromSdkUsage(modelId, finish?.totalUsage);
+      await settle(ctx, feature, modelId, { usage, latencyMs, ttftMs });
+      return { text, modelId, usage, latencyMs, ttftMs, finishReason: finish?.finishReason ?? "other" };
+    },
+  };
+}
+
+/** Wires the gateway from validated settings. Create one per process: the circuit breakers live in it. */
+export function createAiGatewayFromEnv(
+  env: { AI_PROVIDER: "mock" | "gemini"; GEMINI_API_KEY?: string | undefined; AI_DAILY_CALL_LIMIT: number },
+  db: Executor,
+  mockResponders: Partial<Record<AiFeature, MockResponder>> = {},
+): AiGateway {
+  return createAiGateway({
+    models: createModelsFromEnv(env, mockResponders),
+    ledger: createPostgresLedger(db),
+    dailyCallLimit: env.AI_DAILY_CALL_LIMIT,
+  });
+}

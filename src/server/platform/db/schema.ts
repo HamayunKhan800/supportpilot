@@ -4,11 +4,13 @@ import {
   boolean,
   check,
   customType,
+  date,
   foreignKey,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   real,
   text,
   timestamp,
@@ -25,7 +27,7 @@ import { organization, user } from "./auth-schema";
  *  - M2: Better Auth tables (./auth-schema), workspace_settings, audit_log
  *  - M3: ticket, ticket_message
  *  - M4: kb_document, kb_document_blob, kb_chunk (pgvector), ai_usage (embedding usage)
- *  - M5: ticket_triage, ai_draft
+ *  - M5: ticket_triage, ai_draft, ai_draft_citation, ai_daily_calls; ai_usage outcome/timing columns
  *
  * Tenancy: every application table carries `workspace_id` (= Better Auth organization.id),
  * and every repository query filters by it (docs/02-architecture.md §4).
@@ -203,6 +205,21 @@ export const KB_DOCUMENT_STATUSES = ["pending", "processing", "ready", "failed"]
 export const KB_MIME_TYPES = ["text/markdown", "text/plain", "application/pdf"] as const;
 export type KbMimeType = (typeof KB_MIME_TYPES)[number];
 export const AI_USAGE_FEATURES = ["triage", "draft", "embed"] as const;
+/**
+ * What happened to an AI call (M5 D13). `refused`: the draft was refused before any model call
+ * (weak retrieval); `blocked`: the output failed a safety check; `invalid`: the model answered
+ * with unparseable or schema-invalid output; `error`: the provider failed or rejected the call.
+ */
+export const AI_USAGE_OUTCOMES = [
+  "ok",
+  "refused",
+  "blocked",
+  "invalid",
+  "timeout",
+  "error",
+  "aborted",
+] as const;
+export type AiUsageOutcome = (typeof AI_USAGE_OUTCOMES)[number];
 
 /** Raw file bytes. Drizzle has no built-in bytea column. */
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
@@ -323,14 +340,260 @@ export const aiUsage = pgTable(
     outputTokens: integer("output_tokens").notNull().default(0),
     /** What the call would cost at paid-tier list price, in millionths of a US dollar. */
     estCostMicros: integer("est_cost_micros").notNull().default(0),
+    /** M5: rows written before M5 (embeddings) are all successful calls, hence the default. */
+    outcome: text("outcome", { enum: AI_USAGE_OUTCOMES }).notNull().default("ok"),
+    /** Wall-clock time of the call, from request to last byte (M5 D14). */
+    latencyMs: integer("latency_ms"),
+    /** Streaming only: time to the first text chunk (NFR-AI2). */
+    ttftMs: integer("ttft_ms"),
+    /** The ticket the call was about, for per-ticket cost. Kept as history if the ticket goes. */
+    ticketId: uuid("ticket_id").references(() => ticket.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("ai_usage_workspace_created_idx").on(t.workspaceId, t.createdAt.desc()),
+    index("ai_usage_ticket_idx").on(t.ticketId),
     check("ai_usage_feature_ck", inList("feature", AI_USAGE_FEATURES)),
+    check("ai_usage_outcome_ck", inList("outcome", AI_USAGE_OUTCOMES)),
     check(
       "ai_usage_tokens_ck",
       sql`${t.inputTokens} >= 0 AND ${t.outputTokens} >= 0 AND ${t.estCostMicros} >= 0`,
     ),
+    check(
+      "ai_usage_timing_ck",
+      sql`(${t.latencyMs} IS NULL OR ${t.latencyMs} >= 0) AND (${t.ttftMs} IS NULL OR ${t.ttftMs} >= 0)`,
+    ),
+  ],
+);
+
+/**
+ * Global AI call counter per day (M5 D12b), shared by every workspace and process, so a public
+ * demo can't use up the provider's free daily quota. One row per (day, scope); a call reserves
+ * a slot with one atomic upsert before it reaches the provider. `day` is the calendar date in
+ * America/Los_Angeles, because Google resets daily quotas at midnight Pacific time.
+ */
+export const aiDailyCalls = pgTable(
+  "ai_daily_calls",
+  {
+    day: date("day", { mode: "string" }).notNull(),
+    scope: text("scope").notNull(),
+    calls: integer("calls").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.scope] }), check("ai_daily_calls_calls_ck", sql`${t.calls} >= 0`)],
+);
+
+// ---------------------------------------------------------------------------
+// M5 · AI triage and drafts (docs/plans/m5-ai-features.md)
+// ---------------------------------------------------------------------------
+
+export const TRIAGE_RUN_STATUSES = ["succeeded", "failed", "skipped"] as const;
+export const SENTIMENTS = ["negative", "neutral", "positive"] as const;
+
+/**
+ * One row per triage run (D4, D5). Kept even when a later run or an agent changes the ticket,
+ * so triage accuracy can be measured against what agents chose (FR-AI2).
+ */
+export const ticketTriage = pgTable(
+  "ticket_triage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    ticketId: uuid("ticket_id").notNull(),
+    status: text("status", { enum: TRIAGE_RUN_STATUSES }).notNull(),
+    /** Why the run failed or was skipped (e.g. ai_budget_exhausted, ai_invalid_output). */
+    errorCode: text("error_code"),
+    model: text("model"),
+    promptVersion: text("prompt_version"),
+    category: text("category"),
+    priority: text("priority", { enum: TICKET_PRIORITIES }),
+    sentiment: text("sentiment", { enum: SENTIMENTS }),
+    /** ISO 639-1 code of the customer's language (D15: drafts answer in it). */
+    language: text("language"),
+    confidence: real("confidence"),
+    /** One line from the model. Untrusted text: rendered as plain text only. */
+    reason: text("reason"),
+    /** Which labels were written to the ticket automatically (D5). */
+    appliedCategory: boolean("applied_category").notNull().default(false),
+    appliedPriority: boolean("applied_priority").notNull().default(false),
+    /** Low confidence, or a field already set by a human: shown as a suggestion (FR-AI2). */
+    needsReview: boolean("needs_review").notNull().default(false),
+    /** An agent accepted the suggestion or set the field; clears "Needs review". */
+    reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    /** The value an agent chose instead of the AI's (null = kept or not changed). */
+    categoryOverride: text("category_override"),
+    priorityOverride: text("priority_override", { enum: TICKET_PRIORITIES }),
+    latencyMs: integer("latency_ms"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "ticket_triage_ticket_same_workspace_fk",
+      columns: [t.ticketId, t.workspaceId],
+      foreignColumns: [ticket.id, ticket.workspaceId],
+    }).onDelete("cascade"),
+    index("ticket_triage_ticket_created_idx").on(t.ticketId, t.createdAt.desc()),
+    // The inbox "Needs review" filter (D5).
+    index("ticket_triage_open_review_idx")
+      .on(t.workspaceId, t.ticketId)
+      .where(sql`${t.needsReview} AND ${t.reviewedAt} IS NULL`),
+    check("ticket_triage_status_ck", inList("status", TRIAGE_RUN_STATUSES)),
+    check(
+      "ticket_triage_priority_ck",
+      sql.raw(`priority IS NULL OR priority IN (${TICKET_PRIORITIES.map((v) => `'${v}'`).join(", ")})`),
+    ),
+    check(
+      "ticket_triage_priority_override_ck",
+      sql.raw(
+        `priority_override IS NULL OR priority_override IN (${TICKET_PRIORITIES.map((v) => `'${v}'`).join(", ")})`,
+      ),
+    ),
+    check(
+      "ticket_triage_sentiment_ck",
+      sql.raw(`sentiment IS NULL OR sentiment IN (${SENTIMENTS.map((v) => `'${v}'`).join(", ")})`),
+    ),
+    check("ticket_triage_language_ck", sql`${t.language} IS NULL OR ${t.language} ~ '^[a-z]{2}$'`),
+    check(
+      "ticket_triage_confidence_ck",
+      sql`${t.confidence} IS NULL OR (${t.confidence} >= 0 AND ${t.confidence} <= 1)`,
+    ),
+    check("ticket_triage_reason_len_ck", sql`${t.reason} IS NULL OR char_length(${t.reason}) <= 200`),
+    check(
+      "ticket_triage_succeeded_complete_ck",
+      sql`${t.status} <> 'succeeded' OR (${t.category} IS NOT NULL AND ${t.priority} IS NOT NULL AND ${t.sentiment} IS NOT NULL AND ${t.language} IS NOT NULL AND ${t.confidence} IS NOT NULL AND ${t.model} IS NOT NULL AND ${t.promptVersion} IS NOT NULL)`,
+    ),
+    check(
+      "ticket_triage_unsuccessful_has_reason_ck",
+      sql`${t.status} = 'succeeded' OR ${t.errorCode} IS NOT NULL`,
+    ),
+    check("ticket_triage_latency_ck", sql`${t.latencyMs} IS NULL OR ${t.latencyMs} >= 0`),
+  ],
+);
+
+/**
+ * Draft lifecycle (D6–D9): generating → ready | refused | blocked | failed | aborted;
+ * ready → sent | discarded. `refused` = insufficient knowledge (FR-AI4).
+ */
+export const AI_DRAFT_STATUSES = [
+  "generating",
+  "ready",
+  "refused",
+  "blocked",
+  "failed",
+  "aborted",
+  "sent",
+  "discarded",
+] as const;
+export const DRAFT_FEEDBACK = ["up", "down"] as const;
+
+export const aiDraft = pgTable(
+  "ai_draft",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    ticketId: uuid("ticket_id").notNull(),
+    requestedBy: text("requested_by").references(() => user.id, { onDelete: "set null" }),
+    status: text("status", { enum: AI_DRAFT_STATUSES }).notNull().default("generating"),
+    errorCode: text("error_code"),
+    /** Generated text after citation validation, with `[n]` markers. Untrusted: plain text only (D9). */
+    body: text("body").notNull().default(""),
+    language: text("language"),
+    /** Null when the draft was refused before any model call. */
+    model: text("model"),
+    promptVersion: text("prompt_version").notNull(),
+    /** Best vector similarity among the retrieved passages (the refusal gate's input, D7). */
+    retrievalTopScore: real("retrieval_top_score"),
+    /** `[n]` markers that pointed at no passage and were removed (D8). */
+    invalidCitationCount: integer("invalid_citation_count").notNull().default(0),
+    /** e.g. "unknown_link", "hidden_characters" (D10). Shown to the agent. */
+    warnings: text("warnings")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    estCostMicros: integer("est_cost_micros").notNull().default(0),
+    ttftMs: integer("ttft_ms"),
+    latencyMs: integer("latency_ms"),
+    /** The reply the agent approved and sent (FR-AI5). */
+    sentMessageId: uuid("sent_message_id").references(() => ticketMessage.id, { onDelete: "set null" }),
+    /** How much the agent changed before sending: 0 = unchanged, 1 = rewritten. */
+    editRatio: real("edit_ratio"),
+    feedback: text("feedback", { enum: DRAFT_FEEDBACK }),
+    feedbackNote: text("feedback_note"),
+    feedbackBy: text("feedback_by").references(() => user.id, { onDelete: "set null" }),
+    feedbackAt: timestamp("feedback_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "ai_draft_ticket_same_workspace_fk",
+      columns: [t.ticketId, t.workspaceId],
+      foreignColumns: [ticket.id, ticket.workspaceId],
+    }).onDelete("cascade"),
+    // Target of the composite FK from ai_draft_citation.
+    unique("ai_draft_id_workspace_uq").on(t.id, t.workspaceId),
+    index("ai_draft_ticket_created_idx").on(t.ticketId, t.createdAt.desc()),
+    index("ai_draft_workspace_created_idx").on(t.workspaceId, t.createdAt.desc()),
+    check("ai_draft_status_ck", inList("status", AI_DRAFT_STATUSES)),
+    check(
+      "ai_draft_feedback_ck",
+      sql.raw(`feedback IS NULL OR feedback IN (${DRAFT_FEEDBACK.map((v) => `'${v}'`).join(", ")})`),
+    ),
+    check(
+      "ai_draft_failed_has_reason_ck",
+      sql`${t.status} NOT IN ('failed', 'blocked') OR ${t.errorCode} IS NOT NULL`,
+    ),
+    check("ai_draft_sent_has_edit_ratio_ck", sql`${t.status} <> 'sent' OR ${t.editRatio} IS NOT NULL`),
+    check("ai_draft_language_ck", sql`${t.language} IS NULL OR ${t.language} ~ '^[a-z]{2}$'`),
+    check(
+      "ai_draft_edit_ratio_ck",
+      sql`${t.editRatio} IS NULL OR (${t.editRatio} >= 0 AND ${t.editRatio} <= 1)`,
+    ),
+    check(
+      "ai_draft_counts_ck",
+      sql`${t.invalidCitationCount} >= 0 AND ${t.inputTokens} >= 0 AND ${t.outputTokens} >= 0 AND ${t.estCostMicros} >= 0 AND (${t.ttftMs} IS NULL OR ${t.ttftMs} >= 0) AND (${t.latencyMs} IS NULL OR ${t.latencyMs} >= 0)`,
+    ),
+    check(
+      "ai_draft_feedback_note_len_ck",
+      sql`${t.feedbackNote} IS NULL OR char_length(${t.feedbackNote}) <= 500`,
+    ),
+  ],
+);
+
+/**
+ * The passage behind each `[n]` marker, copied at generation time (D8). The copy stays readable
+ * when the article is edited or deleted; `chunk_id` then becomes null ("source removed").
+ */
+export const aiDraftCitation = pgTable(
+  "ai_draft_citation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    draftId: uuid("draft_id").notNull(),
+    /** The n in `[n]`, from 1. */
+    marker: integer("marker").notNull(),
+    chunkId: uuid("chunk_id").references(() => kbChunk.id, { onDelete: "set null" }),
+    documentId: uuid("document_id").references(() => kbDocument.id, { onDelete: "set null" }),
+    documentTitle: text("document_title").notNull(),
+    headingPath: text("heading_path").notNull().default(""),
+    content: text("content").notNull(),
+    similarity: real("similarity"),
+  },
+  (t) => [
+    foreignKey({
+      name: "ai_draft_citation_draft_same_workspace_fk",
+      columns: [t.draftId, t.workspaceId],
+      foreignColumns: [aiDraft.id, aiDraft.workspaceId],
+    }).onDelete("cascade"),
+    uniqueIndex("ai_draft_citation_draft_marker_uq").on(t.draftId, t.marker),
+    check("ai_draft_citation_marker_ck", sql`${t.marker} BETWEEN 1 AND 20`),
   ],
 );
