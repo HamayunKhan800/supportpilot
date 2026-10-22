@@ -92,7 +92,7 @@ Requirements, architecture, threat model, AI evaluation plan, 9 ADRs. Mermaid di
 | 20  | `addMember` is a **server-only endpoint without a URL path**, so the path-based audit hook never saw it: direct additions were not audited. The same plugin hook also fires on workspace creation.                                                     | `afterAddMember` hook logs a system event, skipping the creator's owner membership. An integration test asserts exactly one event. |
 | 21  | **Audit-log paging silently skipped entries.** The cursor was a JS timestamp (milliseconds) while PostgreSQL stores microseconds, so entries within the same millisecond at a page boundary were lost. A test reproduced it (1 of 3 entries returned). | Keyset pagination on `(created_at, id)` in SQL, with the entry id as the cursor (validated as a UUID). Regression test added.      |
 
-## M3 · Ticketing: complete (pending CI on push)
+## M3 · Ticketing: complete
 
 Plan: [`docs/plans/m3-ticketing.md`](plans/m3-ticketing.md) (approved 2026-10-22).
 
@@ -218,5 +218,5 @@ Plan: [`docs/plans/m3-ticketing.md`](plans/m3-ticketing.md) (approved 2026-10-22
 Customers can submit and follow requests without an account. Agents can triage, reply, write internal notes and change tickets in an inbox. Everything is exposed through a documented REST API on the same services.
 
 - **Tests at the end of M3:** unit 324 (94.9% line coverage), integration 145, smoke 12, E2E 27 (+axe on desktop and mobile).
-- **Done-when list:** all items ticked except "CI green", which is confirmed on push.
+- **Done-when list:** all items ticked. CI (run 39718487987) and Security (run 39718487964) passed on `8ec626a`, including the dependency audit that had failed during the npm outage.
 - **Open items carried to later milestones:** AR-004 (trusted proxy), AR-005 (link expiry and recovery), email notifications (M8), and CAPTCHA if abuse appears (M8).

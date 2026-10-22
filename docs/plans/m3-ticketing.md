@@ -66,7 +66,7 @@
 - [x] Portal rate limit, honeypot and size limits tested.
 - [x] 0 serious/critical axe violations on portal, tracking, inbox and ticket pages (desktop + mobile).
 - [x] OpenAPI document generated and validated in CI.
-- [ ] CI green (ticked once the step 6 push passes on GitHub).
+- [x] CI green (CI run 39718487987 and Security run 39718487964 on `8ec626a`).
 
 ## 5. Out of scope for M3
 
