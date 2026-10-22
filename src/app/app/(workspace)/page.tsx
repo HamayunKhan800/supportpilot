@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listKbDocuments } from "@/server/modules/kb/service";
 import { getTicketCounts } from "@/server/modules/tickets/service";
 import { can } from "@/server/platform/auth/permissions";
 import { requireAppWorkspace } from "./workspace-context";
@@ -11,7 +12,14 @@ export const metadata: Metadata = { title: "Overview" };
 export default async function OverviewPage() {
   const { ctx } = await requireAppWorkspace();
   const manage = can(ctx.role, { invitation: ["create"] });
-  const counts = await getTicketCounts(await headers());
+  const h = await headers();
+  const [counts, kb] = await Promise.all([getTicketCounts(h), listKbDocuments(h)]);
+  const kbCount = (...statuses: string[]) => kb.items.filter((d) => statuses.includes(d.status)).length;
+  const knowledge = [
+    { label: "Ready to cite", value: kbCount("ready") },
+    { label: "Processing", value: kbCount("pending", "processing") },
+    { label: "Failed", value: kbCount("failed") },
+  ];
   const queue = [
     { view: "open", label: "Open", value: counts.open },
     { view: "pending", label: "Waiting for customer", value: counts.pending },
@@ -48,6 +56,29 @@ export default async function OverviewPage() {
             </dl>
             <Link href="/app/tickets" className="text-sm font-medium underline">
               Open the inbox
+            </Link>
+          </CardContent>
+        </Card>
+        <Card className="sm:col-span-2">
+          <CardHeader>
+            <CardTitle>
+              <h2>Knowledge base</h2>
+            </CardTitle>
+            <CardDescription>Help articles that AI drafts will cite.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <dl className="grid grid-cols-3 gap-4 sm:max-w-md">
+              {knowledge.map((k) => (
+                <div key={k.label} className="flex flex-col-reverse gap-1">
+                  <dt className="text-muted-foreground text-sm">{k.label}</dt>
+                  <dd className="text-3xl font-semibold tabular-nums">{k.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <Link href="/app/knowledge" className="text-sm font-medium underline">
+              {kb.items.length === 0 && can(ctx.role, { kb: ["write"] })
+                ? "Add your first document"
+                : "Open the knowledge base"}
             </Link>
           </CardContent>
         </Card>

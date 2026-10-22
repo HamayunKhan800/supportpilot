@@ -59,6 +59,15 @@ test("the invite link reveals nothing until the invitee signs in, then the agent
   await expect(page.getByRole("cell", { name: /Olivia Owner/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Create invite link" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Remove/ })).toHaveCount(0);
+
+  // Knowledge base: agents can read it but not change it or spend quota on test searches.
+  await nav.getByRole("link", { name: "Knowledge" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Knowledge base" })).toBeVisible();
+  await expect(page.getByText("Only admins and owners can change them.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Add a document" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Test search" })).toHaveCount(0);
+  await page.goto("/app/knowledge/search");
+  await expect(page.getByRole("heading", { name: "Access denied" })).toBeVisible();
 });
 
 test("the same invite link cannot be used again", async ({ page }) => {

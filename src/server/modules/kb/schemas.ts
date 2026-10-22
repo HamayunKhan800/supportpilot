@@ -1,9 +1,12 @@
 import { z } from "zod";
+import { KB_MAX_QUERY_LENGTH } from "./limits";
 
 /**
- * Knowledge-base request schemas. No server imports, so forms can reuse them.
+ * Knowledge-base request schemas (server-side validation). Client components import the
+ * limits from ./limits instead: bundling Zod into the browser trips the strict CSP,
+ * because Zod probes `new Function` to decide whether it may compile validators.
  */
-export const KB_MAX_QUERY_LENGTH = 500;
+export { KB_MAX_QUERY_LENGTH };
 
 export const kbSearchInput = z.strictObject({
   query: z

@@ -5,6 +5,8 @@ import { defineConfig, devices } from "@playwright/test";
  * Locally: `pnpm build && pnpm test:e2e` (starts the standalone server).
  * Rate limiting is disabled for this server only: one IP creates several accounts within
  * a minute. Rate limiting itself is covered by tests/integration/auth.test.ts.
+ * The background worker runs too (from source, with the mock AI provider), so uploaded
+ * documents really get processed; the bundled worker is covered by the smoke tests.
  */
 const PORT = Number(process.env.E2E_PORT ?? 3100);
 const baseURL = `http://localhost:${PORT}`;
@@ -21,20 +23,30 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /accessibility\.spec\.ts/ },
   ],
-  webServer: {
-    command: "node scripts/start-standalone.mjs",
-    url: `${baseURL}/api/health`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-    env: {
-      PORT: String(PORT),
-      HOSTNAME: "127.0.0.1",
-      NODE_ENV: "production",
-      AI_PROVIDER: "mock",
-      BETTER_AUTH_URL: baseURL,
-      AUTH_RATE_LIMIT_ENABLED: "false",
-      PORTAL_RATE_LIMIT_ENABLED: "false",
-      AUTH_PASSWORD_BREACH_CHECK: "false",
+  webServer: [
+    {
+      command: "node scripts/start-standalone.mjs",
+      url: `${baseURL}/api/health`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      env: {
+        PORT: String(PORT),
+        HOSTNAME: "127.0.0.1",
+        NODE_ENV: "production",
+        AI_PROVIDER: "mock",
+        BETTER_AUTH_URL: baseURL,
+        AUTH_RATE_LIMIT_ENABLED: "false",
+        PORTAL_RATE_LIMIT_ENABLED: "false",
+        AUTH_PASSWORD_BREACH_CHECK: "false",
+      },
     },
-  },
+    {
+      name: "worker",
+      command: "pnpm -s worker",
+      // No port: ready once it logs that it has started (Playwright `wait.stdout`).
+      wait: { stdout: /worker started/ },
+      timeout: 60_000,
+      env: { NODE_ENV: "production", AI_PROVIDER: "mock" },
+    },
+  ],
 });

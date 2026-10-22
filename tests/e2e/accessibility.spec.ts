@@ -93,3 +93,52 @@ test("customer portal and tracking pages have no serious accessibility violation
   await expect(page.getByText("Internal note added.")).toBeVisible();
   await audit(page, "/app/tickets/{number}");
 });
+
+test("knowledge pages have no serious accessibility violations", async ({ page }) => {
+  const project = test.info().project.name;
+  const who = email(`a11y-kb-${project}`);
+  await signUp(page, "Ada Access", who);
+  await signIn(page, who);
+  await page.getByLabel("Workspace name").fill("Accessible Knowledge Co");
+  await page.getByLabel("Workspace address").fill(`a11y-kb-${Date.now().toString(36)}-${project}`);
+  await page.getByRole("button", { name: "Create workspace" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Accessible Knowledge Co" })).toBeVisible();
+
+  const main = page.getByRole("main");
+  await page.goto("/app/knowledge");
+  await audit(page, "/app/knowledge (empty)");
+  await main.getByRole("button", { name: "Upload" }).click();
+  await audit(page, "/app/knowledge (field error)");
+
+  await main.getByLabel("File").setInputFiles({
+    name: "getting-started.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("# Getting started\n\nInvite your team from the Members page.\n"),
+  });
+  await main.getByRole("button", { name: "Upload" }).click();
+  const row = main.getByRole("listitem").filter({ hasText: "getting started" });
+  await expect(row.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  await audit(page, "/app/knowledge (with a document)");
+
+  await main
+    .getByLabel("File")
+    .setInputFiles({ name: "empty.txt", mimeType: "text/plain", buffer: Buffer.from("") });
+  await main.getByRole("button", { name: "Upload" }).click();
+  await expect(main.getByRole("alert")).toBeVisible();
+  await audit(page, "/app/knowledge (upload error)");
+
+  await row.getByRole("link", { name: "getting started" }).click();
+  await expect(main.getByRole("heading", { name: /Passages/ })).toBeVisible();
+  await audit(page, "/app/knowledge/{id}");
+  await main.getByRole("button", { name: "Delete document" }).click();
+  await audit(page, "/app/knowledge/{id} (confirm delete)");
+
+  await page.goto("/app/knowledge/search");
+  await audit(page, "/app/knowledge/search");
+  await main.getByRole("button", { name: "Search" }).click();
+  await audit(page, "/app/knowledge/search (field error)");
+  await main.getByLabel("Question").fill("How do I invite my team?");
+  await main.getByRole("button", { name: "Search" }).click();
+  await expect(main.getByRole("heading", { name: /for “How do I invite my team\?”/ })).toBeVisible();
+  await audit(page, "/app/knowledge/search (results)");
+});

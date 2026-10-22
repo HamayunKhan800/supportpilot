@@ -17,3 +17,6 @@ export const KB_PDF_MEMORY_MB = 256;
 export const KB_ALLOWED_EXTENSIONS = [".md", ".markdown", ".txt", ".pdf"] as const;
 export const KB_MAX_FILENAME_LENGTH = 255;
 export const KB_MAX_TITLE_LENGTH = 200;
+
+/** Test-search questions (characters, after trimming). */
+export const KB_MAX_QUERY_LENGTH = 500;

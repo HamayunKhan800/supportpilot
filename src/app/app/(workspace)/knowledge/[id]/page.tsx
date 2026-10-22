@@ -1,0 +1,140 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { ingestErrorMessage } from "@/server/modules/kb/ingest-errors";
+import { getKbDocument } from "@/server/modules/kb/service";
+import { can } from "@/server/platform/auth/permissions";
+import { AppError } from "@/server/platform/errors";
+import { dateFormat } from "../../tickets/labels";
+import { requireAppWorkspace } from "../../workspace-context";
+import { AutoRefresh } from "../auto-refresh";
+import { DocumentActions } from "../document-actions";
+import { formatBytes, isInProgress, STATUS_CLASS, STATUS_LABEL, typeLabel } from "../labels";
+
+export const metadata: Metadata = { title: "Document" };
+
+async function load(id: string) {
+  try {
+    return await getKbDocument(await headers(), id);
+  } catch (err) {
+    // Unknown ids and other workspaces' documents are both "not found" (T1).
+    if (err instanceof AppError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+export default async function DocumentPage({ params }: PageProps<"/app/knowledge/[id]">) {
+  const { ctx } = await requireAppWorkspace();
+  const data = await load((await params).id);
+  if (!data) notFound();
+  const { document: d, chunks } = data;
+  const manage = can(ctx.role, { kb: ["write"] });
+
+  const facts: [string, React.ReactNode][] = [
+    [
+      "File",
+      <span key="file" className="break-all">
+        {d.filename}
+      </span>,
+    ],
+    ["Type", typeLabel(d.mimeType)],
+    ["Size", formatBytes(d.sizeBytes)],
+    ...(d.pageCount !== null ? ([["Pages", d.pageCount]] as [string, React.ReactNode][]) : []),
+    ["Passages", d.chunkCount],
+    ["Tokens (estimate)", d.tokenEstimate.toLocaleString("en-US")],
+    ["Embedding model", d.embeddingModel ?? "—"],
+    [
+      "Added",
+      <time key="added" dateTime={d.createdAt.toISOString()}>
+        {dateFormat.format(d.createdAt)}
+      </time>,
+    ],
+    [
+      "Processed",
+      d.ingestedAt ? (
+        <time dateTime={d.ingestedAt.toISOString()}>{dateFormat.format(d.ingestedAt)}</time>
+      ) : (
+        "—"
+      ),
+    ],
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Link href="/app/knowledge" className="text-sm underline">
+        ← Knowledge base
+      </Link>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight break-words">{d.title}</h1>
+          <Badge variant="outline" className={STATUS_CLASS[d.status]}>
+            <span className="sr-only">Status: </span>
+            {STATUS_LABEL[d.status]}
+          </Badge>
+        </div>
+        <AutoRefresh inProgress={isInProgress(d.status) ? 1 : 0} />
+      </div>
+
+      {d.status === "failed" && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+          <p className="font-medium">This document could not be processed.</p>
+          <p>{ingestErrorMessage(d.errorCode)}</p>
+        </div>
+      )}
+
+      {manage && <DocumentActions id={d.id} title={d.title} canRetry={d.status === "failed"} />}
+
+      <section aria-labelledby="details-heading" className="flex flex-col gap-3">
+        <h2 id="details-heading" className="text-lg font-semibold">
+          Details
+        </h2>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border p-4 text-sm sm:grid-cols-3">
+          {facts.map(([label, value]) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section aria-labelledby="passages-heading" className="flex flex-col gap-3">
+        <h2 id="passages-heading" className="text-lg font-semibold">
+          Passages <span className="text-muted-foreground font-normal tabular-nums">({chunks.length})</span>
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          The document is split into passages of about 500 tokens, with a little overlap. Search and AI drafts
+          work with these passages, exactly as shown.
+        </p>
+        {chunks.length === 0 ? (
+          <p className="text-muted-foreground rounded-lg border p-6 text-sm">
+            {d.status === "ready" ? "No passages." : "Passages appear here once processing has finished."}
+          </p>
+        ) : (
+          <ol className="flex flex-col gap-3">
+            {chunks.map((c) => (
+              <li key={c.id} className="flex flex-col gap-2 rounded-lg border p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="font-medium">
+                    Passage {c.ordinal + 1}
+                    {c.headingPath && (
+                      <span className="text-muted-foreground font-normal"> · {c.headingPath}</span>
+                    )}
+                  </h3>
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    ~{c.tokenEstimate} tokens
+                  </span>
+                </div>
+                {/* Untrusted text: rendered as text by React, never as HTML. */}
+                <p className="text-sm break-words whitespace-pre-wrap">{c.content}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    </div>
+  );
+}

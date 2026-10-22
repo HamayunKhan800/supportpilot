@@ -20,6 +20,9 @@ const EXTENSION_TO_MIME: Record<string, KbMimeType> = {
   ".pdf": "application/pdf",
 };
 
+/** Accepted file extensions (the upload form's `accept` list must match; unit-tested). */
+export const KB_ALLOWED_EXTENSIONS = Object.keys(EXTENSION_TO_MIME);
+
 const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
 
 // C0/C1 control characters and the Unicode bidi/zero-width "format" characters that can
