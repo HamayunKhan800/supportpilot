@@ -4,8 +4,11 @@
  *
  *   pnpm eval:retrieval                          # mock embedder, default chunking, 3 modes
  *   pnpm eval:retrieval --grid                   # chunk 300/500/800 x overlap 0/0.15
- *   GEMINI_API_KEY=... pnpm eval:retrieval --provider gemini --grid --pace-ms 1000 \
+ *   GEMINI_API_KEY=... pnpm eval:retrieval --provider gemini --grid \
  *     --out eval/results/retrieval-gemini.json
+ *
+ * Gemini runs send at most 80 texts per rolling minute (--max-per-minute; the free tier
+ * allows 100 and counts each text in a batch) and make no automatic retries (--retries).
  *
  * Embeddings are cached in eval/cache (git-ignored), so each passage and question is only
  * ever embedded once; later runs and experiments reuse them without API calls (--no-cache
@@ -22,6 +25,7 @@ import { parseArgs } from "node:util";
 
 import { DEFAULT_CHUNK_OPTIONS, type ChunkOptions } from "../src/server/modules/kb/chunker";
 import { createGeminiEmbedder, createMockEmbedder } from "../src/server/modules/kb/embedder";
+import { createTextRateLimiter } from "./lib/rate-limit";
 import { getDb } from "../src/server/platform/db/client";
 import { createLogger } from "../src/server/platform/logger";
 
@@ -88,6 +92,8 @@ async function main() {
       overlap: { type: "string" },
       modes: { type: "string", default: EVAL_MODES.join(",") },
       "pace-ms": { type: "string", default: "0" },
+      "max-per-minute": { type: "string" },
+      retries: { type: "string" },
       out: { type: "string" },
       cache: { type: "string", default: "eval/cache" },
       "no-cache": { type: "boolean", default: false },
@@ -115,10 +121,24 @@ async function main() {
   if (provider === "gemini") {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("Set GEMINI_API_KEY for --provider gemini");
-    embedder = createGeminiEmbedder({ apiKey, maxRetries: 4 });
+    // No automatic retries by default: each retry after "too many requests" is another
+    // request that counts against the free tier's limits. A failed run keeps its saved
+    // results and embedding cache, so running it again resumes where it stopped.
+    embedder = createGeminiEmbedder({ apiKey, maxRetries: values.retries ? Number(values.retries) : 0 });
   } else {
     embedder = createMockEmbedder();
   }
+
+  // Gemini free tier: 100 embedded texts per minute for gemini-embedding-2 (AI Studio,
+  // 2026-10-22); 80 leaves room for clock differences and anything else using the key.
+  const maxPerMinute =
+    values["max-per-minute"] !== undefined
+      ? Number(values["max-per-minute"])
+      : provider === "gemini"
+        ? 80
+        : undefined;
+  const rateLimiter = maxPerMinute ? createTextRateLimiter({ maxPerMinute }) : undefined;
+  if (rateLimiter) console.log(`Rate limit: at most ${maxPerMinute} embedded texts per minute`);
 
   const budget =
     values.budget !== undefined ? Number(values.budget) : provider === "gemini" ? 900 : undefined;
@@ -145,6 +165,7 @@ async function main() {
     modes,
     unanswerable,
     paceMs: Number(values["pace-ms"]),
+    ...(rateLimiter ? { rateLimiter } : {}),
     cache,
     ...(budget !== undefined ? { budget } : {}),
     onProgress: write,

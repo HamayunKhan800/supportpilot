@@ -16,6 +16,7 @@ import {
   fileEmbeddingCache,
   runRetrievalEval,
 } from "../../scripts/lib/retrieval-eval";
+import { createTextRateLimiter } from "../../scripts/lib/rate-limit";
 import { resetDatabase } from "./support/client";
 
 /**
@@ -142,6 +143,55 @@ describe("retrieval eval embedding cache and budget", () => {
     ).rejects.toThrow(`needs ${answerableOnly + 2} new embeddings`);
     expect(sent.calls).toBe(0);
   });
+
+  it("never sends more texts per minute than the limit, splitting batches to fit (finding #85)", async () => {
+    // A fake clock: the limiter's waits move time forward instead of really waiting.
+    const clock = { t: 0 };
+    const rateLimiter = createTextRateLimiter({
+      // 3, because this subset's largest document batch is 4: splitting must happen.
+      maxPerMinute: 3,
+      now: () => clock.t,
+      sleep: async (ms) => {
+        clock.t += ms;
+      },
+    });
+    const inner = createMockEmbedder();
+    const sent: { at: number; count: number }[] = [];
+    const embedder: Embedder = {
+      modelId: inner.modelId,
+      embedDocuments(items, signal) {
+        sent.push({ at: clock.t, count: items.length });
+        return inner.embedDocuments(items, signal);
+      },
+      embedQuery(query, signal) {
+        sent.push({ at: clock.t, count: 1 });
+        return inner.embedQuery(query, signal);
+      },
+    };
+    const cache = fileEmbeddingCache(tempDir());
+    const needed = await countNewEmbeddings(inner.modelId, corpus, queries, configs, cache);
+    const limited = await runRetrievalEval({ embedder, corpus, questions, configs, cache, rateLimiter });
+
+    expect(sent.reduce((n, s) => n + s.count, 0)).toBe(needed); // nothing lost or sent twice
+    expect(Math.max(...sent.map((s) => s.count))).toBeLessThanOrEqual(3); // big batches were split
+    const peak = Math.max(
+      ...sent.map((e) =>
+        sent.filter((o) => o.at > e.at - 60_000 && o.at <= e.at).reduce((n, o) => n + o.count, 0),
+      ),
+    );
+    expect(peak).toBeLessThanOrEqual(3);
+    expect(clock.t).toBeGreaterThanOrEqual(Math.floor((needed - 1) / 3) * 60_000);
+
+    // Same rankings as an unlimited run: limiting changes timing only.
+    const free = await runRetrievalEval({
+      embedder: createMockEmbedder(),
+      corpus,
+      questions,
+      configs,
+      cache: fileEmbeddingCache(tempDir()),
+    });
+    expect(vectorScores(limited)).toEqual(vectorScores(free));
+  }, 60_000);
 
   it("keys the cache by model, so a different embedding model starts from zero", async () => {
     const dir = tempDir();

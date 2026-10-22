@@ -36,6 +36,7 @@ import { hybridSearch } from "../../src/server/modules/kb/service";
 import { getDb } from "../../src/server/platform/db/client";
 import { kbChunk, organization } from "../../src/server/platform/db/schema";
 import { transaction } from "../../src/server/platform/db/tx";
+import { chunked, type TextRateLimiter } from "./rate-limit";
 
 import {
   type CorpusArticle,
@@ -61,6 +62,11 @@ export interface EvalOptions {
   unanswerable?: readonly UnanswerableQuestion[];
   /** Wait this long before each real embedding call (free-tier rate limits). */
   paceMs?: number;
+  /**
+   * At most this many embedded texts per rolling minute, across all calls (Gemini counts
+   * each text in a batch). Larger document batches are split to fit.
+   */
+  rateLimiter?: TextRateLimiter;
   /** Reuse embeddings across configurations and runs (see fileEmbeddingCache). */
   cache?: EmbeddingCache;
   /**
@@ -208,7 +214,7 @@ export function fileEmbeddingCache(dir: string): EmbeddingCache {
  * Wraps the embedder: serves cached texts, sends only the missing ones (one batch per call,
  * as ingestion does), and times and counts real calls only.
  */
-function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache) {
+function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache, limiter?: TextRateLimiter) {
   const m = {
     documentMs: [] as number[],
     documentTokens: 0,
@@ -226,22 +232,26 @@ function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache) {
       m.cacheHits += keys.length - missing.length;
       let spent = 0;
       if (missing.length > 0) {
-        const toEmbed = missing.map((k) => items[keys.indexOf(k)]!);
-        if (paceMs) await sleep(paceMs);
-        const start = performance.now();
-        const batch = await inner.embedDocuments(toEmbed, signal);
-        m.documentMs.push(performance.now() - start);
-        m.documentTokens += batch.tokenEstimate;
-        m.embeddedTexts += toEmbed.length;
-        spent = batch.tokenEstimate;
-        const totalChars = toEmbed.reduce((n, i) => n + i.title.length + i.text.length, 0) || 1;
-        missing.forEach((k, i) => {
-          const chars = toEmbed[i]!.title.length + toEmbed[i]!.text.length;
-          cache.set(k, {
-            embedding: batch.embeddings[i]!,
-            tokenEstimate: Math.round((batch.tokenEstimate * chars) / totalChars),
+        const parts = chunked(missing, limiter?.maxPerMinute ?? missing.length);
+        for (const partKeys of parts) {
+          const toEmbed = partKeys.map((k) => items[keys.indexOf(k)]!);
+          if (paceMs) await sleep(paceMs);
+          await limiter?.acquire(toEmbed.length);
+          const start = performance.now();
+          const batch = await inner.embedDocuments(toEmbed, signal);
+          m.documentMs.push(performance.now() - start);
+          m.documentTokens += batch.tokenEstimate;
+          m.embeddedTexts += toEmbed.length;
+          spent += batch.tokenEstimate;
+          const totalChars = toEmbed.reduce((n, i) => n + i.title.length + i.text.length, 0) || 1;
+          partKeys.forEach((k, i) => {
+            const chars = toEmbed[i]!.title.length + toEmbed[i]!.text.length;
+            cache.set(k, {
+              embedding: batch.embeddings[i]!,
+              tokenEstimate: Math.round((batch.tokenEstimate * chars) / totalChars),
+            });
           });
-        });
+        }
       }
       // Only tokens actually sent count as spent (ingestion records them in ai_usage).
       return { embeddings: keys.map((k) => cache.get(k)!.embedding), tokenEstimate: spent };
@@ -257,6 +267,7 @@ function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache) {
       if (!pending) {
         pending = (async () => {
           if (paceMs) await sleep(paceMs);
+          await limiter?.acquire(1);
           const start = performance.now();
           const result = await inner.embedQuery(query, signal);
           m.queryMs.push(performance.now() - start);
@@ -489,7 +500,7 @@ export async function runRetrievalEval(options: EvalOptions): Promise<EvalReport
       throw new Error(`This run needs ${needed} new embeddings, more than the budget of ${options.budget}`);
     }
   }
-  const { embedder, metrics } = instrument(options.embedder, options.paceMs ?? 0, cache);
+  const { embedder, metrics } = instrument(options.embedder, options.paceMs ?? 0, cache, options.rateLimiter);
   const configs: ConfigResult[] = [];
   const report = (complete: boolean): EvalReport => {
     const totalTokens = metrics.documentTokens + metrics.queryTokens;
