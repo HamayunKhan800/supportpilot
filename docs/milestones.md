@@ -110,3 +110,19 @@ Plan: [`docs/plans/m3-ticketing.md`](plans/m3-ticketing.md) (approved 2026-10-22
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | 22  | **Search negation leaked through.** With one search vector per message, `help -laptop` still matched the "Laptop setup" ticket because one of its messages said "help" without "laptop". | One search document per ticket (subject, customer, all messages), updated in the same transaction as each message. |
 | 23  | **Thread order was random within a transaction.** `now()` is the transaction start time, so two messages written together had identical timestamps and were ordered by random UUID.      | Identity column `seq` orders the thread.                                                                           |
+
+### Step 2: rules and services (2026-10-22)
+
+- **Lifecycle state machine** (`lifecycle.ts`): all 16 status pairs unit-tested. A customer reply reopens pending/resolved tickets. Closed is final.
+- **Tracking tokens:** 256-bit, SHA-256 hash stored, format-checked before any query. A test asserts the raw token appears nowhere in the stored row.
+- **Zod schemas** shared by the API and UI: whitespace/CRLF normalization, NUL bytes removed, length limits after trimming.
+- **Postgres rate limiter:** keys are HMAC'd, so no raw IPs or tokens are stored. Concurrency test: 25 parallel requests with a limit of 10 lets exactly 10 through. Portal limits: per IP, per workspace, per ticket. See AR-004 for the proxy caveat.
+- **Ticket service:** every agent call checks the role from the database and is scoped to the caller's workspace. Malformed ids return 404. Row locks guard customer/agent races. Optimistic concurrency returns 409.
+- **Ticket changes and their audit entries commit together** (strict `insertAuditEvent` in the same transaction). Audit metadata holds no personal data.
+- 26 service integration tests. Mutation-checked: deliberately (1) showing internal notes to customers, (2) writing the audit entry outside the transaction, and (3) skipping the lifecycle check each made the intended test fail.
+
+| #   | Finding                                                                                                                                               | Action                                                                                                                             |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 24  | A **NUL byte** in a portal message would reach PostgreSQL, which rejects `\0` in text, and surface as a 500.                                          | Schemas strip NUL bytes. Unit and integration tests cover it.                                                                      |
+| 25  | A **malformed ticket id** in a URL would hit the uuid cast in PostgreSQL and return a 500.                                                            | Ids are validated first and return 404, like foreign ids.                                                                          |
+| 26  | The M2 audit writer swallows errors (correct for auth hooks that run after the change), but **reusing it for tickets would allow unaudited changes**. | Separate strict writer inside the transaction, with a test that forces the audit insert to fail and checks the change rolled back. |

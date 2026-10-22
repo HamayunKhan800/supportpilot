@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { getDb, type Database } from "@/server/platform/db/client";
 import {
+  organization,
   ticket,
   ticketCounter,
   ticketMessage,
@@ -278,4 +279,43 @@ export async function countTicketsByStatus(workspaceId: string): Promise<Record<
   const counts: Record<TicketStatus, number> = { open: 0, pending: 0, resolved: 0, closed: 0 };
   for (const r of rows) counts[r.status] = r.n;
   return counts;
+}
+
+/**
+ * Reads a ticket's status and takes a row lock until the transaction ends, so a
+ * concurrent change (e.g. an agent closing while a customer replies) waits instead of
+ * interleaving.
+ */
+export async function lockTicket(tx: Transaction, workspaceId: string, id: string) {
+  const [row] = await tx
+    .select({ id: ticket.id, status: ticket.status, number: ticket.number })
+    .from(ticket)
+    .where(and(eq(ticket.workspaceId, workspaceId), eq(ticket.id, id)))
+    .for("update");
+  return row ?? null;
+}
+
+/** Status change by the system (customer reply), bumping the version so stale agent edits get 409. */
+export async function setStatus(tx: Transaction, workspaceId: string, id: string, status: TicketStatus) {
+  await tx
+    .update(ticket)
+    .set({ status, version: sql`${ticket.version} + 1`, updatedAt: sql`now()` })
+    .where(and(eq(ticket.workspaceId, workspaceId), eq(ticket.id, id)));
+}
+
+/** Public workspace lookup for the portal. Returns only what the portal may show. */
+export async function findWorkspaceBySlug(slug: string) {
+  const [row] = await getDb()
+    .db.select({ id: organization.id, name: organization.name, slug: organization.slug })
+    .from(organization)
+    .where(eq(organization.slug, slug));
+  return row ?? null;
+}
+
+export async function findWorkspaceName(workspaceId: string): Promise<string | null> {
+  const [row] = await getDb()
+    .db.select({ name: organization.name })
+    .from(organization)
+    .where(eq(organization.id, workspaceId));
+  return row?.name ?? null;
 }

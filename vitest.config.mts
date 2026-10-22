@@ -40,6 +40,9 @@ export default defineConfig({
         // SQL only (constraints, locking, search, keyset paging); tested against PostgreSQL
         // in tests/integration/tickets-repository.test.ts.
         "src/server/modules/tickets/repository.ts",
+        // Orchestration over the DB (transactions, locks, audit); 26 tests in
+        // tests/integration/tickets-service.test.ts, mutation-checked.
+        "src/server/modules/tickets/service.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

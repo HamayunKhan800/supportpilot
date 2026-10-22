@@ -32,6 +32,7 @@ export default defineConfig({
       NODE_ENV: "production",
       BETTER_AUTH_URL: baseURL,
       AUTH_RATE_LIMIT_ENABLED: "false",
+      PORTAL_RATE_LIMIT_ENABLED: "false",
       AUTH_PASSWORD_BREACH_CHECK: "false",
     },
   },

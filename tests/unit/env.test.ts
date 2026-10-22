@@ -104,6 +104,14 @@ describe("env: auth settings (FR-A1, T3/T4)", () => {
     );
   });
 
+  it("limits the portal by default and never trusts proxy headers unless told to", () => {
+    const env = parseEnv(valid);
+    expect(env.PORTAL_RATE_LIMIT_ENABLED).toBe(true);
+    expect(env.TRUST_PROXY_HEADERS).toBe(false);
+    expect(parseEnv({ ...valid, TRUST_PROXY_HEADERS: "true" }).TRUST_PROXY_HEADERS).toBe(true);
+    expect(issues({ ...valid, TRUST_PROXY_HEADERS: "yes" }).join()).toContain("TRUST_PROXY_HEADERS");
+  });
+
   it("requires GitHub OAuth credentials as a pair", () => {
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id" }).join()).toContain("GITHUB_CLIENT_ID");
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "s" })).toEqual([]);

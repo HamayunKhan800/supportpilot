@@ -21,12 +21,23 @@ const LABELS: Record<string, string> = {
   "member.role_changed": "Changed a member's role",
   "member.removed": "Removed a member",
   "member.left": "Left the workspace",
+  "ticket.created": "Submitted a request",
+  "ticket.status_changed": "Changed status",
+  "ticket.priority_changed": "Changed priority",
+  "ticket.category_changed": "Changed category",
+  "ticket.assigned": "Changed assignee",
 };
 
+const ACTORS: Record<string, string> = { system: "System", customer: "Customer", user: "Deleted user" };
+
 function detail(metadata: Record<string, unknown>) {
-  const role = typeof metadata.role === "string" ? metadata.role : null;
-  const slug = typeof metadata.slug === "string" ? metadata.slug : null;
-  return [role && `role: ${role}`, slug && `address: ${slug}`].filter(Boolean).join(" · ");
+  const s = (k: string) => (typeof metadata[k] === "string" ? (metadata[k] as string) : null);
+  const number = typeof metadata.number === "number" ? `request #${metadata.number}` : null;
+  const change = s("from") || s("to") ? `${s("from") ?? "none"} → ${s("to") ?? "none"}` : null;
+  const role = s("role") && `role: ${s("role")}`;
+  const slug = s("slug") && `address: ${s("slug")}`;
+  const reason = s("reason") === "customer_reply" ? "customer replied" : null;
+  return [number, change, role, slug, reason].filter(Boolean).join(" · ");
 }
 
 export default async function AuditPage({ searchParams }: PageProps<"/app/audit">) {
@@ -72,9 +83,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
                   <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
                     <time dateTime={e.createdAt.toISOString()}>{fmt.format(e.createdAt)}</time>
                   </td>
-                  <td className="px-4 py-3">
-                    {e.actorName ?? (e.actorType === "system" ? "System" : "Deleted user")}
-                  </td>
+                  <td className="px-4 py-3">{e.actorName ?? ACTORS[e.actorType] ?? "Unknown"}</td>
                   <td className="px-4 py-3">
                     <div>{LABELS[e.action] ?? e.action}</div>
                     <div className="text-muted-foreground">{detail(e.metadata)}</div>

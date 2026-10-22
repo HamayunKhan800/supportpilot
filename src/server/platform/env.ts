@@ -40,6 +40,20 @@ const envSchema = z
       .enum(["true", "false"])
       .default("true")
       .transform((v) => v === "true"),
+    /** Rate limits on the public portal (ticket creation, customer replies). On by default. */
+    PORTAL_RATE_LIMIT_ENABLED: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
+    /**
+     * Trust X-Forwarded-For for client IPs. Enable ONLY behind a proxy that overwrites the
+     * header (configured at deployment, M8). When off, per-IP limits share one bucket and
+     * the per-workspace limit is the backstop: a spoofable header must never be trusted.
+     */
+    TRUST_PROXY_HEADERS: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((v) => v === "true"),
     /**
      * Reject passwords found in known breaches (NIST SP 800-63B-4 §3.1.1.2) via the
      * Have I Been Pwned range API (k-anonymity). Fails closed if the API is unreachable.

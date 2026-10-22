@@ -58,7 +58,8 @@ export const auditLog = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
-    actorType: text("actor_type", { enum: ["user", "system"] }).notNull(),
+    /** "customer": a portal visitor without an account (identified by ticket, not user). */
+    actorType: text("actor_type", { enum: ["user", "system", "customer"] }).notNull(),
     action: text("action").notNull(),
     targetType: text("target_type").notNull(),
     targetId: text("target_id").notNull(),
