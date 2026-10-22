@@ -73,7 +73,7 @@ describe("env: auth settings (FR-A1, T3/T4)", () => {
   });
 
   it("requires https in production except on loopback", () => {
-    const prod = { ...valid, NODE_ENV: "production" };
+    const prod = { ...valid, NODE_ENV: "production", AI_PROVIDER: "mock" };
     expect(issues({ ...prod, BETTER_AUTH_URL: "http://app.example.com" }).join()).toContain("https");
     expect(issues({ ...prod, BETTER_AUTH_URL: "https://app.example.com" })).toEqual([]);
     expect(issues({ ...prod, BETTER_AUTH_URL: "http://localhost:3000" })).toEqual([]);
@@ -115,6 +115,42 @@ describe("env: auth settings (FR-A1, T3/T4)", () => {
   it("requires GitHub OAuth credentials as a pair", () => {
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id" }).join()).toContain("GITHUB_CLIENT_ID");
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "s" })).toEqual([]);
+  });
+});
+
+describe("env: AI provider (ADR-0006, plan M4 D4)", () => {
+  const prod = { ...valid, NODE_ENV: "production" };
+
+  it("defaults to the offline mock provider outside production", () => {
+    expect(parseEnv(valid).AI_PROVIDER).toBe("mock");
+    expect(parseEnv({ ...valid, NODE_ENV: "test" }).AI_PROVIDER).toBe("mock");
+  });
+
+  it("requires an explicit choice in production, so fake embeddings are never a silent default", () => {
+    expect(() => parseEnv(prod)).toThrowError(
+      /AI_PROVIDER: AI_PROVIDER must be set explicitly in production/,
+    );
+    expect(parseEnv({ ...prod, AI_PROVIDER: "mock" }).AI_PROVIDER).toBe("mock");
+  });
+
+  it("requires GEMINI_API_KEY only when the provider is gemini", () => {
+    expect(() => parseEnv({ ...valid, AI_PROVIDER: "gemini" })).toThrowError(
+      /GEMINI_API_KEY: GEMINI_API_KEY is required when AI_PROVIDER=gemini/,
+    );
+    const env = parseEnv({ ...prod, AI_PROVIDER: "gemini", GEMINI_API_KEY: "k".repeat(39) });
+    expect(env.AI_PROVIDER).toBe("gemini");
+    expect(() => parseEnv({ ...valid, AI_PROVIDER: "gemini", GEMINI_API_KEY: "" })).toThrowError(
+      EnvValidationError,
+    );
+  });
+
+  it("rejects unknown providers and never echoes the API key", () => {
+    expect(() => parseEnv({ ...valid, AI_PROVIDER: "openai" })).toThrowError(/AI_PROVIDER/);
+    try {
+      parseEnv({ ...valid, AI_PROVIDER: "nope", GEMINI_API_KEY: "secret-key-value-123" });
+    } catch (err) {
+      expect(String((err as Error).message)).not.toContain("secret-key-value-123");
+    }
   });
 });
 

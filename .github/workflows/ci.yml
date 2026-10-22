@@ -141,6 +141,7 @@ jobs:
     env:
       DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot
       BETTER_AUTH_URL: http://localhost:3000
+      AI_PROVIDER: mock
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -217,7 +218,7 @@ jobs:
         run: |
           docker run -d --name app --network sp -p 3000:3000 \
             -e DATABASE_URL=postgres://supportpilot:supportpilot@db:5432/supportpilot \
-            -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL=http://localhost:3000 \
+            -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL=http://localhost:3000 -e AI_PROVIDER=mock \
             supportpilot:ci
           for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && break; sleep 1; done
       - name: Container runs as non-root

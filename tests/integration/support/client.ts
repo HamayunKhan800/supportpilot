@@ -81,6 +81,7 @@ export async function resetDatabase() {
   await pool.query(
     `TRUNCATE "audit_log", "workspace_settings", "invitation", "member", "organization",
        "session", "account", "verification", "rate_limit", "user", "ticket_message", "ticket",
-       "ticket_counter", "app_rate_limit" RESTART IDENTITY CASCADE`,
+       "ticket_counter", "app_rate_limit", "kb_chunk", "kb_document_blob", "kb_document",
+       "ai_usage" RESTART IDENTITY CASCADE`,
   );
 }

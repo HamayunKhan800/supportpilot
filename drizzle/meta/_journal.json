@@ -22,6 +22,13 @@
       "when": 1792633695286,
       "tag": "0002_m3_ticketing",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792652117897,
+      "tag": "0003_m4_knowledge_base",
+      "breakpoints": true
     }
   ]
 }

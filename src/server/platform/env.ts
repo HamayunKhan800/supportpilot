@@ -62,6 +62,15 @@ const envSchema = z
       .enum(["true", "false"])
       .default("true")
       .transform((v) => v === "true"),
+    /**
+     * AI provider (ADR-0006). `mock` = deterministic offline embeddings for tests and local
+     * work. `gemini` = Google Gemini API (needs GEMINI_API_KEY). Defaults to `mock` except in
+     * production, where it must be chosen explicitly so a deployment never silently runs on
+     * fake embeddings.
+     */
+    AI_PROVIDER: z.enum(["mock", "gemini"]).optional(),
+    /** Gemini API key from Google AI Studio. Required when AI_PROVIDER=gemini. */
+    GEMINI_API_KEY: z.string().min(1).optional(),
     /** Optional GitHub OAuth. Both values or neither. */
     GITHUB_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
@@ -74,6 +83,20 @@ const envSchema = z
         message: "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set together",
       });
     }
+    if (env.NODE_ENV === "production" && !env.AI_PROVIDER) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["AI_PROVIDER"],
+        message: "AI_PROVIDER must be set explicitly in production (gemini, or mock for test deployments)",
+      });
+    }
+    if (env.AI_PROVIDER === "gemini" && !env.GEMINI_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["GEMINI_API_KEY"],
+        message: "GEMINI_API_KEY is required when AI_PROVIDER=gemini",
+      });
+    }
     // Production must use https, except loopback (CI smoke tests run the production build locally).
     const url = new URL(env.BETTER_AUTH_URL);
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
@@ -84,7 +107,8 @@ const envSchema = z
         message: "BETTER_AUTH_URL must use https in production",
       });
     }
-  });
+  })
+  .transform((env) => ({ ...env, AI_PROVIDER: env.AI_PROVIDER ?? ("mock" as const) }));
 
 export type Env = z.infer<typeof envSchema>;
 

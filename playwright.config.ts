@@ -30,6 +30,7 @@ export default defineConfig({
       PORT: String(PORT),
       HOSTNAME: "127.0.0.1",
       NODE_ENV: "production",
+      AI_PROVIDER: "mock",
       BETTER_AUTH_URL: baseURL,
       AUTH_RATE_LIMIT_ENABLED: "false",
       PORTAL_RATE_LIMIT_ENABLED: "false",

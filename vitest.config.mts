@@ -46,6 +46,9 @@ export default defineConfig({
         // Inserts the demo data in one transaction; tested against PostgreSQL in
         // tests/integration/demo-seed.test.ts. The data itself is unit-tested.
         "src/server/modules/tickets/demo/seed.ts",
+        // SQL only (constraints, composite tenant FK, lifecycle guards, cascades); 20 tests
+        // in tests/integration/kb-repository.test.ts, mutation-checked.
+        "src/server/modules/kb/repository.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
