@@ -95,25 +95,20 @@ All settings are environment variables. Most are validated at startup (`src/serv
 
 ## Operational endpoints
 
-| Endpoint          | Purpose                                                                  |
-| ----------------- | ------------------------------------------------------------------------ |
-| `GET /api/health` | liveness: process is serving (does not touch DB)                         |
-| `GET /api/ready`  | readiness: DB reachable. Returns `503` + RFC 9457 problem details if not |
-
-The server **refuses to start** (exit 1) when configuration is invalid. Every response carries an `x-request-id` that matches the structured JSON logs.
-
-## REST API (`/api/v1`)
-
-The machine-readable contract is served at **`GET /api/v1/openapi.json`** (OpenAPI 3.1), generated from the same Zod schemas that validate requests. Errors use RFC 9457 Problem Details.
-
-| Endpoint                                 | Who                         |
-| ---------------------------------------- | --------------------------- |
-| `POST /api/v1/portal/{slug}/tickets`     | public (rate limited)       |
-| `GET /api/v1/portal/t/{token}`           | customer with tracking link |
-| `POST /api/v1/portal/t/{token}/messages` | customer with tracking link |
-| `GET /api/v1/tickets`                    | workspace member            |
-| `GET` / `PATCH /api/v1/tickets/{id}`     | workspace member            |
-| `POST /api/v1/tickets/{id}/messages`     | workspace member            |
+| Endpoint                                       | Who                         |
+| ---------------------------------------------- | --------------------------- |
+| `POST /api/v1/portal/{slug}/tickets`           | public (rate limited)       |
+| `GET /api/v1/portal/t/{token}`                 | customer with tracking link |
+| `POST /api/v1/portal/t/{token}/messages`       | customer with tracking link |
+| `GET /api/v1/tickets`                          | workspace member            |
+| `GET` / `PATCH /api/v1/tickets/{id}`           | workspace member            |
+| `POST /api/v1/tickets/{id}/messages`           | workspace member            |
+| `GET /api/v1/kb/documents`                     | workspace member            |
+| `GET /api/v1/kb/documents/{id}`                | workspace member            |
+| `POST /api/v1/kb/documents` (multipart upload) | admin or owner              |
+| `DELETE /api/v1/kb/documents/{id}`             | admin or owner              |
+| `POST /api/v1/kb/documents/{id}/retry`         | admin or owner              |
+| `POST /api/v1/kb/search` (test search)         | admin or owner              |
 
 Agent endpoints use the browser session and accept writes only from the app's own origin.
 

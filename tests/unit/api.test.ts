@@ -216,6 +216,8 @@ interface DocOperation {
   security: unknown[];
   requestBody?: { content: Record<string, { schema: { properties: Record<string, unknown> } }> };
   responses: Record<string, { content?: Record<string, unknown> }>;
+  "x-required-roles"?: string[];
+  description?: string;
 }
 
 describe("OpenAPI document", () => {
@@ -248,6 +250,38 @@ describe("OpenAPI document", () => {
           expect(Object.keys(res.content ?? {})).toEqual(["application/problem+json"]);
       }
       expect(op.security).toEqual(operations[op.operationId].auth === "session" ? [{ session: [] }] : []);
+    }
+  });
+
+  const op = (id: keyof typeof operations) => ops().find((o) => o.operationId === id)!;
+
+  it("documents the upload as multipart/form-data with a required file part", () => {
+    const body = op("uploadKbDocument").requestBody!;
+    expect(Object.keys(body.content)).toEqual(["multipart/form-data"]);
+    expect(body.content["multipart/form-data"]!.schema).toMatchObject({
+      type: "object",
+      required: ["file"],
+      properties: { file: { type: "string", contentMediaType: "application/octet-stream" } },
+    });
+    expect(op("uploadKbDocument").responses).toHaveProperty("413");
+    expect(op("uploadKbDocument").responses).toHaveProperty("415");
+  });
+
+  it("documents a delete as 204 with no body", () => {
+    const res = op("deleteKbDocument").responses;
+    expect(res["204"]).toBeDefined();
+    expect(res["204"]!.content).toBeUndefined();
+    expect(res["200"]).toBeUndefined();
+  });
+
+  it("lists the roles each session operation needs, derived from the permission matrix", () => {
+    expect(op("listKbDocuments")["x-required-roles"]).toEqual(["owner", "admin", "agent"]);
+    expect(op("uploadKbDocument")["x-required-roles"]).toEqual(["owner", "admin"]);
+    expect(op("searchKb")["x-required-roles"]).toEqual(["owner", "admin"]);
+    expect(op("uploadKbDocument").description).toContain("Roles: owner, admin.");
+    for (const o of ops()) {
+      if (operations[o.operationId].auth !== "session")
+        expect(o["x-required-roles"], o.operationId).toBeUndefined();
     }
   });
 

@@ -56,6 +56,10 @@ export default defineConfig({
         // Job orchestration over the DB (locks, transactions, retries, races); 12 tests in
         // tests/integration/kb-ingest-job.test.ts, mutation-checked.
         "src/server/modules/kb/ingest-job.ts",
+        // Orchestration over the DB (upload transaction, caps, locks, hybrid search, audit);
+        // 29 tests in tests/integration/kb-api.test.ts plus the generated API suite,
+        // 20 deliberate breaks all caught.
+        "src/server/modules/kb/service.ts",
         // pg-boss wiring (install, transactional enqueue); exercised end to end against
         // PostgreSQL in tests/integration/kb-ingest-job.test.ts.
         "src/server/platform/jobs/boss.ts",

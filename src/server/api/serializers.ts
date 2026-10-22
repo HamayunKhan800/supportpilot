@@ -1,3 +1,5 @@
+import { ingestErrorMessage } from "@/server/modules/kb/ingest-errors";
+import type { KbChunkView, KbDocument } from "@/server/modules/kb/repository";
 import type { Message, Ticket } from "@/server/modules/tickets/repository";
 
 /**
@@ -28,5 +30,37 @@ export function apiMessage(m: Message) {
     body: m.body,
     internal: m.isInternal,
     createdAt: m.createdAt,
+  };
+}
+
+export function apiKbDocument(d: KbDocument) {
+  return {
+    id: d.id,
+    title: d.title,
+    filename: d.filename,
+    mimeType: d.mimeType,
+    sizeBytes: d.sizeBytes,
+    status: d.status,
+    error:
+      d.status === "failed"
+        ? { code: d.errorCode ?? "internal_error", message: ingestErrorMessage(d.errorCode) }
+        : null,
+    pageCount: d.pageCount,
+    chunkCount: d.chunkCount,
+    tokenEstimate: d.tokenEstimate,
+    embeddingModel: d.embeddingModel,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+    ingestedAt: d.ingestedAt,
+  };
+}
+
+export function apiKbChunk(c: KbChunkView) {
+  return {
+    id: c.id,
+    ordinal: c.ordinal,
+    headingPath: c.headingPath,
+    content: c.content,
+    tokenEstimate: c.tokenEstimate,
   };
 }

@@ -22,13 +22,16 @@ export type AuditAction =
   | "ticket.status_changed"
   | "ticket.priority_changed"
   | "ticket.category_changed"
-  | "ticket.assigned";
+  | "ticket.assigned"
+  | "kb.document_uploaded"
+  | "kb.document_deleted"
+  | "kb.document_retried";
 
 export interface AuditEvent {
   workspaceId: string;
   actorUserId: string | null;
   action: AuditAction;
-  targetType: "workspace" | "invitation" | "member" | "ticket";
+  targetType: "workspace" | "invitation" | "member" | "ticket" | "kb_document";
   /** Defaults to "user" when actorUserId is set, otherwise "system". */
   actorType?: "user" | "system" | "customer";
   targetId: string;

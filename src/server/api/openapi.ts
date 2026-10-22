@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { can, ROLES } from "@/server/platform/auth/permissions";
 import { operations, type Operation } from "./operations";
 import { apiRegistry } from "./schemas";
 
@@ -18,10 +19,43 @@ const STATUS_TEXT: Record<number, string> = {
   403: "Not allowed (role, workspace, or cross-site request).",
   404: "Not found. Also returned for other workspaces' resources.",
   409: "Conflict (stale version, closed request, or invalid status change).",
-  413: "Body larger than 64 KB.",
-  415: "Body is not JSON.",
-  429: "Rate limited.",
+  413: "Body too large (JSON bodies: 64 KB; file uploads: see the operation).",
+  415: "Wrong body type (JSON, or multipart/form-data for uploads).",
+  429: "Rate limited. `Retry-After` says when to try again.",
+  502: "The AI provider rejected the request or returned an invalid result.",
+  503: "The AI provider is unavailable. `Retry-After` says when to try again.",
 };
+
+/** Roles that hold an operation's permission, from the same matrix the services enforce. */
+export function rolesFor(op: Operation): string[] | undefined {
+  if (!op.permission) return undefined;
+  return ROLES.filter((role) => can(role, op.permission!));
+}
+
+function requestBody(op: Operation) {
+  if (op.upload) {
+    return {
+      required: true,
+      content: {
+        "multipart/form-data": {
+          schema: {
+            type: "object",
+            required: [op.upload.field],
+            properties: {
+              [op.upload.field]: {
+                type: "string",
+                contentMediaType: "application/octet-stream",
+                description: `${op.upload.description} Limit: ${op.upload.maxFileBytes} bytes.`,
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+  if (op.body) return { required: true, content: { "application/json": { schema: inline(op.body) } } };
+  return undefined;
+}
 
 const componentRef = (id: string) => `#/components/schemas/${id}`;
 
@@ -100,16 +134,20 @@ function operation(op: Operation) {
       content: { "application/problem+json": { schema: { $ref: componentRef("Problem") } } },
     };
   }
+  const roles = rolesFor(op);
+  const description = [op.description, roles ? `Roles: ${roles.join(", ")}.` : undefined]
+    .filter(Boolean)
+    .join(" ");
+  const body = requestBody(op);
   return {
     operationId: op.id,
     summary: op.summary,
-    ...(op.description ? { description: op.description } : {}),
+    ...(description ? { description } : {}),
     tags: [op.tag],
     security: op.auth === "session" ? [{ session: [] }] : [],
+    ...(roles ? { "x-required-roles": roles } : {}),
     ...(parameters.length ? { parameters } : {}),
-    ...(op.body
-      ? { requestBody: { required: true, content: { "application/json": { schema: inline(op.body) } } } }
-      : {}),
+    ...(body ? { requestBody: body } : {}),
     responses,
   };
 }
@@ -133,6 +171,10 @@ export function buildOpenApiDocument() {
     tags: [
       { name: "Portal", description: "Public customer endpoints." },
       { name: "Tickets", description: "Workspace members (owner, admin, agent)." },
+      {
+        name: "Knowledge",
+        description: "Knowledge base for AI answers. Everyone can read; admins and owners manage it.",
+      },
       { name: "Meta" },
     ],
     paths,

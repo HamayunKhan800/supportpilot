@@ -326,3 +326,88 @@ export async function insertAiUsage(
     estCostMicros: input.estCostMicros,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Retrieval (D10)
+// ---------------------------------------------------------------------------
+
+/**
+ * Nearest chunks by cosine distance. One HNSW index serves all workspaces and pgvector
+ * filters *after* scanning it, so iterative scans keep going until `limit` chunks of this
+ * workspace are found. Relaxed order gives better recall; the materialized CTE restores
+ * exact order (`+ 0` is needed on PostgreSQL 17+, per pgvector's README).
+ * Must run inside a transaction: the settings are `SET LOCAL`.
+ */
+export async function vectorSearch(
+  tx: Transaction,
+  workspaceId: string,
+  embedding: number[],
+  limit: number,
+): Promise<{ chunkId: string; similarity: number }[]> {
+  await tx.execute(sql`SET LOCAL hnsw.iterative_scan = relaxed_order`);
+  const query = JSON.stringify(embedding);
+  const result = await tx.execute<{ id: string; distance: number }>(sql`
+    WITH nearest AS MATERIALIZED (
+      SELECT c.id, c.embedding <=> ${query}::vector AS distance
+      FROM ${kbChunk} c
+      WHERE c.workspace_id = ${workspaceId}
+        AND EXISTS (
+          SELECT 1 FROM ${kbDocument} d
+          WHERE d.id = c.document_id AND d.workspace_id = c.workspace_id AND d.status = 'ready'
+        )
+      ORDER BY distance
+      LIMIT ${limit}
+    )
+    SELECT id, distance FROM nearest ORDER BY distance + 0, id`);
+  return result.rows.map((r) => ({ chunkId: r.id, similarity: 1 - Number(r.distance) }));
+}
+
+/**
+ * Keyword matches with English stemming (D11), for **questions**, so any word may match:
+ * `plainto_tsquery` joins words with AND (PostgreSQL docs §12.3.2), and a question like
+ * "How long do refunds take?" would then need "long", "refund" and "take" in one passage.
+ * Its AND operators are turned into OR; ts_rank_cd still ranks passages that match more
+ * words higher. plainto_tsquery treats every operator character in the input as text, so
+ * user input can't inject query syntax. A query of only stop words matches nothing.
+ */
+export async function keywordSearch(
+  tx: Executor,
+  workspaceId: string,
+  text: string,
+  limit: number,
+): Promise<{ chunkId: string; score: number }[]> {
+  const result = await tx.execute<{ id: string; score: number }>(sql`
+    SELECT c.id, ts_rank_cd(c.tsv, q.query) AS score
+    FROM ${kbChunk} c,
+      (SELECT replace(plainto_tsquery('english', ${text})::text, ' & ', ' | ')::tsquery AS query) q
+    WHERE c.workspace_id = ${workspaceId}
+      AND c.tsv @@ q.query
+      AND EXISTS (
+        SELECT 1 FROM ${kbDocument} d
+        WHERE d.id = c.document_id AND d.workspace_id = c.workspace_id AND d.status = 'ready'
+      )
+    ORDER BY score DESC, c.id
+    LIMIT ${limit}`);
+  return result.rows.map((r) => ({ chunkId: r.id, score: Number(r.score) }));
+}
+
+export interface KbSearchChunk extends KbChunkView {
+  documentTitle: string;
+}
+
+/** Loads chunks for display, with their document titles (scoped to the workspace). */
+export async function findChunksForDisplay(
+  tx: Executor,
+  workspaceId: string,
+  chunkIds: string[],
+): Promise<KbSearchChunk[]> {
+  if (chunkIds.length === 0) return [];
+  return tx
+    .select({ ...chunkViewColumns, documentTitle: kbDocument.title })
+    .from(kbChunk)
+    .innerJoin(
+      kbDocument,
+      and(eq(kbDocument.id, kbChunk.documentId), eq(kbDocument.workspaceId, kbChunk.workspaceId)),
+    )
+    .where(and(eq(kbChunk.workspaceId, workspaceId), inArray(kbChunk.id, chunkIds)));
+}

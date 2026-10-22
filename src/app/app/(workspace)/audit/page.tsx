@@ -4,13 +4,15 @@ import Link from "next/link";
 import { Forbidden } from "@/components/forbidden";
 import { requireAppWorkspace } from "../workspace-context";
 import { getAuditPage } from "@/server/modules/workspaces/service";
+import type { AuditAction } from "@/server/platform/auth/audit";
 import { AppError } from "@/server/platform/errors";
 
 export const metadata: Metadata = { title: "Audit log" };
 
 const fmt = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 
-const LABELS: Record<string, string> = {
+// Exhaustive: adding an audit action without a label fails the type check.
+const LABELS: Record<AuditAction, string> = {
   "workspace.created": "Created the workspace",
   "workspace.updated": "Updated workspace details",
   "invitation.created": "Invited a member",
@@ -26,7 +28,13 @@ const LABELS: Record<string, string> = {
   "ticket.priority_changed": "Changed priority",
   "ticket.category_changed": "Changed category",
   "ticket.assigned": "Changed assignee",
+  "kb.document_uploaded": "Uploaded a knowledge document",
+  "kb.document_deleted": "Deleted a knowledge document",
+  "kb.document_retried": "Retried a knowledge document",
 };
+
+/** Rows store the action as text; anything unrecognised is shown as-is. */
+const labelFor = (action: string) => (Object.hasOwn(LABELS, action) ? LABELS[action as AuditAction] : action);
 
 const ACTORS: Record<string, string> = { system: "System", customer: "Customer", user: "Deleted user" };
 
@@ -37,7 +45,8 @@ function detail(metadata: Record<string, unknown>) {
   const role = s("role") && `role: ${s("role")}`;
   const slug = s("slug") && `address: ${s("slug")}`;
   const reason = s("reason") === "customer_reply" ? "customer replied" : null;
-  return [number, change, role, slug, reason].filter(Boolean).join(" · ");
+  const title = s("title") && `“${s("title")}”`;
+  return [number, title, change, role, slug, reason].filter(Boolean).join(" · ");
 }
 
 export default async function AuditPage({ searchParams }: PageProps<"/app/audit">) {
@@ -85,7 +94,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
                   </td>
                   <td className="px-4 py-3">{e.actorName ?? ACTORS[e.actorType] ?? "Unknown"}</td>
                   <td className="px-4 py-3">
-                    <div>{LABELS[e.action] ?? e.action}</div>
+                    <div>{labelFor(e.action)}</div>
                     <div className="text-muted-foreground">{detail(e.metadata)}</div>
                   </td>
                 </tr>

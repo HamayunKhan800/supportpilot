@@ -1,4 +1,7 @@
 import type { z } from "zod";
+import { KB_MAX_UPLOAD_BYTES } from "@/server/modules/kb/limits";
+import { kbSearchInput } from "@/server/modules/kb/schemas";
+import type { Permission } from "@/server/platform/auth/permissions";
 import {
   agentMessageInput,
   customerReplyInput,
@@ -16,6 +19,11 @@ import {
   TicketIdParams,
   TicketList,
   TokenParams,
+  KbDocument,
+  KbDocumentDetail,
+  KbDocumentIdParams,
+  KbDocumentList,
+  KbSearchResults,
 } from "./schemas";
 
 /**
@@ -29,18 +37,26 @@ export interface Operation<
   B extends z.ZodType = z.ZodType,
 > {
   id: string;
-  method: "GET" | "POST" | "PATCH";
+  method: "GET" | "POST" | "PATCH" | "DELETE";
   /** OpenAPI path template, e.g. /api/v1/tickets/{id}. */
   path: string;
   summary: string;
   description?: string;
-  tag: "Portal" | "Tickets" | "Meta";
+  tag: "Portal" | "Tickets" | "Knowledge" | "Meta";
   /** public: no credentials · session: signed-in workspace member · tracking-token: secret path token. */
   auth: "public" | "session" | "tracking-token";
+  /**
+   * Session operations: the permission the service checks (docs/01 §2.1). Documented in
+   * OpenAPI as the roles that hold it, and a generated test checks every role against it.
+   */
+  permission?: Permission;
   params?: P;
   query?: Q;
+  /** JSON body schema. */
   body?: B;
-  success: { status: 200 | 201; description: string; schema?: z.ZodType };
+  /** multipart/form-data with one file in `field` (instead of a JSON body). */
+  upload?: { field: string; maxFileBytes: number; description: string };
+  success: { status: 200 | 201 | 204; description: string; schema?: z.ZodType };
   /** Problem statuses this operation can return (documented in OpenAPI). */
   errors: readonly number[];
 }
@@ -99,6 +115,7 @@ export const operations = {
     description: "Filters, full-text search (`q`, websearch syntax or `#number`) and keyset pagination.",
     tag: "Tickets",
     auth: "session",
+    permission: { ticket: ["read"] },
     query: ticketListQuery,
     success: { status: 200, description: "A page of tickets.", schema: TicketList },
     errors: [400, 401, 403],
@@ -110,6 +127,7 @@ export const operations = {
     summary: "Get a ticket with its full thread",
     tag: "Tickets",
     auth: "session",
+    permission: { ticket: ["read"] },
     params: TicketIdParams,
     success: {
       status: 200,
@@ -126,6 +144,7 @@ export const operations = {
     description: "Send the `version` you last read; a stale version returns 409. Each change is audited.",
     tag: "Tickets",
     auth: "session",
+    permission: { ticket: ["update"] },
     params: TicketIdParams,
     body: ticketPatchInput,
     success: { status: 200, description: "The updated ticket.", schema: Ticket },
@@ -138,10 +157,102 @@ export const operations = {
     summary: "Post a public reply or an internal note",
     tag: "Tickets",
     auth: "session",
+    permission: { ticket: ["update"] },
     params: TicketIdParams,
     body: agentMessageInput,
     success: { status: 201, description: "Message added.", schema: MessageCreated },
     errors: [400, 401, 403, 404, 409, 413, 415],
+  }),
+  listKbDocuments: define({
+    id: "listKbDocuments",
+    method: "GET",
+    path: "/api/v1/kb/documents",
+    summary: "List knowledge-base documents",
+    description: "Newest first, with ingestion status and the workspace's storage use.",
+    tag: "Knowledge",
+    auth: "session",
+    permission: { kb: ["read"] },
+    success: { status: 200, description: "All documents of the workspace.", schema: KbDocumentList },
+    errors: [401, 403],
+  }),
+  uploadKbDocument: define({
+    id: "uploadKbDocument",
+    method: "POST",
+    path: "/api/v1/kb/documents",
+    summary: "Upload a document",
+    description:
+      "Accepts .md, .txt and .pdf. The type is decided from the file name and its contents; the " +
+      "browser's Content-Type is ignored. Ingestion runs in the background: poll the document " +
+      "until `status` is `ready` or `failed`. Uploading the same file twice returns 409 with " +
+      "`existingDocumentId`. Rate limited per user.",
+    tag: "Knowledge",
+    auth: "session",
+    permission: { kb: ["write"] },
+    upload: {
+      field: "file",
+      maxFileBytes: KB_MAX_UPLOAD_BYTES,
+      description: "The document (.md, .markdown, .txt or .pdf, at most 5 MB).",
+    },
+    success: { status: 201, description: "Stored and queued for ingestion.", schema: KbDocument },
+    errors: [400, 401, 403, 409, 413, 415, 429],
+  }),
+  getKbDocument: define({
+    id: "getKbDocument",
+    method: "GET",
+    path: "/api/v1/kb/documents/{id}",
+    summary: "Get a document and the passages it was split into",
+    tag: "Knowledge",
+    auth: "session",
+    permission: { kb: ["read"] },
+    params: KbDocumentIdParams,
+    success: {
+      status: 200,
+      description: "The document with its chunks, in order.",
+      schema: KbDocumentDetail,
+    },
+    errors: [401, 403, 404],
+  }),
+  deleteKbDocument: define({
+    id: "deleteKbDocument",
+    method: "DELETE",
+    path: "/api/v1/kb/documents/{id}",
+    summary: "Delete a document",
+    description: "Its passages stop appearing in search immediately, even if ingestion is still running.",
+    tag: "Knowledge",
+    auth: "session",
+    permission: { kb: ["write"] },
+    params: KbDocumentIdParams,
+    success: { status: 204, description: "Deleted." },
+    errors: [401, 403, 404],
+  }),
+  retryKbDocument: define({
+    id: "retryKbDocument",
+    method: "POST",
+    path: "/api/v1/kb/documents/{id}/retry",
+    summary: "Retry a failed document",
+    description: "Only `failed` documents can be retried; others return 409. Rate limited with uploads.",
+    tag: "Knowledge",
+    auth: "session",
+    permission: { kb: ["write"] },
+    params: KbDocumentIdParams,
+    success: { status: 200, description: "Queued again (status `pending`).", schema: KbDocument },
+    errors: [401, 403, 404, 409, 429],
+  }),
+  searchKb: define({
+    id: "searchKb",
+    method: "POST",
+    path: "/api/v1/kb/search",
+    summary: "Test search: which passages would retrieval use for this question?",
+    description:
+      "Hybrid retrieval: meaning-based (vector) top 8 and keyword top 8, merged with Reciprocal " +
+      "Rank Fusion (k = 60), best 5 returned. Each result says which search found it. " +
+      "Returns 409 if the workspace's documents were embedded with different models. Rate limited per user.",
+    tag: "Knowledge",
+    auth: "session",
+    permission: { kb: ["write"] },
+    body: kbSearchInput,
+    success: { status: 200, description: "Up to 5 passages, best first.", schema: KbSearchResults },
+    errors: [400, 401, 403, 409, 413, 415, 429, 502, 503],
   }),
   getOpenApi: define({
     id: "getOpenApi",

@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { MESSAGE_AUTHOR_TYPES, TICKET_PRIORITIES, TICKET_STATUSES } from "@/server/platform/db/schema";
+import {
+  KB_DOCUMENT_STATUSES,
+  KB_MIME_TYPES,
+  MESSAGE_AUTHOR_TYPES,
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+} from "@/server/platform/db/schema";
 
 /**
  * Response contracts for /api/v1. Strict objects: contract tests parse real responses
@@ -20,6 +26,14 @@ export const Problem = z
     instance: z.string().optional(),
     requestId: z.string().optional(),
     errors: z.record(z.string(), z.array(z.string())).optional(),
+    reason: z
+      .string()
+      .optional()
+      .describe("Machine-readable reason, e.g. why an uploaded file was rejected."),
+    existingDocumentId: z
+      .uuid()
+      .optional()
+      .describe("On a duplicate upload: the document that already has this file."),
   })
   .register(apiRegistry, { id: "Problem", description: "RFC 9457 Problem Details." });
 
@@ -98,9 +112,84 @@ export const CustomerTicket = z
     description: "The customer's view: no internal notes, assignee or internal ids.",
   });
 
+export const KbDocument = z
+  .strictObject({
+    id: z.uuid(),
+    title: z.string().describe("Display title derived from the file name."),
+    filename: z.string(),
+    mimeType: z
+      .enum(KB_MIME_TYPES)
+      .describe("Detected from the file's contents, not from the upload headers."),
+    sizeBytes: z.int().positive(),
+    status: z.enum(KB_DOCUMENT_STATUSES),
+    error: z
+      .strictObject({ code: z.string(), message: z.string().describe("Plain-language reason.") })
+      .nullable()
+      .describe("Set when status is `failed`."),
+    pageCount: z.int().nonnegative().nullable(),
+    chunkCount: z.int().nonnegative(),
+    tokenEstimate: z.int().nonnegative().describe("Characters ÷ 4: an estimate, not a tokenizer count."),
+    embeddingModel: z.string().nullable(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    ingestedAt: dateTime.nullable(),
+  })
+  .register(apiRegistry, { id: "KbDocument", description: "Stored files are never returned." });
+
+export const KbDocumentList = z
+  .strictObject({
+    items: z.array(KbDocument),
+    usage: z.strictObject({
+      documentCount: z.int().nonnegative(),
+      totalBytes: z.int().nonnegative(),
+      maxDocuments: z.int().positive(),
+      maxBytes: z.int().positive(),
+    }),
+  })
+  .register(apiRegistry, { id: "KbDocumentList" });
+
+export const KbChunk = z
+  .strictObject({
+    id: z.uuid(),
+    ordinal: z.int().nonnegative().describe("Position in the document, from 0."),
+    headingPath: z.string().describe('Heading trail, e.g. "Billing › Refunds". Empty if none.'),
+    content: z.string(),
+    tokenEstimate: z.int().positive(),
+  })
+  .register(apiRegistry, { id: "KbChunk" });
+
+export const KbDocumentDetail = z
+  .strictObject({ document: KbDocument, chunks: z.array(KbChunk) })
+  .register(apiRegistry, { id: "KbDocumentDetail" });
+
+export const KbSearchResults = z
+  .strictObject({
+    query: z.string(),
+    model: z
+      .string()
+      .nullable()
+      .describe("Embedding model of the workspace's documents; null if none are ready."),
+    results: z.array(
+      z.strictObject({
+        rank: z.int().positive(),
+        chunk: KbChunk,
+        document: z.strictObject({ id: z.uuid(), title: z.string() }),
+        rrfScore: z.number().positive().describe("Reciprocal Rank Fusion score (k = 60)."),
+        matchedBy: z.array(z.enum(["vector", "keyword"])).min(1),
+        vector: z
+          .strictObject({ rank: z.int().positive(), similarity: z.number().describe("Cosine similarity.") })
+          .nullable(),
+        keyword: z.strictObject({ rank: z.int().positive(), score: z.number() }).nullable(),
+      }),
+    ),
+    timingsMs: z.strictObject({ embedding: z.number().nonnegative(), retrieval: z.number().nonnegative() }),
+  })
+  .register(apiRegistry, { id: "KbSearchResults" });
+
 // Path parameters (documented formats; malformed values are answered with 404).
 export const SlugParams = z.object({ slug: z.string().min(1).max(100) });
 export const TokenParams = z.object({
   token: z.string().describe("Secret tracking token from the tracking link (43 characters, base64url)."),
 });
 export const TicketIdParams = z.object({ id: z.uuid() });
+export const KbDocumentIdParams = z.object({ id: z.uuid() });

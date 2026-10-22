@@ -190,6 +190,7 @@ jobs:
       - run: pnpm test:smoke
         env:
           SMOKE_BASE_URL: http://127.0.0.1:3000
+          SMOKE_ORIGIN: http://localhost:3000 # BETTER_AUTH_URL
           SMOKE_DATABASE_URL: ${{ env.DATABASE_URL }}
       - name: Server logs
         if: always()
@@ -267,6 +268,7 @@ jobs:
       - run: pnpm test:smoke
         env:
           SMOKE_BASE_URL: http://127.0.0.1:3000
+          SMOKE_ORIGIN: http://localhost:3000 # BETTER_AUTH_URL
           SMOKE_DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot
       - name: Image size
         run: docker image ls supportpilot:ci

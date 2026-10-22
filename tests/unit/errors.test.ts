@@ -19,6 +19,28 @@ describe("errors → RFC 9457 problem details (NFR-SEC3)", () => {
     expect(p.errors).toEqual({ subject: ["Required"] });
   });
 
+  it("adds extension members (RFC 9457 §3.2) but never lets them replace standard ones", () => {
+    const p = toProblem(
+      Errors.conflict("Already uploaded.", "duplicate_document", {
+        existingDocumentId: "doc-1",
+        status: "200",
+        type: "https://evil.example/",
+        title: "OK",
+        detail: "fine",
+        requestId: "forged",
+      }),
+      { requestId: "rid" },
+    );
+    expect(p).toMatchObject({
+      existingDocumentId: "doc-1",
+      status: 409,
+      title: "Conflict",
+      detail: "Already uploaded.",
+      requestId: "rid",
+    });
+    expect(p.type).toMatch(/\/duplicate_document$/);
+  });
+
   it("maps ZodError to 400 with per-field messages", () => {
     const schema = z.object({ email: z.email(), age: z.number().min(18) });
     const r = schema.safeParse({ email: "nope", age: 3 });

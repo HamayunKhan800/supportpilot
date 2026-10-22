@@ -104,8 +104,9 @@ Indexes: `kb_chunk` HNSW on `embedding` (cosine) and GIN on `tsv`; `ticket (work
 | `POST /api/v1/drafts/{id}/approve`       | agent+                       | body: final text → posts reply                       |
 | `POST /api/v1/drafts/{id}/feedback`      | agent+                       | 👍/👎 + reason                                       |
 | `GET/POST /api/v1/kb/documents`          | read: agent+ · write: admin+ | list / upload (multipart)                            |
-| `DELETE /api/v1/kb/documents/{id}`       | admin+                       | delete doc + chunks                                  |
-| `POST /api/v1/kb/search`                 | admin+                       | retrieval debug                                      |
+| `GET/DELETE /api/v1/kb/documents/{id}`   | read: agent+ · write: admin+ | status + passages / delete doc + chunks              |
+| `POST /api/v1/kb/documents/{id}/retry`   | admin+                       | re-queue a failed document                           |
+| `POST /api/v1/kb/search`                 | admin+                       | test search (hybrid retrieval)                       |
 | `GET/PATCH /api/v1/workspace/settings`   | read: agent+ · write: admin+ | settings                                             |
 | `GET /api/v1/analytics/summary`          | agent+                       | dashboard metrics                                    |
 | `GET /api/v1/audit`                      | admin+                       | audit log                                            |

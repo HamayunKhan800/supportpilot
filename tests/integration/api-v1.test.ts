@@ -1,21 +1,19 @@
 import { readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { Validator } from "@seriousme/openapi-schema-validator";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildOpenApiDocument } from "@/server/api/openapi";
 import { operations, type Operation } from "@/server/api/operations";
 import { MAX_BODY_BYTES } from "@/server/api/route";
 import { Problem } from "@/server/api/schemas";
+import * as kbRepo from "@/server/modules/kb/repository";
 import { getAuth } from "@/server/platform/auth";
 import { getSessionContext } from "@/server/platform/auth/context";
+import { can, ROLES } from "@/server/platform/auth/permissions";
+import { transaction } from "@/server/platform/db/tx";
 import { resetEnvCache } from "@/server/platform/env";
-import * as openapiRoute from "@/app/api/v1/openapi.json/route";
-import * as portalTicketsRoute from "@/app/api/v1/portal/[slug]/tickets/route";
-import * as trackingRoute from "@/app/api/v1/portal/t/[token]/route";
-import * as trackingMessagesRoute from "@/app/api/v1/portal/t/[token]/messages/route";
-import * as ticketsRoute from "@/app/api/v1/tickets/route";
-import * as ticketRoute from "@/app/api/v1/tickets/[id]/route";
-import * as ticketMessagesRoute from "@/app/api/v1/tickets/[id]/messages/route";
+import { stopWebBoss } from "@/server/platform/jobs/boss";
+import { call, handlers, type CallOptions, type OpId } from "./support/api";
 import { resetDatabase, signUpAndIn, type TestClient } from "./support/client";
 
 /**
@@ -23,54 +21,6 @@ import { resetDatabase, signUpAndIn, type TestClient } from "./support/client";
  * the operation registry, so a new endpoint is automatically held to the same rules
  * (cross-tenant 404, 401/403, strict response contract) — and fails here if it isn't wired.
  */
-const ORIGIN = "http://localhost:3000";
-type OpId = keyof typeof operations;
-type RouteHandler = (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
-
-const handlers: Record<OpId, RouteHandler> = {
-  createPortalTicket: portalTicketsRoute.POST,
-  getCustomerTicket: trackingRoute.GET,
-  addCustomerReply: trackingMessagesRoute.POST,
-  listTickets: ticketsRoute.GET,
-  getTicket: ticketRoute.GET,
-  updateTicket: ticketRoute.PATCH,
-  addTicketMessage: ticketMessagesRoute.POST,
-  getOpenApi: openapiRoute.GET,
-};
-
-interface CallOptions {
-  params?: Record<string, string>;
-  query?: Record<string, string>;
-  body?: unknown;
-  /** Raw body, sent as-is (overrides `body`). */
-  raw?: BodyInit;
-  as?: TestClient;
-  headers?: Record<string, string>;
-  /** Omit the same-origin Origin header that a browser would send. */
-  noOrigin?: boolean;
-}
-
-async function call(id: OpId, opts: CallOptions = {}) {
-  const op: Operation = operations[id];
-  const params = opts.params ?? {};
-  const path = op.path.replace(/\{(\w+)\}/g, (_, k: string) => encodeURIComponent(params[k] ?? ""));
-  const url = new URL(path, ORIGIN);
-  for (const [k, v] of Object.entries(opts.query ?? {})) url.searchParams.set(k, v);
-
-  const headers = new Headers(opts.as?.headers);
-  if (op.method !== "GET") {
-    if (!opts.noOrigin) headers.set("origin", ORIGIN);
-    headers.set("content-type", "application/json");
-  }
-  for (const [k, v] of Object.entries(opts.headers ?? {})) headers.set(k, v);
-
-  const body = op.method === "GET" ? undefined : (opts.raw ?? JSON.stringify(opts.body ?? {}));
-  const req = new Request(url, { method: op.method, headers, body, duplex: "half" } as RequestInit);
-  const res = await handlers[id](req, { params: Promise.resolve(params) });
-  const text = await res.text();
-  return { status: res.status, headers: res.headers, json: text ? JSON.parse(text) : undefined };
-}
-
 const form = (over: Record<string, unknown> = {}) => ({
   name: "Casey Customer",
   email: "casey@example.test",
@@ -79,23 +29,64 @@ const form = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+let uploadCounter = 0;
+/** A small, unique Markdown file (unique so it is never a duplicate). */
+function sampleUpload(name = "refunds.md", content?: string): FormData {
+  const fd = new FormData();
+  const text = content ?? `# Refunds\n\nRefunds are issued within 14 days. Sample ${++uploadCounter}.`;
+  fd.set("file", new File([text], name, { type: "text/markdown" }));
+  return fd;
+}
+
 /** Valid request bodies per mutating operation (used by the generated suites). */
 const sampleBody: Partial<Record<OpId, () => unknown>> = {
   createPortalTicket: () => form(),
   addCustomerReply: () => ({ message: "Any update on this?" }),
   updateTicket: () => ({ version: currentVersion, priority: "high" }),
   addTicketMessage: () => ({ body: "Looking into it now.", internal: true }),
+  uploadKbDocument: () => sampleUpload(),
+  searchKb: () => ({ query: "How long do refunds take?" }),
 };
 
 let owner: TestClient, admin: TestClient, agent: TestClient, globexOwner: TestClient, newcomer: TestClient;
 let ticketId: string, token: string, currentVersion: number;
+let acmeId: string, kbDocId: string;
 let ipCounter = 0;
 const nextIp = () => ({ "x-forwarded-for": `203.0.113.${++ipCounter}` });
 
 const handler = (req: Request) => getAuth().handler(req);
 const sessionOps = (Object.keys(operations) as OpId[]).filter((id) => operations[id].auth === "session");
-const paramsFor = (id: OpId): Record<string, string> =>
-  operations[id].path.includes("{id}") ? { id: ticketId } : {};
+
+/** A knowledge document inserted directly (no ingestion job), optionally already failed. */
+async function newKbDocument(status: "pending" | "failed" = "pending"): Promise<string> {
+  return transaction(async (tx) => {
+    const n = ++uploadCounter;
+    const doc = await kbRepo.insertDocument(tx, acmeId, {
+      title: `Fixture ${n}`,
+      filename: `fixture-${n}.md`,
+      mimeType: "text/markdown",
+      sha256: n.toString(16).padStart(64, "0"),
+      uploadedBy: null,
+      bytes: Buffer.from(`# Fixture ${n}`),
+    });
+    if (status === "failed") await kbRepo.markFailed(tx, acmeId, doc.id, "embedding_unavailable");
+    return doc.id;
+  });
+}
+
+/** An existing resource of the Acme workspace that the operation's {id} can point at. */
+const existingIdFor = (id: OpId) => (operations[id].tag === "Knowledge" ? kbDocId : ticketId);
+
+/**
+ * Path params for a call that is expected to succeed. Operations that use up their
+ * target (delete, retry) get a fresh document each time.
+ */
+async function paramsFor(id: OpId): Promise<Record<string, string>> {
+  if (!operations[id].path.includes("{id}")) return {};
+  if (id === "deleteKbDocument") return { id: await newKbDocument() };
+  if (id === "retryKbDocument") return { id: await newKbDocument("failed") };
+  return { id: existingIdFor(id) };
+}
 
 async function freshTicket() {
   const created = await call("createPortalTicket", {
@@ -118,7 +109,7 @@ beforeAll(async () => {
   agent = await signUpAndIn(handler, "agent@acme.test");
   globexOwner = await signUpAndIn(handler, "owner@globex.test");
   newcomer = await signUpAndIn(handler, "newcomer@example.test");
-  const acmeId = (await owner.post("/organization/create", { name: "Acme Support", slug: "acme" })).json.id;
+  acmeId = (await owner.post("/organization/create", { name: "Acme Support", slug: "acme" })).json.id;
   await globexOwner.post("/organization/create", { name: "Globex", slug: "globex" });
   for (const [client, role] of [
     [admin, "admin"],
@@ -132,6 +123,11 @@ beforeAll(async () => {
   ticketId = first.ticket.id;
   token = first.token;
   currentVersion = first.ticket.version;
+  kbDocId = await newKbDocument();
+});
+
+afterAll(async () => {
+  await stopWebBoss(); // uploads start the web process's enqueue-only job client
 });
 
 describe("OpenAPI document", () => {
@@ -181,6 +177,12 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
       "getTicket",
       "updateTicket",
       "addTicketMessage",
+      "uploadKbDocument",
+      "listKbDocuments",
+      "getKbDocument",
+      "retryKbDocument",
+      "searchKb",
+      "deleteKbDocument",
       "getOpenApi",
     ];
     expect([...order].sort()).toEqual(Object.keys(operations).sort());
@@ -191,7 +193,7 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
           ? { token }
           : id === "createPortalTicket"
             ? { slug: "acme" }
-            : paramsFor(id);
+            : await paramsFor(id);
       const res = await call(id, {
         params,
         as: op.auth === "session" ? owner : undefined,
@@ -268,17 +270,31 @@ describe("errors are RFC 9457 Problem Details", () => {
   });
 });
 
-describe("tenant isolation (NFR-SEC1): other workspaces' tickets are 404", () => {
+describe("tenant isolation (NFR-SEC1): other workspaces' resources are 404", () => {
   const idOps = sessionOps.filter((id) => operations[id].path.includes("{id}"));
 
-  it("covers every ticket-id route", () => {
-    expect(idOps.sort()).toEqual(["addTicketMessage", "getTicket", "updateTicket"]);
+  it("covers every id route", () => {
+    expect(idOps.sort()).toEqual([
+      "addTicketMessage",
+      "deleteKbDocument",
+      "getKbDocument",
+      "getTicket",
+      "retryKbDocument",
+      "updateTicket",
+    ]);
   });
 
   it.each(idOps)("%s → 404 for a member of another workspace", async (id) => {
-    const res = await call(id, { as: globexOwner, params: { id: ticketId }, body: sampleBody[id]?.() });
+    const target = id === "retryKbDocument" ? await newKbDocument("failed") : existingIdFor(id);
+    const res = await call(id, { as: globexOwner, params: { id: target }, body: sampleBody[id]?.() });
     expect(res.status).toBe(404);
     Problem.parse(res.json);
+    // ...and nothing happened to it.
+    if (operations[id].tag === "Knowledge") {
+      expect((await kbRepo.findDocument(acmeId, target))?.status).toBe(
+        id === "retryKbDocument" ? "failed" : "pending",
+      );
+    }
   });
 
   it.each(idOps)("%s → 404 for a malformed id (never a database error)", async (id) => {
@@ -293,22 +309,41 @@ describe("tenant isolation (NFR-SEC1): other workspaces' tickets are 404", () =>
   });
 });
 
-describe("authentication and roles", () => {
+describe("authentication and roles (docs/01 §2.1 permission matrix)", () => {
   it.each(sessionOps)("%s → 401 without a session", async (id) => {
-    const res = await call(id, { params: paramsFor(id), body: sampleBody[id]?.() });
+    const res = await call(id, { params: await paramsFor(id), body: sampleBody[id]?.() });
     expect(res.status).toBe(401);
   });
 
   it.each(sessionOps)("%s → 403 for a user with no workspace", async (id) => {
-    const res = await call(id, { as: newcomer, params: paramsFor(id), body: sampleBody[id]?.() });
+    const res = await call(id, { as: newcomer, params: await paramsFor(id), body: sampleBody[id]?.() });
     expect(res.status).toBe(403);
   });
 
-  it.each(sessionOps)("%s works for owner, admin and agent", async (id) => {
-    for (const client of [owner, admin, agent]) {
-      const res = await call(id, { as: client, params: paramsFor(id), body: sampleBody[id]?.() });
-      expect(res.status, `${id}: ${JSON.stringify(res.json)}`).toBe(operations[id].success.status);
-      if (id === "updateTicket") currentVersion = res.json.version;
+  it("every session operation declares the permission it needs", () => {
+    for (const id of sessionOps) expect(operations[id].permission, id).toBeDefined();
+  });
+
+  it("agents can read the knowledge base but not change or test-search it", () => {
+    const allowed = sessionOps.filter(
+      (id) => operations[id].tag === "Knowledge" && can("agent", operations[id].permission!),
+    );
+    expect(allowed.sort()).toEqual(["getKbDocument", "listKbDocuments"]);
+  });
+
+  it.each(sessionOps)("%s: each role gets exactly what its permission allows", async (id) => {
+    const clients = { owner, admin, agent };
+    expect(Object.keys(clients).sort()).toEqual([...ROLES].sort());
+    for (const role of ROLES) {
+      const params = await paramsFor(id);
+      const res = await call(id, { as: clients[role], params, body: sampleBody[id]?.() });
+      const expected = can(role, operations[id].permission!) ? operations[id].success.status : 403;
+      expect(res.status, `${id} as ${role}: ${JSON.stringify(res.json)}`).toBe(expected);
+      if (id === "updateTicket" && res.status === 200) currentVersion = res.json.version;
+      // A refused change really changed nothing.
+      if (res.status === 403 && params.id && operations[id].tag === "Knowledge") {
+        expect(await kbRepo.findDocument(acmeId, params.id)).not.toBeNull();
+      }
     }
   });
 });
@@ -322,6 +357,22 @@ describe("request hygiene", () => {
     expect((await patch({ noOrigin: true })).status).toBe(403);
     expect((await patch({ headers: { origin: "null" } })).status).toBe(403);
     expect((await patch({ headers: { "sec-fetch-site": "cross-site" } })).status).toBe(403);
+  });
+
+  const sessionWrites = sessionOps.filter((id) => operations[id].method !== "GET");
+
+  it.each(sessionWrites)("%s: a cross-site request is refused before anything changes", async (id) => {
+    const params = await paramsFor(id);
+    const before =
+      params.id && operations[id].tag === "Knowledge" ? await kbRepo.findDocument(acmeId, params.id) : null;
+    const res = await call(id, {
+      as: owner,
+      params,
+      body: sampleBody[id]?.(),
+      headers: { origin: "https://evil.example" },
+    });
+    expect(res.status).toBe(403);
+    if (before) expect(await kbRepo.findDocument(acmeId, params.id!)).toEqual(before);
   });
 
   it("allows the same origin", async () => {
