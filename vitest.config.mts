@@ -37,6 +37,9 @@ export default defineConfig({
         // Thin DB queries + auth wiring; tested against PostgreSQL in
         // tests/integration/workspace-service.test.ts (tenant isolation, roles, paging).
         "src/server/modules/workspaces/{repository,service}.ts",
+        // SQL only (constraints, locking, search, keyset paging); tested against PostgreSQL
+        // in tests/integration/tickets-repository.test.ts.
+        "src/server/modules/tickets/repository.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

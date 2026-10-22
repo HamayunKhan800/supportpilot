@@ -80,6 +80,7 @@ export async function resetDatabase() {
   const { pool } = getDb();
   await pool.query(
     `TRUNCATE "audit_log", "workspace_settings", "invitation", "member", "organization",
-       "session", "account", "verification", "rate_limit", "user" RESTART IDENTITY CASCADE`,
+       "session", "account", "verification", "rate_limit", "user", "ticket_message", "ticket",
+       "ticket_counter", "app_rate_limit" RESTART IDENTITY CASCADE`,
   );
 }

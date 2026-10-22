@@ -91,3 +91,22 @@ Requirements, architecture, threat model, AI evaluation plan, 9 ADRs. Mermaid di
 | 19  | shadcn's default **error red failed WCAG contrast** at 90% opacity (axe "serious").                                                                                                                                                                    | Darkened the `--destructive` token to red-700 (≈5.9:1 on white).                                                                   |
 | 20  | `addMember` is a **server-only endpoint without a URL path**, so the path-based audit hook never saw it: direct additions were not audited. The same plugin hook also fires on workspace creation.                                                     | `afterAddMember` hook logs a system event, skipping the creator's owner membership. An integration test asserts exactly one event. |
 | 21  | **Audit-log paging silently skipped entries.** The cursor was a JS timestamp (milliseconds) while PostgreSQL stores microseconds, so entries within the same millisecond at a page boundary were lost. A test reproduced it (1 of 3 entries returned). | Keyset pagination on `(created_at, id)` in SQL, with the entry id as the cursor (validated as a UUID). Regression test added.      |
+
+## M3 · Ticketing: in progress
+
+Plan: [`docs/plans/m3-ticketing.md`](plans/m3-ticketing.md) (approved 2026-10-22).
+
+### Step 1: database (2026-10-22)
+
+- Migration `0002`: `ticket`, `ticket_message`, `ticket_counter`, `app_rate_limit`.
+- Tenant integrity enforced by the database itself, not only by application code:
+  - A composite FK makes a message unable to reference another workspace's ticket.
+  - A composite FK to `member(organization_id, user_id)` with `ON DELETE SET NULL (assignee_id)` only allows workspace members as assignees, and unassigns tickets when someone leaves.
+  - CHECK constraints on status, priority, author type, and "internal notes are written by agents".
+- Per-workspace ticket numbers via an atomic upsert (20 concurrent inserts: no gaps or duplicates). Optimistic concurrency via `version`.
+- 17 integration tests: tenant isolation, constraints (asserting SQLSTATE codes), concurrency, internal-note hiding, search, keyset paging with timestamp ties.
+
+| #   | Finding                                                                                                                                                                                  | Action                                                                                                             |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 22  | **Search negation leaked through.** With one search vector per message, `help -laptop` still matched the "Laptop setup" ticket because one of its messages said "help" without "laptop". | One search document per ticket (subject, customer, all messages), updated in the same transaction as each message. |
+| 23  | **Thread order was random within a transaction.** `now()` is the transaction start time, so two messages written together had identical timestamps and were ordered by random UUID.      | Identity column `seq` orders the thread.                                                                           |
