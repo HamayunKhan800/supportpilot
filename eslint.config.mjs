@@ -17,6 +17,25 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // The PDF thread is run directly by Node (type stripping) inside a worker_thread, so it
+    // must not depend on path aliases or other project modules at runtime (plan M4 D5).
+    files: ["src/server/modules/kb/pdf/thread.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*", "./*", "../*"],
+              allowTypeImports: true,
+              message: "The PDF thread may import only Node built-ins, unpdf, and types.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // CLI scripts write structured JSON to stdout by design.
     files: ["scripts/**/*.ts"],
     rules: { "no-console": "off" },

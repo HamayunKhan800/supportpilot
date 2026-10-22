@@ -201,6 +201,7 @@ export const EMBEDDING_DIMENSIONS = 768;
 
 export const KB_DOCUMENT_STATUSES = ["pending", "processing", "ready", "failed"] as const;
 export const KB_MIME_TYPES = ["text/markdown", "text/plain", "application/pdf"] as const;
+export type KbMimeType = (typeof KB_MIME_TYPES)[number];
 export const AI_USAGE_FEATURES = ["triage", "draft", "embed"] as const;
 
 /** Raw file bytes. Drizzle has no built-in bytea column. */

@@ -220,3 +220,39 @@ Customers can submit and follow requests without an account. Agents can triage, 
 - **Tests at the end of M3:** unit 324 (94.9% line coverage), integration 145, smoke 12, E2E 27 (+axe on desktop and mobile).
 - **Done-when list:** all items ticked. CI (run 39718487987) and Security (run 39718487964) passed on `8ec626a`, including the dependency audit that had failed during the npm outage.
 - **Open items carried to later milestones:** AR-004 (trusted proxy), AR-005 (link expiry and recovery), email notifications (M8), and CAPTCHA if abuse appears (M8).
+
+## M4 · Knowledge base: in progress
+
+Plan: [docs/plans/m4-knowledge-base.md](plans/m4-knowledge-base.md) (approved 2026-10-22).
+
+### Step 1: foundations (2026-10-22)
+
+- Migration 0003: `kb_document`, `kb_document_blob`, `kb_chunk` (pgvector `vector(768)` with an HNSW cosine index, plus a generated English full-text column) and `ai_usage`.
+- A tenant-scoped repository with 20 integration tests (3 mutations, all caught).
+- `AI_PROVIDER` (`mock` or `gemini`) is required in production. Verified: the production server refuses to start without it.
+
+### Step 2: ingestion core (2026-10-22)
+
+- **Upload validation (OWASP File Upload Cheat Sheet):**
+  - extension allowlist; the browser's Content-Type is ignored;
+  - `%PDF-` signature for PDFs; strict UTF-8 with no NUL bytes for text, and no PDF disguised as text;
+  - display-safe file names (path, control and bidi characters removed).
+- **Normalization:** removes invisible zero-width and bidi characters that could hide instructions from a reviewer (T9).
+- **Heading-aware chunker:** about 500 tokens per chunk with about 15% whole-sentence overlap; code fences kept intact.
+- **Embedders:**
+  - Gemini (`gemini-embedding-2`, 768 dimensions, Google's retrieval prefixes, batches of 100, one call at a time, timeout, temporary/permanent error mapping);
+  - an offline mock (feature hashing).
+- **PDF text extraction** runs in a `worker_thread` with a 256 MB heap cap and a 30-second kill.
+- **Tests:**
+  - 91 new unit tests (unit total 419, 97.2% line coverage; every new KB module at 100% lines);
+  - PDF fixtures are generated in code (`tests/support/pdf.ts`): valid, 50/51 pages, password-protected (RC4), scanned, truncated, a PNG renamed `.pdf`, a PDF renamed `.txt`;
+  - the Gemini adapter is tested against a fake `fetch`: exact URL, prefixes, dimensions, key in a header and never in the URL.
+- **Mutation-checked:** 16 deliberate breaks (timeout, heap cap, page limit, signature, polyglot, UTF-8, path stripping, bidi removal, overlap, headings, fences, prefixes, parallelism, 429 handling, character cap, encryption). **All 16 caught.**
+
+| #   | Finding                                                                                                                                                                                                                                                                     | Resolution                                                                                                                                                                                                                   |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 42  | My design notes planned to pass PDF.js `isEvalSupported: false` (the CVE-2024-4367 mitigation). The option **no longer exists** in PDF.js 6.4: grep finds no `eval(` or `new Function` anywhere in unpdf 1.9.1's bundled PDF.js. The flag would have been silently ignored. | The thread passes only options that exist (fonts, XFA and streaming off, images capped at 16 MP). The checked fact is recorded in `pdf/thread.ts`.                                                                           |
+| 43  | **Chunk overlap silently disappeared** for long paragraphs: they were pre-packed into almost-full pieces, so "overlap + piece" never fit. Found by a test that checked overlap actually happens.                                                                            | One packer now works on sentence-sized units and adds the overlap itself. A mutation that removes the overlap fails the test.                                                                                                |
+| 44  | The Gemini SDK reports some bad answers itself (a missing vector raises `InvalidResponseDataError`; a malformed 200 body raises an `APICallError` with status 200). My first mapping called them "temporary" or "rejected".                                                 | Both are mapped to `embedding_invalid` (permanent), so the job doesn't retry a response that will never be valid.                                                                                                            |
+| 45  | With the heap cap removed (mutation test), the memory-hog thread grew until the OS **SIGKILLed the whole test process**, as it would kill the production worker. With the cap, only the thread dies and the document gets a clear `pdf_too_complex` reason.                 | The cap stays. The 256 MB thread heap assumes a container with about 1 GB of RAM: size the worker accordingly in M8.                                                                                                         |
+| 46  | Node 24 runs TypeScript files directly (type stripping), including as `worker_thread` scripts. The PDF thread therefore stays type-checked and linted instead of being a hand-written `.mjs`.                                                                               | An ESLint rule allows only Node built-ins, `unpdf` and type-only imports in `pdf/thread.ts`. Verified by adding a forbidden import, which failed lint. The production bundle (step 3) must ship the thread as its own entry. |

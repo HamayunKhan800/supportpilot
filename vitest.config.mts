@@ -49,6 +49,10 @@ export default defineConfig({
         // SQL only (constraints, composite tenant FK, lifecycle guards, cascades); 20 tests
         // in tests/integration/kb-repository.test.ts, mutation-checked.
         "src/server/modules/kb/repository.ts",
+        // Runs inside a worker_thread, which v8 coverage does not instrument. Exercised for
+        // real (valid, 50/51-page, encrypted, scanned, truncated PDFs) by
+        // tests/unit/kb-pdf-and-prepare.test.ts; key checks mutation-tested.
+        "src/server/modules/kb/pdf/thread.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
