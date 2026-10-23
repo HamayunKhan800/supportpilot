@@ -1,0 +1,117 @@
+name: Gemini evaluation
+
+# M6 D4 and the owner's decision (plan §8.4): runs only when started by hand, and only after
+# the owner approves it. The job uses the protected `gemini-eval` environment, which holds
+# the GEMINI_API_KEY secret and requires a reviewer, so GitHub pauses the job before it starts
+# and the key is unreadable until it is approved. No schedule, no pull_request trigger.
+#
+# One run is one budgeted session (default 60 provider requests, 13 s apart, stops at the
+# first 429). A free-tier run takes several daily sessions: each job saves the run as an
+# artifact, and the next job continues it when given that job's run ID.
+#
+# Setup (once): Settings > Environments > New environment `gemini-eval`, tick "Required
+# reviewers" (add yourself), limit "Deployment branches" to main, and add the environment
+# secret GEMINI_API_KEY. See docs/eval/README.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_calls:
+        description: "Most provider requests this session (1-500)"
+        required: true
+        default: "60"
+      resume_from:
+        description: "Run ID of an earlier 'Gemini evaluation' run to continue (blank = start a new evaluation)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  actions: read # download the saved run of an earlier workflow run (resume_from)
+
+concurrency:
+  group: eval-gemini
+  cancel-in-progress: false
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  gemini:
+    name: Gemini evaluation session
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    environment: gemini-eval
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17-trixie
+        env:
+          POSTGRES_USER: supportpilot
+          POSTGRES_PASSWORD: supportpilot
+          POSTGRES_DB: supportpilot_eval
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U supportpilot"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot_eval
+      # Inputs reach scripts only through the environment, never inside `run:` text.
+      MAX_CALLS: ${{ inputs.max_calls }}
+      RESUME_FROM: ${{ inputs.resume_from }}
+    steps:
+      - name: Check inputs
+        run: |
+          [[ "$MAX_CALLS" =~ ^[1-9][0-9]{0,2}$ ]] && (( MAX_CALLS <= 500 )) || { echo "::error::max_calls must be 1-500"; exit 1; }
+          [[ -z "$RESUME_FROM" || "$RESUME_FROM" =~ ^[0-9]{1,20}$ ]] || { echo "::error::resume_from must be a run ID (digits)"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      - name: Download the saved run
+        if: inputs.resume_from != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: eval-gemini-state
+          path: eval/state
+          run-id: ${{ inputs.resume_from }}
+          github-token: ${{ github.token }}
+      - name: Load the saved run
+        if: inputs.resume_from != ''
+        run: |
+          pnpm eval:state load eval/state/gemini.json
+          # Embeddings already computed (saves the embedding quota); absent in older artifacts.
+          if [[ -f eval/state/embeddings.jsonl ]]; then mkdir -p eval/cache && cp eval/state/embeddings.jsonl eval/cache/; fi
+      # The key is only in this step's environment. The runner redacts it from its output and
+      # files, and eval:state refuses to save a file that contains it.
+      - name: Evaluation session
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          [[ -n "$GEMINI_API_KEY" ]] || { echo "::error::The gemini-eval environment has no GEMINI_API_KEY secret"; exit 1; }
+          status=0
+          pnpm eval --provider gemini --max-calls "$MAX_CALLS" --gap-ms 13000 ${RESUME_FROM:+--resume} || status=$?
+          pnpm eval:state save eval/state/gemini.json
+          if [[ -f eval/cache/embeddings.jsonl ]]; then cp eval/cache/embeddings.jsonl eval/state/; fi
+          exit "$status"
+      - name: Upload the saved run (pass this run's ID as resume_from next time)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: eval-gemini-state
+          path: eval/state/
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: eval-gemini-report
+          path: eval/results/eval-gemini-*
+          if-no-files-found: ignore
+          retention-days: 90

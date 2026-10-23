@@ -35,6 +35,7 @@
     "eval:threshold": "tsx scripts/eval-threshold.ts",
     "eval:ai": "tsx scripts/eval-ai-smoke.ts",
     "eval:review": "tsx scripts/eval-review.ts",
+    "eval:state": "tsx scripts/eval-state.ts",
     "kb:reembed": "tsx scripts/kb-reembed.ts",
     "otel:capture": "tsx scripts/otel-capture.ts",
     "sentry:check": "tsx scripts/sentry-check.ts"

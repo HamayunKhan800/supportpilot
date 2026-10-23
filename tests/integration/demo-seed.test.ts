@@ -1,8 +1,11 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getAuth } from "@/server/platform/auth";
 import { listAuditEvents } from "@/server/platform/auth/audit";
 import { getSessionContext } from "@/server/platform/auth/context";
 import { getDb } from "@/server/platform/db/client";
+import { stopWebBoss } from "@/server/platform/jobs/boss";
+import { AI_TRIAGE_QUEUE } from "@/server/platform/jobs/queues";
 import { seedDemoTickets } from "@/server/modules/tickets/demo/seed";
 import { DEMO_TICKETS } from "@/server/modules/tickets/demo/tickets";
 import {
@@ -25,6 +28,10 @@ const byKey = (key: string) => DEMO_TICKETS.find((t) => t.key === key)!;
 /** Ticket numbers follow creation time: the oldest demo ticket is #1. */
 const numberOf = (key: string) =>
   [...DEMO_TICKETS].sort((a, b) => b.ageHours - a.ageHours).findIndex((t) => t.key === key) + 1;
+
+afterAll(async () => {
+  await stopWebBoss();
+});
 
 beforeAll(async () => {
   await resetDatabase();
@@ -63,6 +70,15 @@ describe("demo seed (D10)", () => {
 
     // No invented history: seeding writes no audit events.
     expect((await listAuditEvents(getDb().db, nimbusId, { limit: 100 })).entries.length).toBe(auditBefore);
+  });
+
+  it("queues AI triage for the new, unlabelled tickets only, like portal tickets", async () => {
+    const { rows } = await getDb().db.execute<{ number: number }>(sql`
+      SELECT t.number FROM pgboss.job j JOIN ticket t ON t.id::text = j.data->>'ticketId'
+      WHERE j.name = ${AI_TRIAGE_QUEUE} AND t.workspace_id = ${nimbusId} ORDER BY t.number`);
+    const unlabelled = DEMO_TICKETS.filter((t) => t.category === null);
+    expect(unlabelled.length).toBeGreaterThan(0);
+    expect(rows.map((r) => r.number)).toEqual(unlabelled.map((t) => numberOf(t.key)).sort((a, b) => a - b));
   });
 
   it("keeps the thread, internal notes, authors and times", async () => {

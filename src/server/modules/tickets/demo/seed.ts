@@ -9,9 +9,14 @@
  *   so nobody can open these tickets through /t/{token}, and no token is printed.
  * - No audit events are written. The audit log records real actions only, and these
  *   tickets were not created by real people.
+ * - Tickets without a category are new arrivals, so they are queued for AI triage in the
+ *   same transaction, exactly like a portal ticket (M6 step 6). Labelled tickets stand for
+ *   work agents did before AI was switched on and are left alone: the seed writes no audit
+ *   events, so triage could not tell their labels were set by people.
  */
 import { and, eq, sql } from "drizzle-orm";
 import { ticket, ticketMessage } from "@/server/platform/db/schema";
+import { enqueueTriage } from "@/server/platform/jobs/boss";
 import * as repo from "../repository";
 import { generateTrackingToken } from "../tracking-token";
 import { DEMO_TICKETS, type DemoTicket, type StaffRole } from "./tickets";
@@ -75,6 +80,7 @@ export async function seedDemoTickets(
           updatedAt: lastActivity,
         })
         .where(and(eq(ticket.workspaceId, workspaceId), eq(ticket.id, created.id)));
+      if (d.category === null) await enqueueTriage(tx, { workspaceId, ticketId: created.id });
     }
     return ordered.length;
   });

@@ -53,6 +53,8 @@ next-env.d.ts
 
 # Embedding cache of pnpm eval:retrieval (vectors keyed by hash; regenerated on demand)
 eval/cache/
+# Saved evaluation runs between sessions (pnpm eval:state), not committed.
+eval/state/
 
 # Mock evaluation results (pnpm eval): rewritten every run, kept as a CI artifact instead
 eval/results/eval-mock*.json
