@@ -57,6 +57,13 @@
       "when": 1792722844505,
       "tag": "0007_m5_draft_feedback_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792724580718,
+      "tag": "0008_m5_settings_version",
+      "breakpoints": true
     }
   ]
 }

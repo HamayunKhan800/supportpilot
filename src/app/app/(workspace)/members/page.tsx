@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TableScroll } from "@/components/table-scroll";
 import { headers } from "next/headers";
 import { Badge } from "@/components/ui/badge";
 import { requireAppWorkspace } from "../workspace-context";
@@ -25,7 +26,7 @@ export default async function MembersPage() {
         <h2 id="members-heading" className="text-lg font-semibold">
           Team ({members.length})
         </h2>
-        <div className="overflow-x-auto rounded-lg border">
+        <TableScroll label="Team members">
           <table className="w-full text-sm">
             <caption className="sr-only">Workspace members and their roles</caption>
             <thead className="bg-muted/50 text-left">
@@ -73,7 +74,7 @@ export default async function MembersPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       </section>
 
       {canInvite && (

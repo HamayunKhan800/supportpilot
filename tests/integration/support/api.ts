@@ -15,6 +15,7 @@ import * as kbDocumentsRoute from "@/app/api/v1/kb/documents/route";
 import * as kbDocumentRoute from "@/app/api/v1/kb/documents/[id]/route";
 import * as kbRetryRoute from "@/app/api/v1/kb/documents/[id]/retry/route";
 import * as kbSearchRoute from "@/app/api/v1/kb/search/route";
+import * as aiSettingsRoute from "@/app/api/v1/settings/ai/route";
 import { ORIGIN, type TestClient } from "./client";
 
 /**
@@ -43,6 +44,8 @@ export const handlers: Record<OpId, RouteHandler> = {
   deleteKbDocument: kbDocumentRoute.DELETE,
   retryKbDocument: kbRetryRoute.POST,
   searchKb: kbSearchRoute.POST,
+  getAiSettings: aiSettingsRoute.GET,
+  updateAiSettings: aiSettingsRoute.PATCH,
   getOpenApi: openapiRoute.GET,
 };
 

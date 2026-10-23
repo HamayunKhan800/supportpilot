@@ -34,28 +34,41 @@ import { organization, user } from "./auth-schema";
  */
 export * from "./auth-schema";
 
-export const workspaceSettings = pgTable("workspace_settings", {
-  workspaceId: text("workspace_id")
-    .primaryKey()
-    .references(() => organization.id, { onDelete: "cascade" }),
-  categories: text("categories")
-    .array()
-    .notNull()
-    .default(sql`'{}'::text[]`),
-  aiEnabled: boolean("ai_enabled").notNull().default(true),
-  monthlyTokenBudget: integer("monthly_token_budget").notNull().default(1_000_000),
-  triageConfidenceThreshold: real("triage_confidence_threshold").notNull().default(0.7),
-  /**
-   * Drafts are refused without a model call when the best passage scores below this (M5 D7).
-   * 0.65 from the Gemini eval (finding #87): a backstop for clearly off-topic tickets; the
-   * model's INSUFFICIENT_KNOWLEDGE answer is the main refusal signal.
-   */
-  retrievalMinScore: real("retrieval_min_score").notNull().default(0.65),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const workspaceSettings = pgTable(
+  "workspace_settings",
+  {
+    workspaceId: text("workspace_id")
+      .primaryKey()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    categories: text("categories")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    aiEnabled: boolean("ai_enabled").notNull().default(true),
+    monthlyTokenBudget: integer("monthly_token_budget").notNull().default(1_000_000),
+    triageConfidenceThreshold: real("triage_confidence_threshold").notNull().default(0.7),
+    /**
+     * Drafts are refused without a model call when the best passage scores below this (M5 D7).
+     * 0.65 from the Gemini eval (finding #87): a backstop for clearly off-topic tickets; the
+     * model's INSUFFICIENT_KNOWLEDGE answer is the main refusal signal.
+     */
+    retrievalMinScore: real("retrieval_min_score").notNull().default(0.65),
+    /** Optimistic concurrency for the AI settings page (M5 step 5): a stale version returns 409. */
+    version: integer("version").notNull().default(1),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    // A backstop under the API's stricter validation (src/server/modules/settings/limits.ts).
+    check(
+      "workspace_settings_ranges_ck",
+      sql`${t.monthlyTokenBudget} >= 0 AND ${t.triageConfidenceThreshold} BETWEEN 0 AND 1 AND ${t.retrievalMinScore} BETWEEN 0 AND 1 AND ${t.version} > 0`,
+    ),
+    check("workspace_settings_categories_ck", sql`cardinality(${t.categories}) <= 50`),
+  ],
+);
 
 /** Append-only: application code inserts and reads; it never updates or deletes rows. */
 export const auditLog = pgTable(

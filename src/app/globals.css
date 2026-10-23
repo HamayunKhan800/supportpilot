@@ -141,3 +141,43 @@
     @apply font-sans;
   }
 }
+
+/*
+ * The AI settings budget bar: a native <meter>, because the CSP forbids inline width styles.
+ * Primary colour while there is room, amber from 80% of the budget and red from 99%.
+ */
+@layer components {
+  .budget-meter {
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: var(--muted);
+    overflow: hidden;
+  }
+  .budget-meter::-webkit-meter-bar {
+    height: 0.75rem;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--muted);
+  }
+  .budget-meter::-webkit-meter-optimum-value {
+    background: var(--primary);
+  }
+  .budget-meter::-webkit-meter-suboptimum-value {
+    background: oklch(0.769 0.188 70.08);
+  }
+  .budget-meter::-webkit-meter-even-less-good-value {
+    background: var(--destructive);
+  }
+  .budget-meter::-moz-meter-bar {
+    background: var(--primary);
+  }
+  .budget-meter:-moz-meter-sub-optimum::-moz-meter-bar {
+    background: oklch(0.769 0.188 70.08);
+  }
+  .budget-meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
+    background: var(--destructive);
+  }
+}

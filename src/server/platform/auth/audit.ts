@@ -24,6 +24,7 @@ export type AuditAction =
   | "ticket.category_changed"
   | "ticket.assigned"
   | "ticket.ai_reply_sent"
+  | "settings.updated"
   | "kb.document_uploaded"
   | "kb.document_deleted"
   | "kb.document_retried";

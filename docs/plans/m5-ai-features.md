@@ -52,7 +52,7 @@
 2. ✅ **Triage:** prompt v1 and schema; the `ai.triage` job and dead-letter queue; enqueue in both ticket-creation paths; D5 rules; override recording; triage card and "Needs review" filter in the UI. Integration, mutation and E2E tests.
 3. ✅ **Draft engine:** retrieval → refusal gate → prompt v1 → stream → citation validation → canary/link checks → save; the streaming REST endpoint in OpenAPI; rate limits. Integration tests with the mock provider and every fault path.
 4. ✅ **Draft UI:** draft panel with streaming text (screen readers hear "Draft ready", not every word), citation buttons with passage view and "source removed", edit, customer preview, **Approve & send**, discard, 👍/👎. E2E on desktop and mobile, plus axe accessibility checks.
-5. **AI settings page** (admin+): AI on/off, budget and this month's usage, threshold, categories. E2E covering budget exhaustion.
+5. ✅ **AI settings page** (admin+ edit; every member can read): AI on/off, budget and this month's usage, threshold, categories. E2E covering budget exhaustion.
 6. **Evaluation and security:**
    - **Injection test set (~20 cases):** 12 direct (in tickets) and 8 indirect (in knowledge-base passages, including the poisoned article kept since M4). Run in CI with the mock provider to check the pipeline defences: canary blocking, link warnings, hidden characters, no internal notes in prompts.
    - **One budgeted Gemini smoke run** (about 60 calls, well under the free daily limits): ~20 triage tickets, ~20 drafts (answerable and unanswerable) and the 20 injection cases. Measures latency, time to first token, tokens, cost, refusals and injection results.

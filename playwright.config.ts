@@ -21,7 +21,11 @@ export default defineConfig({
   use: { baseURL, trace: "retain-on-failure", screenshot: "only-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /(accessibility|drafts)\.spec\.ts/ },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 7"] },
+      testMatch: /(accessibility|drafts|settings)\.spec\.ts/,
+    },
   ],
   webServer: [
     {

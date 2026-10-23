@@ -38,8 +38,8 @@ export const SENTIMENT_LABEL: Record<string, string> = {
 
 /** Plain-language reasons for a triage run that produced no suggestion. */
 export const TRIAGE_ERROR_LABEL: Record<string, string> = {
-  ai_disabled: "AI is switched off for this workspace.",
-  ai_budget_exhausted: "This workspace has used its AI budget for the month.",
+  ai_disabled: "AI is switched off for this workspace (AI settings).",
+  ai_budget_exhausted: "This workspace has used its AI budget for the month (AI settings).",
   ai_daily_limit: "The daily AI limit for this service was reached.",
   no_categories: "This workspace has no categories to choose from.",
   ai_invalid_output: "The AI's answer could not be used.",

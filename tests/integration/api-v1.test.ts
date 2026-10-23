@@ -8,6 +8,7 @@ import { MAX_BODY_BYTES } from "@/server/api/route";
 import { Problem } from "@/server/api/schemas";
 import * as draftRepo from "@/server/modules/drafts/repository";
 import * as kbRepo from "@/server/modules/kb/repository";
+import * as settingsRepo from "@/server/modules/settings/repository";
 import { insertTriageRun } from "@/server/modules/triage/repository";
 import { getAuth } from "@/server/platform/auth";
 import { getSessionContext } from "@/server/platform/auth/context";
@@ -52,10 +53,13 @@ const sampleBody: Partial<Record<OpId, () => unknown>> = {
   searchKb: () => ({ query: "How long do refunds take?" }),
   sendDraft: () => ({ body: "Refunds take 5 to 10 business days [1]." }),
   rateDraft: () => ({ rating: "up" }),
+  updateAiSettings: () => ({ version: settingsVersion, monthlyTokenBudget: 2_000_000 }),
 };
 
 let owner: TestClient, admin: TestClient, agent: TestClient, globexOwner: TestClient, newcomer: TestClient;
 let ticketId: string, token: string, currentVersion: number;
+/** The Acme workspace's settings version (a new workspace starts at 1). */
+let settingsVersion = 1;
 let acmeId: string, kbDocId: string, draftId: string, ownerId: string;
 let ipCounter = 0;
 const nextIp = () => ({ "x-forwarded-for": `203.0.113.${++ipCounter}` });
@@ -228,6 +232,8 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
       "retryKbDocument",
       "searchKb",
       "deleteKbDocument",
+      "getAiSettings",
+      "updateAiSettings",
       "getOpenApi",
     ];
     expect([...order].sort()).toEqual(Object.keys(operations).sort());
@@ -252,6 +258,7 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
         for (const event of res.events) op.success.schema!.parse(event);
       } else if (op.success.schema) op.success.schema.parse(res.json);
       if (id === "updateTicket" || id === "acceptTriageSuggestion") currentVersion = res.json.version;
+      if (id === "updateAiSettings") settingsVersion = res.json.settings.version;
     }
   });
 
@@ -404,6 +411,14 @@ describe("authentication and roles (docs/01 §2.1 permission matrix)", () => {
     for (const id of sessionOps) expect(operations[id].permission, id).toBeDefined();
   });
 
+  it("agents can read the AI settings but only admins and owners change them", () => {
+    expect(can("agent", operations.getAiSettings.permission!)).toBe(true);
+    expect(ROLES.filter((r) => can(r, operations.updateAiSettings.permission!)).sort()).toEqual([
+      "admin",
+      "owner",
+    ]);
+  });
+
   it("agents can read the knowledge base but not change or test-search it", () => {
     const allowed = sessionOps.filter(
       (id) => operations[id].tag === "Knowledge" && can("agent", operations[id].permission!),
@@ -422,6 +437,7 @@ describe("authentication and roles (docs/01 §2.1 permission matrix)", () => {
       if ((id === "updateTicket" || id === "acceptTriageSuggestion") && res.status === 200) {
         currentVersion = res.json.version;
       }
+      if (id === "updateAiSettings" && res.status === 200) settingsVersion = res.json.settings.version;
       // A refused change really changed nothing.
       if (res.status === 403 && params.id && operations[id].tag === "Knowledge") {
         expect(await kbRepo.findDocument(acmeId, params.id)).not.toBeNull();
@@ -447,6 +463,7 @@ describe("request hygiene", () => {
     const params = await paramsFor(id);
     const before =
       params.id && operations[id].tag === "Knowledge" ? await kbRepo.findDocument(acmeId, params.id) : null;
+    const settingsBefore = await settingsRepo.findSettings(getDb().db, acmeId);
     const res = await call(id, {
       as: owner,
       params,
@@ -455,6 +472,7 @@ describe("request hygiene", () => {
     });
     expect(res.status).toBe(403);
     if (before) expect(await kbRepo.findDocument(acmeId, params.id!)).toEqual(before);
+    expect(await settingsRepo.findSettings(getDb().db, acmeId)).toEqual(settingsBefore);
   });
 
   it("allows the same origin", async () => {

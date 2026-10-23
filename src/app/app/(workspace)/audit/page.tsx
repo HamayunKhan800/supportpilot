@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TableScroll } from "@/components/table-scroll";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Forbidden } from "@/components/forbidden";
@@ -29,6 +30,7 @@ const LABELS: Record<AuditAction, string> = {
   "ticket.category_changed": "Changed category",
   "ticket.assigned": "Changed assignee",
   "ticket.ai_reply_sent": "Sent an AI-drafted reply",
+  "settings.updated": "Changed AI settings",
   "kb.document_uploaded": "Uploaded a knowledge document",
   "kb.document_deleted": "Deleted a knowledge document",
   "kb.document_retried": "Retried a knowledge document",
@@ -39,7 +41,32 @@ const labelFor = (action: string) => (Object.hasOwn(LABELS, action) ? LABELS[act
 
 const ACTORS: Record<string, string> = { system: "System", customer: "Customer", user: "Deleted user" };
 
-function detail(metadata: Record<string, unknown>) {
+const SETTING_FIELDS: Record<string, string> = {
+  aiEnabled: "AI features",
+  monthlyTokenBudget: "Monthly token budget",
+  triageConfidenceThreshold: "Auto-apply threshold",
+  retrievalMinScore: "Minimum match score",
+  categories: "Categories",
+};
+
+const settingValue = (v: unknown) =>
+  typeof v === "boolean"
+    ? v
+      ? "on"
+      : "off"
+    : typeof v === "number"
+      ? v.toLocaleString("en-US")
+      : String(v ?? "none");
+
+/** "Monthly token budget: 1,000,000 → 0" for an AI settings change. */
+function settingDetail(metadata: Record<string, unknown>) {
+  const field = typeof metadata.field === "string" ? metadata.field : "";
+  const label = Object.hasOwn(SETTING_FIELDS, field) ? SETTING_FIELDS[field] : field;
+  return `${label}: ${settingValue(metadata.from)} → ${settingValue(metadata.to)}`;
+}
+
+function detail(action: string, metadata: Record<string, unknown>) {
+  if (action === "settings.updated") return settingDetail(metadata);
   const s = (k: string) => (typeof metadata[k] === "string" ? (metadata[k] as string) : null);
   const number = typeof metadata.number === "number" ? `request #${metadata.number}` : null;
   const change = s("from") || s("to") ? `${s("from") ?? "none"} → ${s("to") ?? "none"}` : null;
@@ -72,7 +99,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
       {page.entries.length === 0 ? (
         <p className="text-muted-foreground text-sm">No events yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <TableScroll label="Audit events">
           <table className="w-full text-sm">
             <caption className="sr-only">Audit events</caption>
             <thead className="bg-muted/50 text-left">
@@ -101,13 +128,13 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
                   </td>
                   <td className="px-4 py-3">
                     <div>{labelFor(e.action)}</div>
-                    <div className="text-muted-foreground">{detail(e.metadata)}</div>
+                    <div className="text-muted-foreground">{detail(e.action, e.metadata)}</div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
       {page.nextCursor && (
         <Link href={`/app/audit?after=${encodeURIComponent(page.nextCursor)}`} className="text-sm underline">

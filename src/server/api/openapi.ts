@@ -184,6 +184,10 @@ export function buildOpenApiDocument() {
         description:
           "AI reply drafts (generated from a ticket). Sending needs an agent's explicit request; nothing is sent automatically.",
       },
+      {
+        name: "Settings",
+        description: "Workspace AI settings. Every member can read them; admins and owners change them.",
+      },
       { name: "Meta" },
     ],
     paths,

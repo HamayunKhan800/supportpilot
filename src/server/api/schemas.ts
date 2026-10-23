@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   AI_DRAFT_STATUSES,
+  AI_USAGE_FEATURES,
+  AI_USAGE_OUTCOMES,
   DRAFT_FEEDBACK,
   DRAFT_FEEDBACK_REASONS,
   KB_DOCUMENT_STATUSES,
@@ -333,6 +335,56 @@ export const DraftStreamEvent = z
     "One event per line (NDJSON): start, then delta events while the draft is written, then exactly one done (ready, refused or blocked) or error. The draft in done is authoritative; streamed text is a preview before citation checks.",
   )
   .register(apiRegistry, { id: "DraftStreamEvent" });
+
+// ---------------------------------------------------------------------------
+// AI settings (M5 step 5)
+// ---------------------------------------------------------------------------
+
+export const AiSettingsView = z
+  .strictObject({
+    settings: z.strictObject({
+      version: z.int().positive().describe("Send back with updates (optimistic concurrency)."),
+      aiEnabled: z.boolean().describe("Off: no triage and no drafts. Everything else keeps working."),
+      monthlyTokenBudget: z
+        .int()
+        .nonnegative()
+        .describe("Triage and draft tokens allowed per calendar month (UTC). 0 pauses AI generation."),
+      triageConfidenceThreshold: z
+        .number()
+        .describe("Triage labels at or above this confidence are applied automatically."),
+      retrievalMinScore: z
+        .number()
+        .describe(
+          "Drafts are refused without an AI call when no passage reaches this cosine similarity. Gemini embedding scale.",
+        ),
+      retrievalMinScoreApplies: z
+        .boolean()
+        .describe("False when the deployment uses the offline mock embedder, which has its own fixed floor."),
+      categories: z.array(z.string()).describe("What triage can choose from, and what agents can set."),
+      updatedAt: dateTime,
+    }),
+    usage: z.strictObject({
+      since: dateTime.describe("Start of this month (UTC): the budget's window."),
+      budgetTokensUsed: z.int().nonnegative().describe("Triage and draft tokens this month."),
+      features: z.array(
+        z.strictObject({
+          feature: z.enum(AI_USAGE_FEATURES),
+          countsTowardBudget: z.boolean().describe("Embeddings are tracked but not counted."),
+          calls: z.int().nonnegative(),
+          inputTokens: z.int().nonnegative(),
+          outputTokens: z.int().nonnegative(),
+          estimatedCostUsd: z
+            .number()
+            .nonnegative()
+            .describe("What these calls would cost at paid-tier list prices. The free tier costs nothing."),
+          outcomes: z
+            .partialRecord(z.enum(AI_USAGE_OUTCOMES), z.int().positive())
+            .describe("Calls per outcome, e.g. ok, refused, timeout, error."),
+        }),
+      ),
+    }),
+  })
+  .register(apiRegistry, { id: "AiSettings" });
 
 // Path parameters (documented formats; malformed values are answered with 404).
 export const SlugParams = z.object({ slug: z.string().min(1).max(100) });

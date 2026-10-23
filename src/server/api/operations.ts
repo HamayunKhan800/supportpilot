@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { KB_MAX_UPLOAD_BYTES } from "@/server/modules/kb/limits";
 import { draftFeedbackInput, draftSendInput } from "@/server/modules/drafts/schemas";
 import { kbSearchInput } from "@/server/modules/kb/schemas";
+import { aiSettingsPatchInput } from "@/server/modules/settings/schemas";
 import type { Permission } from "@/server/platform/auth/permissions";
 import {
   agentMessageInput,
@@ -29,6 +30,7 @@ import {
   DraftStreamEvent,
   AiDraft,
   DraftIdParams,
+  AiSettingsView,
 } from "./schemas";
 
 /**
@@ -47,7 +49,7 @@ export interface Operation<
   path: string;
   summary: string;
   description?: string;
-  tag: "Portal" | "Tickets" | "Drafts" | "Knowledge" | "Meta";
+  tag: "Portal" | "Tickets" | "Drafts" | "Knowledge" | "Settings" | "Meta";
   /** public: no credentials · session: signed-in workspace member · tracking-token: secret path token. */
   auth: "public" | "session" | "tracking-token";
   /**
@@ -350,6 +352,35 @@ export const operations = {
     body: kbSearchInput,
     success: { status: 200, description: "Up to 5 passages, best first.", schema: KbSearchResults },
     errors: [400, 401, 403, 409, 413, 415, 429, 502, 503],
+  }),
+  getAiSettings: define({
+    id: "getAiSettings",
+    method: "GET",
+    path: "/api/v1/settings/ai",
+    summary: "AI settings and this month's usage",
+    description:
+      "The workspace's AI switch, monthly token budget, triage threshold, refusal floor and categories, plus calls, " +
+      "tokens and estimated cost per feature since the start of the month (UTC).",
+    tag: "Settings",
+    auth: "session",
+    permission: { settings: ["read"] },
+    success: { status: 200, description: "Settings and usage.", schema: AiSettingsView },
+    errors: [401, 403],
+  }),
+  updateAiSettings: define({
+    id: "updateAiSettings",
+    method: "PATCH",
+    path: "/api/v1/settings/ai",
+    summary: "Change AI settings",
+    description:
+      "Send only the fields to change, plus the `version` you last read; a stale version returns 409. " +
+      "Unknown fields are rejected. Each changed field is audited.",
+    tag: "Settings",
+    auth: "session",
+    permission: { settings: ["update"] },
+    body: aiSettingsPatchInput,
+    success: { status: 200, description: "Settings and usage after the change.", schema: AiSettingsView },
+    errors: [400, 401, 403, 409, 413, 415],
   }),
   getOpenApi: define({
     id: "getOpenApi",

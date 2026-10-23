@@ -56,8 +56,14 @@ export type DraftErrorCode =
 
 /** Plain-language messages for agents. Provider error text is never shown (it can echo the request). */
 const ERROR_MESSAGES: Record<DraftErrorCode, { message: string; retryable: boolean }> = {
-  ai_disabled: { message: "AI drafting is turned off for this workspace.", retryable: false },
-  ai_budget_exhausted: { message: "This workspace has used its AI budget for this month.", retryable: false },
+  ai_disabled: {
+    message: "AI drafting is turned off for this workspace. An admin can turn it on in AI settings.",
+    retryable: false,
+  },
+  ai_budget_exhausted: {
+    message: "This workspace has used its AI budget for this month. An admin can raise it in AI settings.",
+    retryable: false,
+  },
   ai_daily_limit: { message: "The daily AI limit has been reached. Try again tomorrow.", retryable: false },
   ai_unavailable: {
     message: "The AI service is temporarily unavailable. Try again in a moment.",

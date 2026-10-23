@@ -1,0 +1,3 @@
+ALTER TABLE "workspace_settings" ADD COLUMN "version" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "workspace_settings" ADD CONSTRAINT "workspace_settings_ranges_ck" CHECK ("workspace_settings"."monthly_token_budget" >= 0 AND "workspace_settings"."triage_confidence_threshold" BETWEEN 0 AND 1 AND "workspace_settings"."retrieval_min_score" BETWEEN 0 AND 1 AND "workspace_settings"."version" > 0);--> statement-breakpoint
+ALTER TABLE "workspace_settings" ADD CONSTRAINT "workspace_settings_categories_ck" CHECK (cardinality("workspace_settings"."categories") <= 50);

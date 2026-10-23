@@ -68,6 +68,14 @@ test("the invite link reveals nothing until the invitee signs in, then the agent
   await expect(page.getByRole("link", { name: "Test search" })).toHaveCount(0);
   await page.goto("/app/knowledge/search");
   await expect(page.getByRole("heading", { name: "Access denied" })).toBeVisible();
+
+  // AI settings: agents see the usage and the values, but can't change them.
+  await nav.getByRole("link", { name: "AI settings" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "AI settings" })).toBeVisible();
+  await expect(page.getByText("Only admins and owners can change these settings.")).toBeVisible();
+  await expect(page.getByText("Monthly token budget", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save settings" })).toHaveCount(0);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
 });
 
 test("the same invite link cannot be used again", async ({ page }) => {
