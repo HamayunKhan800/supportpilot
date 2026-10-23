@@ -5,7 +5,12 @@ import { z } from "zod";
 
 import { MOCK_MODEL_ID, type FeatureSettings } from "@/server/modules/ai/config";
 import { AiError } from "@/server/modules/ai/errors";
-import { createAiGateway, type AiGatewayOptions, type AiLedger } from "@/server/modules/ai/gateway";
+import {
+  createAiGateway,
+  shouldFallBack,
+  type AiGatewayOptions,
+  type AiLedger,
+} from "@/server/modules/ai/gateway";
 import type { AiModels } from "@/server/modules/ai/models";
 import type { AiPolicy, AiUsageRecord } from "@/server/modules/ai/repository";
 
@@ -51,10 +56,13 @@ function fakeLedger(policy: Partial<AiPolicy> | null = {}) {
   return { ledger, records, state };
 }
 
-function modelsWith(model: MockLanguageModelV4): AiModels {
+const FALLBACK_ID = "gemini-3.5-flash-lite";
+
+function modelsWith(model: MockLanguageModelV4, fallback?: MockLanguageModelV4): AiModels {
   return {
     provider: "mock",
     models: { triage: { model, modelId: MOCK_MODEL_ID }, draft: { model, modelId: MOCK_MODEL_ID } },
+    ...(fallback ? { fallbacks: { draft: { model: fallback, modelId: FALLBACK_ID } } } : {}),
   };
 }
 
@@ -65,12 +73,13 @@ function setup(
     dailyCallLimit?: number;
     settings?: Partial<Record<"triage" | "draft", Partial<FeatureSettings>>>;
     breakerClock?: () => number;
+    fallback?: MockLanguageModelV4;
   } = {},
 ) {
   const { ledger, records, state } = fakeLedger(options.policy === undefined ? {} : options.policy);
   const warnings: unknown[] = [];
   const gateway = createAiGateway({
-    models: modelsWith(model),
+    models: modelsWith(model, options.fallback),
     ledger,
     dailyCallLimit: options.dailyCallLimit ?? 100,
     settings: options.settings,
@@ -456,6 +465,38 @@ describe("streamText: fault injection", () => {
     });
   });
 
+  it("a request the provider holds before responding → ai_timeout at firstChunkMs, not the total (#96)", async () => {
+    // The SDK's own firstChunkMs only starts once doStream has resolved (response headers).
+    const model = new MockLanguageModelV4({
+      doStream: (options) =>
+        new Promise((_, reject) => {
+          const signal = options.abortSignal;
+          signal?.addEventListener("abort", () => reject(signal.reason));
+        }),
+    });
+    const { gateway, records } = setup(model, {
+      settings: { draft: { timeout: { totalMs: 5000, firstChunkMs: 60, chunkMs: 5000 } } },
+    });
+    const started = performance.now();
+    const { result } = await collect(gateway);
+    expect(result).toMatchObject({ code: "ai_timeout" });
+    expect(performance.now() - started).toBeLessThan(2000);
+    expect(model.doStreamCalls[0]!.abortSignal?.aborted).toBe(true);
+    expect(records[0]!.row.outcome).toBe("timeout");
+  });
+
+  it("the first-text deadline stops once text arrives: a slow but steady answer completes", async () => {
+    const model = streaming([...textChunks("a ", "b ", "c ", "d "), finish()], {
+      initialDelayInMs: 10,
+      chunkDelayInMs: 40,
+    });
+    const { gateway } = setup(model, {
+      settings: { draft: { timeout: { totalMs: 5000, firstChunkMs: 60, chunkMs: 5000 } } },
+    });
+    const { result } = await collect(gateway);
+    expect(result).toMatchObject({ text: "a b c d ", finishReason: "stop" });
+  });
+
   it("stalled mid-stream → ai_timeout (chunkMs); partial output is estimated, not recorded as free", async () => {
     const model = streaming([...textChunks("Refunds take five days", " and then"), finish()], {
       chunkDelayInMs: 300,
@@ -540,5 +581,133 @@ describe("streamText: fault injection", () => {
     const { result } = await collect(gateway);
     expect(result).toMatchObject({ code: "ai_unavailable" });
     expect(model.doStreamCalls).toHaveLength(5);
+  });
+});
+
+describe("streamText: fallback model when the first is overloaded (ADR-0016)", () => {
+  const throwing = (error: unknown) =>
+    new MockLanguageModelV4({
+      doStream: async () => {
+        throw error;
+      },
+    });
+  const answering = () => streaming([...textChunks("Refunds take ", "5 days [1]."), finish()]);
+
+  it("503 → the fallback answers; both calls are counted, recorded and priced by model", async () => {
+    const first = throwing(apiError(503));
+    const second = answering();
+    const { gateway, records, state, warnings } = setup(first, { fallback: second });
+    const { deltas, result } = await collect(gateway);
+    expect(result).toMatchObject({ text: "Refunds take 5 days [1].", modelId: FALLBACK_ID });
+    expect(deltas).toEqual(["Refunds take ", "5 days [1]."]);
+    expect(first.doStreamCalls).toHaveLength(1);
+    expect(second.doStreamCalls).toHaveLength(1);
+    expect(state.reserved).toBe(2); // the daily cap counts every provider request
+    expect(records.map((r) => [r.row.model, r.row.outcome])).toEqual([
+      [MOCK_MODEL_ID, "error"],
+      [FALLBACK_ID, "ok"],
+    ]);
+    expect(records[1]!.row.estCostMicros).toBe(100 * 0.3 + 20 * 2.5);
+    expect(warnings).toContainEqual(expect.objectContaining({ from: MOCK_MODEL_ID, to: FALLBACK_ID }));
+    // The fallback gets the same limits: output cap, thinking level.
+    expect(second.doStreamCalls[0]!.maxOutputTokens).toBe(800);
+    expect(second.doStreamCalls[0]!.reasoning).toBe("low");
+  });
+
+  it("a request held by the provider past firstChunkMs → the fallback answers", async () => {
+    const held = new MockLanguageModelV4({
+      doStream: (options) =>
+        new Promise((_, reject) => {
+          options.abortSignal?.addEventListener("abort", () => reject(options.abortSignal!.reason));
+        }),
+    });
+    const { gateway } = setup(held, {
+      fallback: answering(),
+      settings: { draft: { timeout: { totalMs: 5000, firstChunkMs: 50, chunkMs: 5000 } } },
+    });
+    const { result } = await collect(gateway);
+    expect(result).toMatchObject({ modelId: FALLBACK_ID });
+  });
+
+  it("no first chunk in time → the fallback answers", async () => {
+    const first = streaming([...textChunks("late"), finish()], { initialDelayInMs: 500 });
+    const { gateway } = setup(first, {
+      fallback: answering(),
+      settings: { draft: { timeout: { totalMs: 5000, firstChunkMs: 50, chunkMs: 5000 } } },
+    });
+    const { result } = await collect(gateway);
+    expect(result).toMatchObject({ modelId: FALLBACK_ID });
+  });
+
+  it("429 is never routed round: the rate limit applies to the project", async () => {
+    const second = answering();
+    const { gateway } = setup(throwing(apiError(429)), { fallback: second });
+    const { result } = await collect(gateway);
+    expect(result).toMatchObject({ code: "ai_unavailable" });
+    expect(second.doStreamCalls).toHaveLength(0);
+  });
+
+  it("no fallback once text has reached the agent, for a rejected request, or a cancelled one", async () => {
+    const midStream = streaming([
+      ...textChunks("Refunds take"),
+      { type: "error", error: apiError(503) },
+    ] as Chunk[]);
+    const second = answering();
+    const a = setup(midStream, { fallback: second });
+    expect((await collect(a.gateway)).result).toMatchObject({ code: "ai_unavailable" });
+
+    const b = setup(throwing(apiError(400)), { fallback: second });
+    expect((await collect(b.gateway)).result).toMatchObject({ code: "ai_rejected" });
+
+    const slow = streaming([...textChunks("a"), finish()], { initialDelayInMs: 200 });
+    const c = setup(slow, { fallback: second });
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 30);
+    expect((await collect(c.gateway, { signal: controller.signal })).result).toMatchObject({
+      code: "ai_aborted",
+    });
+    expect(second.doStreamCalls).toHaveLength(0);
+  });
+
+  it("the workspace's own limits stop both models", async () => {
+    const second = answering();
+    const { gateway } = setup(throwing(apiError(503)), {
+      fallback: second,
+      policy: { tokensUsedThisMonth: 1_000_000 },
+    });
+    expect((await collect(gateway)).result).toMatchObject({ code: "ai_budget_exhausted" });
+    expect(second.doStreamCalls).toHaveLength(0);
+  });
+
+  it("with the first model's circuit open, drafts go straight to the fallback, which has its own breaker", async () => {
+    const first = throwing(apiError(503));
+    const second = answering();
+    const { gateway } = setup(first, { fallback: second });
+    for (let i = 0; i < 5; i++) await collect(gateway);
+    expect(gateway.circuitState("draft")).toBe("open");
+    expect(first.doStreamCalls).toHaveLength(5);
+    const { result } = await collect(gateway);
+    expect(result).toMatchObject({ modelId: FALLBACK_ID });
+    expect(first.doStreamCalls).toHaveLength(5); // not called while its circuit is open
+    expect(second.doStreamCalls).toHaveLength(6);
+  });
+
+  it("both overloaded → the fallback's error, after exactly two requests", async () => {
+    const second = throwing(apiError(500));
+    const { gateway, state, records } = setup(throwing(apiError(503)), { fallback: second });
+    expect((await collect(gateway)).result).toMatchObject({ code: "ai_unavailable" });
+    expect(state.reserved).toBe(2);
+    expect(records.map((r) => r.row.model)).toEqual([MOCK_MODEL_ID, FALLBACK_ID]);
+  });
+
+  it("shouldFallBack: overload, network, timeout and open circuit yes; 429 and everything else no", () => {
+    expect(shouldFallBack(new AiError("ai_unavailable", { cause: apiError(503) }))).toBe(true);
+    expect(shouldFallBack(new AiError("ai_unavailable"))).toBe(true); // open circuit or network
+    expect(shouldFallBack(new AiError("ai_timeout"))).toBe(true);
+    expect(shouldFallBack(new AiError("ai_unavailable", { cause: apiError(429) }))).toBe(false);
+    for (const code of ["ai_rejected", "ai_invalid_output", "ai_aborted", "ai_daily_limit"] as const) {
+      expect(shouldFallBack(new AiError(code))).toBe(false);
+    }
+    expect(shouldFallBack(new Error("boom"))).toBe(false);
   });
 });

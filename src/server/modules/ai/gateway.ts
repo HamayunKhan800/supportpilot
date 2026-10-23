@@ -34,6 +34,10 @@ import {
  *  5. Call the model: no SDK retries, timeouts, output cap, caller's abort signal
  *  6. Record outcome, tokens, cost, latency and time to first token in ai_usage (D14)
  *
+ * Streamed text may then be tried once on a fallback model (ADR-0016) when the first failed on
+ * the provider's side (never for a 429) before any text arrived; that attempt runs steps 1–6
+ * again, with its own circuit breaker.
+ *
  * Steps 1–4 run before any network call, so a refused call costs nothing. SDK retries are off
  * (maxRetries: 0) so each provider request is counted once by the cap and seen by the breaker;
  * callers that should retry (the triage job) retry with their own back-off.
@@ -135,20 +139,27 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
     ...FEATURE_SETTINGS[feature],
     ...options.settings?.[feature],
   });
-  const breakers = Object.fromEntries(
-    AI_FEATURES.map((feature) => [
-      feature,
-      new CircuitBreaker({ ...CIRCUIT_BREAKER, now: options.breakerClock }),
-    ]),
-  ) as Record<AiFeature, CircuitBreaker>;
+  const newBreakers = () =>
+    Object.fromEntries(
+      AI_FEATURES.map((feature) => [
+        feature,
+        new CircuitBreaker({ ...CIRCUIT_BREAKER, now: options.breakerClock }),
+      ]),
+    ) as Record<AiFeature, CircuitBreaker>;
+  // One breaker per model: an overloaded first model must not hold back its fallback.
+  const breakers = newBreakers();
+  const fallbackBreakers = newBreakers();
 
   /** Steps 1–4. Throws an AiError without calling the provider. */
-  async function admit(ctx: AiCallContext, feature: AiFeature): Promise<void> {
+  async function admit(
+    ctx: AiCallContext,
+    feature: AiFeature,
+    breaker: CircuitBreaker = breakers[feature],
+  ): Promise<void> {
     if (ctx.signal?.aborted) throw new AiError("ai_aborted");
     const policy = await ledger.getPolicy(ctx.workspaceId);
     if (!policy?.aiEnabled) throw new AiError("ai_disabled");
     if (policy.tokensUsedThisMonth >= policy.monthlyTokenBudget) throw new AiError("ai_budget_exhausted");
-    const breaker = breakers[feature];
     const permit = breaker.acquire();
     if (!permit.allowed) throw new AiError("ai_unavailable", { retryAfterMs: permit.retryAfterMs });
     let reserved: boolean;
@@ -182,8 +193,8 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
     feature: AiFeature,
     modelId: string,
     result: { error?: AiError; usage: AiUsageSummary; latencyMs: number; ttftMs?: number | null },
+    breaker: CircuitBreaker = breakers[feature],
   ): Promise<void> {
-    const breaker = breakers[feature];
     const code = result.error?.code;
     if (code === "ai_unavailable" || code === "ai_timeout" || code === "ai_rejected") breaker.recordFailure();
     else if (code === "ai_aborted") breaker.release();
@@ -198,6 +209,7 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
           workspaceId: ctx.workspaceId,
           code,
           provider: models.provider,
+          model: modelId,
           status: typeof cause?.statusCode === "number" ? cause.statusCode : undefined,
           causeName: typeof cause?.name === "string" ? cause.name : undefined,
           circuit: breaker.state,
@@ -267,9 +279,45 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
 
     async streamText(ctx, request) {
       const { feature } = request;
-      await admit(ctx, feature);
+      const fallback = models.fallbacks?.[feature];
+      let delivered = false;
+      const tracked = {
+        ...request,
+        onDelta: (text: string) => {
+          delivered = true;
+          return request.onDelta(text);
+        },
+      };
+      try {
+        return await streamOnce(ctx, tracked, { ...models.models[feature], breaker: breakers[feature] });
+      } catch (err) {
+        if (!fallback || delivered || !shouldFallBack(err)) throw err;
+        log.warn(
+          {
+            feature,
+            workspaceId: ctx.workspaceId,
+            code: err instanceof AiError ? err.code : undefined,
+            from: models.models[feature].modelId,
+            to: fallback.modelId,
+          },
+          "ai call falling back to the second model",
+        );
+        return streamOnce(ctx, tracked, { ...fallback, breaker: fallbackBreakers[feature] });
+      }
+    },
+  };
+
+  /** One streamed call to one model: steps 1–6. */
+  async function streamOnce(
+    ctx: AiCallContext,
+    request: AiRequest & { onDelta: (text: string) => void | Promise<void> },
+    slot: { model: AiModels["models"][AiFeature]["model"]; modelId: string; breaker: CircuitBreaker },
+  ): Promise<AiTextResult> {
+    {
+      const { feature } = request;
+      const { model, modelId, breaker } = slot;
+      await admit(ctx, feature, breaker);
       const settings = settingsFor(feature);
-      const { model, modelId } = models.models[feature];
       // Ours aborts the provider call when we stop early (delivery failed, error part).
       const internal = new AbortController();
       const signal = ctx.signal ? AbortSignal.any([ctx.signal, internal.signal]) : internal.signal;
@@ -283,6 +331,24 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
       let abortReason: string | undefined;
       let sdkAborted = false;
       let finish: { finishReason: string; totalUsage: LanguageModelUsage } | undefined;
+
+      // The SDK's firstChunkMs only starts once the provider begins its HTTP response (ai 7.0.142,
+      // streamText: `await callLanguageModel()` runs before `startFirstChunkTimeout()`), so a
+      // request the provider holds in a queue waits for the total timeout (finding #96). This
+      // deadline runs from the moment the request is sent until the first text arrives.
+      let noTextInTime = false;
+      const firstTextMs = settings.timeout.firstChunkMs;
+      let firstTextTimer: ReturnType<typeof setTimeout> | undefined =
+        firstTextMs === undefined
+          ? undefined
+          : setTimeout(() => {
+              noTextInTime = true;
+              internal.abort();
+            }, firstTextMs);
+      const stopFirstTextTimer = () => {
+        clearTimeout(firstTextTimer);
+        firstTextTimer = undefined;
+      };
 
       const result = streamText({
         model,
@@ -300,6 +366,7 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
       try {
         for await (const part of result.fullStream) {
           if (part.type === "text-delta") {
+            stopFirstTextTimer();
             if (ttftMs === null) ttftMs = clock() - started;
             text += part.text;
             try {
@@ -326,13 +393,16 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
         failed = true;
         failure = err;
       } finally {
+        stopFirstTextTimer();
         if (!finish) internal.abort();
       }
 
       const latencyMs = clock() - started;
       let error: AiError | undefined;
       const clientAborted = (ctx.signal?.aborted ?? false) || deliveryFailed;
-      if (failed) error = classifyAiError(failure, { clientAborted });
+      if (noTextInTime && ttftMs === null && !clientAborted) {
+        error = new AiError("ai_timeout", { cause: new Error("no text before the first-chunk deadline") });
+      } else if (failed) error = classifyAiError(failure, { clientAborted });
       else if (sdkAborted) {
         error = clientAborted
           ? new AiError("ai_aborted", { cause: new Error(abortReason ?? "aborted") })
@@ -347,15 +417,30 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
           text.length > 0
             ? summarize(modelId, estimateTokens(request.system + request.prompt), estimateTokens(text))
             : summarize(modelId, 0, 0);
-        await settle(ctx, feature, modelId, { error, usage, latencyMs, ttftMs });
+        await settle(ctx, feature, modelId, { error, usage, latencyMs, ttftMs }, breaker);
         throw error;
       }
 
       const usage = fromSdkUsage(modelId, finish?.totalUsage);
-      await settle(ctx, feature, modelId, { usage, latencyMs, ttftMs });
+      await settle(ctx, feature, modelId, { usage, latencyMs, ttftMs }, breaker);
       return { text, modelId, usage, latencyMs, ttftMs, finishReason: finish?.finishReason ?? "other" };
-    },
-  };
+    }
+  }
+}
+
+/**
+ * Whether a failed call may be repeated on the fallback model (ADR-0016): the provider was
+ * overloaded or unreachable (5xx, network, open circuit) or gave no answer in time. Never for
+ * 429: a rate limit applies to the project, and switching models to get round it would
+ * circumvent the provider's limits. Never for the caller's own limits, a rejected request
+ * (the same request would be rejected again), invalid output or a cancelled call.
+ */
+export function shouldFallBack(err: unknown): boolean {
+  if (!(err instanceof AiError)) return false;
+  if (err.code === "ai_timeout") return true;
+  if (err.code !== "ai_unavailable") return false;
+  const status = (err.cause as { statusCode?: unknown } | undefined)?.statusCode;
+  return status !== 429;
 }
 
 /** Wires the gateway from validated settings. Create one per process: the circuit breakers live in it. */

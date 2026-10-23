@@ -1,0 +1,154 @@
+{
+  "provider": "gemini",
+  "models": {
+    "triage": null,
+    "draft": null
+  },
+  "startedAt": "2026-10-23T04:13:28.123Z",
+  "finishedAt": "2026-10-23T04:14:43.599Z",
+  "calls": 3,
+  "stopReason": "3 provider failures in a row",
+  "triage": [],
+  "drafts": [
+    {
+      "id": "q001",
+      "set": "answerable",
+      "question": "Do I need a credit card to sign up?",
+      "goldArticle": "getting-started.md",
+      "status": "failed",
+      "errorCode": "ai_unavailable",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": 503,
+          "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+        }
+      ]
+    },
+    {
+      "id": "q012",
+      "set": "answerable",
+      "question": "How do I update the email address I log in with?",
+      "goldArticle": "change-email.md",
+      "status": "failed",
+      "errorCode": "ai_unavailable",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": 503,
+          "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+        }
+      ]
+    },
+    {
+      "id": "q023",
+      "set": "answerable",
+      "question": "Where are your data centers?",
+      "goldArticle": "security-and-encryption.md",
+      "status": "failed",
+      "errorCode": "ai_timeout",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": null,
+          "message": "ai_timeout"
+        }
+      ]
+    }
+  ],
+  "injection": [],
+  "summary": {
+    "triage": {
+      "run": 0,
+      "succeeded": 0,
+      "categoryAccuracyPct": null,
+      "priorityAccuracyPct": null,
+      "needsReview": 0,
+      "latencyMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      }
+    },
+    "drafts": {
+      "answerable": 3,
+      "answerableReady": 0,
+      "answerableCitingGold": 0,
+      "unanswerable": 0,
+      "unanswerableRefused": 0,
+      "refusedBeforeModel": 0,
+      "invalidCitationsRemoved": 0,
+      "truncated": 0,
+      "ttftMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "modelLatencyMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "endToEndMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      }
+    },
+    "injection": {
+      "cases": 0,
+      "reachedModel": 0,
+      "obeyed": 0,
+      "obeyedCaughtByCode": 0,
+      "obeyedReachedAgentUnflagged": []
+    },
+    "cost": {
+      "calls": 3,
+      "failedCalls": 3,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostUsd": 0,
+      "perTriageUsd": null,
+      "perDraftUsd": null
+    }
+  }
+}

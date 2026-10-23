@@ -68,9 +68,9 @@ const PASSAGE_TITLE = /<passage n="\d+" title="([^"]*)"/g;
 function providerError(err: unknown, redact: (s: string) => string): CallRecord["providerError"] {
   const cause = err instanceof AiError ? err.cause : err;
   if (APICallError.isInstance(cause)) {
-    return { status: cause.statusCode ?? null, message: redact(cause.message).slice(0, 300) };
+    return { status: cause.statusCode ?? null, message: redact(cause.message).slice(0, 800) };
   }
-  return { status: null, message: redact(err instanceof Error ? err.message : String(err)).slice(0, 300) };
+  return { status: null, message: redact(err instanceof Error ? err.message : String(err)).slice(0, 800) };
 }
 
 export function meterGateway(
@@ -78,6 +78,8 @@ export function meterGateway(
   options: {
     gapMs: number;
     maxCalls: number;
+    /** Stop after this many failed provider calls in a row (default 3): the provider is struggling. */
+    maxConsecutiveFailures?: number;
     redact?: (s: string) => string;
     now?: () => number;
     sleep?: (ms: number) => Promise<void>;
@@ -90,6 +92,8 @@ export function meterGateway(
   let lastStart = Number.NEGATIVE_INFINITY;
   let stopReason: string | null = null;
   let records: CallRecord[] = [];
+  let failuresInARow = 0;
+  const maxFailures = options.maxConsecutiveFailures ?? 3;
 
   // Refused calls fail like the app's own daily cap, so the pipelines record them cleanly.
   async function before() {
@@ -109,7 +113,9 @@ export function meterGateway(
       providerError: pe,
       ...extra,
     });
+    failuresInARow++;
     if (pe?.status === 429) stopReason = "the provider answered 429 (too many requests)";
+    else if (failuresInARow >= maxFailures) stopReason = `${failuresInARow} provider failures in a row`;
   }
 
   const gateway: AiGateway = {
@@ -119,6 +125,7 @@ export function meterGateway(
       await before();
       try {
         const r = await inner.generateObject(ctx, request);
+        failuresInARow = 0;
         records.push({
           feature: request.feature,
           ok: true,
@@ -142,6 +149,7 @@ export function meterGateway(
       };
       try {
         const r = await inner.streamText(ctx, request);
+        failuresInARow = 0;
         records.push({
           feature: request.feature,
           ok: true,
@@ -213,6 +221,8 @@ export interface DraftResult extends Metered {
   id: string;
   set: "answerable" | "unanswerable";
   question: string;
+  /** The model that wrote the draft (the fallback, if the first model was overloaded). */
+  model: string | null;
   goldArticle: string | null;
   status: string;
   errorCode: string | null;
@@ -233,6 +243,8 @@ export interface InjectionResult extends Metered {
   kind: InjectionCase["kind"];
   target: InjectionCase["target"];
   technique: string;
+  /** The model that answered (drafts: the one that wrote the draft). */
+  model: string | null;
   reachedModel: boolean;
   /** Indirect cases: the poisoned article was among the passages the model saw. */
   poisonShown: boolean | null;
@@ -288,6 +300,7 @@ export function summarize(triage: TriageResult[], drafts: DraftResult[], injecti
       unanswerable: unanswerable.length,
       unanswerableRefused: unanswerable.filter((d) => d.status === "refused").length,
       refusedBeforeModel: drafts.filter((d) => d.status === "refused" && !d.modelCalled).length,
+      byModel: countBy([...drafts, ...injection].flatMap((d) => (d.model ? [d.model] : []))),
       invalidCitationsRemoved: drafts.reduce((n, d) => n + d.invalidCitations, 0),
       truncated: drafts.filter((d) => d.finishReason === "length").length,
       ttftMs: spread(modelDrafts.flatMap((d) => (d.ttftMs !== null ? [d.ttftMs] : []))),
@@ -311,6 +324,12 @@ export function summarize(triage: TriageResult[], drafts: DraftResult[], injecti
       perDraftUsd: perCall(modelDrafts),
     },
   };
+}
+
+function countBy(values: string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const v of values) out[v] = (out[v] ?? 0) + 1;
+  return out;
 }
 
 function perCall(items: Metered[]) {
@@ -494,6 +513,7 @@ export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport
         id: q.id,
         set: q.set,
         question: q.question,
+        model: draft?.model ?? null,
         goldArticle: q.gold,
         status,
         errorCode,
@@ -525,6 +545,7 @@ export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport
         if (metered.stopReason) break;
         const t = await insertTicket(workspaceId, c.ticket.subject, c.ticket.message, c.ticket.internalNote);
         let outcome: InjectionResult["outcome"];
+        let model: string | null = null;
         let caughtByCode: boolean;
         let calls: CallRecord[];
         if (c.target === "triage") {
@@ -534,6 +555,7 @@ export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport
             { gateway: metered.gateway, logger: { info: () => {}, warn: () => {} } },
           );
           calls = metered.take();
+          model = (await findLatestTriage(db, workspaceId, t.id))?.model ?? null;
           outcome = {
             status: result.status,
             errorCode: "errorCode" in result ? result.errorCode : null,
@@ -553,6 +575,7 @@ export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport
           );
           calls = metered.take();
           const { draft, status, errorCode } = draftOutcome(events);
+          model = draft?.model ?? null;
           const warnings = draft?.warnings ?? [];
           outcome = { status, errorCode, warnings };
           caughtByCode =
@@ -578,6 +601,7 @@ export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport
           kind: c.kind,
           target: c.target,
           technique: c.technique,
+          model,
           reachedModel: calls.length > 0,
           poisonShown: poisonTitle ? calls.some((r) => r.passageTitles?.includes(poisonTitle)) : null,
           outcome,

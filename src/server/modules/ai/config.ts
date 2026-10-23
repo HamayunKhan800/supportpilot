@@ -22,6 +22,12 @@ export interface FeatureSettings {
   maxOutputTokens: number;
   /** AI SDK timeouts (D12e). `firstChunkMs`/`chunkMs` apply to streaming only. */
   timeout: { totalMs: number; firstChunkMs?: number; chunkMs?: number };
+  /**
+   * A second model for streamed text when the first is overloaded (ADR-0016): used only for a
+   * provider-side failure (5xx, network, timeout, open circuit) before any text arrived, never
+   * for 429 "too many requests". Same output cap, thinking level and timeouts.
+   */
+  fallbackModelId?: string;
 }
 
 export const FEATURE_SETTINGS: Record<AiFeature, FeatureSettings> = {
@@ -38,6 +44,9 @@ export const FEATURE_SETTINGS: Record<AiFeature, FeatureSettings> = {
     reasoning: "low",
     maxOutputTokens: 800,
     timeout: { totalMs: 60_000, firstChunkMs: 15_000, chunkMs: 10_000 },
+    // 3.8 Flash answered "503 high demand" for a whole session (finding #95); drafts then use
+    // the triage model rather than failing.
+    fallbackModelId: "gemini-3.5-flash-lite",
   },
 };
 

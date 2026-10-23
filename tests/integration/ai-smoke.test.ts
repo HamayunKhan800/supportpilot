@@ -135,6 +135,41 @@ describe("AI smoke run", () => {
     ]);
   }, 120_000);
 
+  it("stops after three provider failures in a row (an overloaded model), and a success resets the count", async () => {
+    let n = 0;
+    const answers = [503, 0, 503, 503, 503, 0];
+    const flaky = meterGateway(
+      mockGateway({
+        triage: (request) => {
+          const status = answers[n++] ?? 0;
+          if (status) {
+            throw new APICallError({
+              message: "This model is currently experiencing high demand.",
+              url: "https://example.test",
+              requestBodyValues: {},
+              statusCode: status,
+            });
+          }
+          return mockTriageResponder(request);
+        },
+      }),
+      { gapMs: 0, maxCalls: 50 },
+    );
+    const report = await runAiSmoke({
+      metered: flaky,
+      embedder: createMockEmbedder(),
+      corpus,
+      triageKeys: ["nim-01", "nim-02", "nim-03", "nim-04", "nim-05", "nim-06"],
+      answerable: [],
+      unanswerable: [],
+      injection: [],
+      log: () => {},
+    });
+    expect(n).toBe(5);
+    expect(report.stopReason).toBe("3 provider failures in a row");
+    expect(report.triage.map((t) => t.status)).toEqual(["failed", "succeeded", "failed", "failed", "failed"]);
+  }, 120_000);
+
   it("waits the configured gap between calls", async () => {
     let clock = 0;
     const waits: number[] = [];

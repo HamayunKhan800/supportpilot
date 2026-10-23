@@ -1,12 +1,14 @@
 import { createGoogle } from "@ai-sdk/google";
 import type { LanguageModel } from "ai";
-import { FEATURE_SETTINGS, MOCK_MODEL_ID, type AiFeature } from "./config";
+import { AI_FEATURES, FEATURE_SETTINGS, MOCK_MODEL_ID, type AiFeature } from "./config";
 import { createMockLanguageModel, type MockResponder } from "./mock-model";
 
 /** One language model per feature, plus the ID recorded in ai_usage (ADR-0006, M5 D3). */
 export interface AiModels {
   provider: "mock" | "gemini";
   models: Record<AiFeature, { model: LanguageModel; modelId: string }>;
+  /** Second models for streamed text when the first is overloaded (ADR-0016). */
+  fallbacks?: Partial<Record<AiFeature, { model: LanguageModel; modelId: string }>>;
 }
 
 /**
@@ -30,11 +32,17 @@ export function createMockModels(
 
 export function createGeminiModels(options: { apiKey: string; fetch?: typeof globalThis.fetch }): AiModels {
   const google = createGoogle({ apiKey: options.apiKey, ...(options.fetch ? { fetch: options.fetch } : {}) });
-  const make = (feature: AiFeature) => {
-    const modelId = FEATURE_SETTINGS[feature].modelId;
-    return { model: google.languageModel(modelId), modelId };
+  const make = (modelId: string) => ({ model: google.languageModel(modelId), modelId });
+  const fallbacks: AiModels["fallbacks"] = {};
+  for (const feature of AI_FEATURES) {
+    const id = FEATURE_SETTINGS[feature].fallbackModelId;
+    if (id) fallbacks[feature] = make(id);
+  }
+  return {
+    provider: "gemini",
+    models: { triage: make(FEATURE_SETTINGS.triage.modelId), draft: make(FEATURE_SETTINGS.draft.modelId) },
+    fallbacks,
   };
-  return { provider: "gemini", models: { triage: make("triage"), draft: make("draft") } };
 }
 
 /** Picks the provider from validated settings (getEnv / getWorkerEnv), like createEmbedderFromEnv. */

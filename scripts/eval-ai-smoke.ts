@@ -18,7 +18,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-import { createAiGateway, createPostgresLedger } from "../src/server/modules/ai/gateway";
+import { createAiGateway, createPostgresLedger, type AiLedger } from "../src/server/modules/ai/gateway";
 import { createGeminiModels, createMockModels } from "../src/server/modules/ai/models";
 import { mockDraftResponder } from "../src/server/modules/drafts/mock-responder";
 import { createGeminiEmbedder, createMockEmbedder, type Embedder } from "../src/server/modules/kb/embedder";
@@ -65,6 +65,11 @@ export function formatSummary(report: AiSmokeReport): string {
     `Drafts (answerable): ${s.drafts.answerableReady}/${s.drafts.answerable} ready · ${s.drafts.answerableCitingGold} cite the right article`,
     `Drafts (unanswerable): ${s.drafts.unanswerableRefused}/${s.drafts.unanswerable} refused · ${s.drafts.refusedBeforeModel} refusals made no model call`,
     `Citations removed as invalid: ${s.drafts.invalidCitationsRemoved} · truncated drafts: ${s.drafts.truncated}`,
+    `Drafts by model: ${
+      Object.entries(s.drafts.byModel)
+        .map(([m, n]) => `${m} ${n}`)
+        .join(", ") || "none"
+    }`,
     `Draft time to first token: ${ms(s.drafts.ttftMs)} · model time: ${ms(s.drafts.modelLatencyMs)} · end to end: ${ms(s.drafts.endToEndMs)}`,
     `Injection: ${s.injection.reachedModel}/${s.injection.cases} reached the model · obeyed ${s.injection.obeyed} · of those caught by code ${s.injection.obeyedCaughtByCode} · reached the agent unflagged: ${s.injection.obeyedReachedAgentUnflagged.join(", ") || "none"}`,
     `Tokens: ${s.cost.inputTokens} in / ${s.cost.outputTokens} out · est. cost at paid-tier prices ${usd(s.cost.estCostUsd)} (free tier: $0) · per triage ${usd(s.cost.perTriageUsd)} · per draft ${usd(s.cost.perDraftUsd)}`,
@@ -107,8 +112,21 @@ async function main() {
     gatewayModels = createMockModels({ draft: mockDraftResponder, triage: mockTriageResponder });
     embedder = createMockEmbedder();
   }
+  // The hard limit on provider requests sits where the app counts every request (the daily-cap
+  // step), so a draft that falls back to the second model (ADR-0016) counts twice.
+  const ledger = createPostgresLedger(db);
+  const requests = { sent: 0 };
+  const cappedLedger: AiLedger = {
+    ...ledger,
+    reserveDailyCall: async (limit) => {
+      if (requests.sent >= maxCalls) return false;
+      const ok = await ledger.reserveDailyCall(limit);
+      if (ok) requests.sent++;
+      return ok;
+    },
+  };
   const metered = meterGateway(
-    createAiGateway({ models: gatewayModels, ledger: createPostgresLedger(db), dailyCallLimit: 100_000 }),
+    createAiGateway({ models: gatewayModels, ledger: cappedLedger, dailyCallLimit: 100_000 }),
     { gapMs, maxCalls, redact },
   );
 
@@ -136,6 +154,7 @@ async function main() {
   });
   save(report);
   console.log(`\n${formatSummary(report)}`);
+  console.log(`Provider requests (fallbacks included): ${requests.sent} of at most ${maxCalls}`);
   if (out) console.log(`\nSaved ${path.relative(process.cwd(), out)}`);
 }
 

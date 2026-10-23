@@ -1,0 +1,747 @@
+{
+  "provider": "gemini",
+  "models": {
+    "triage": "gemini-3.5-flash-lite",
+    "draft": null
+  },
+  "startedAt": "2026-10-23T04:07:38.850Z",
+  "finishedAt": "2026-10-23T04:12:37.419Z",
+  "calls": 27,
+  "stopReason": null,
+  "triage": [
+    {
+      "key": "nim-01",
+      "expected": {
+        "category": "billing",
+        "priority": "high"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "billing",
+        "priority": "high",
+        "confidence": 1,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 969.7738829999998,
+      "inputTokens": 380,
+      "outputTokens": 67,
+      "estCostMicros": 282,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-02",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "bug",
+        "priority": "high",
+        "confidence": 0.95,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": false,
+      "calls": 1,
+      "latencyMs": 900.8931410000005,
+      "inputTokens": 399,
+      "outputTokens": 64,
+      "estCostMicros": 280,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-03",
+      "expected": {
+        "category": "account",
+        "priority": "high"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "account",
+        "priority": "high",
+        "confidence": 1,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 1055.6259009999994,
+      "inputTokens": 384,
+      "outputTokens": 68,
+      "estCostMicros": 285,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-04",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "how-to",
+        "priority": "normal",
+        "confidence": 0.95,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 963.0030609999994,
+      "inputTokens": 381,
+      "outputTokens": 71,
+      "estCostMicros": 292,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-06",
+      "expected": {
+        "category": "billing",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "billing",
+        "priority": "normal",
+        "confidence": 1,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 1010.04205,
+      "inputTokens": 376,
+      "outputTokens": 67,
+      "estCostMicros": 280,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-07",
+      "expected": {
+        "category": "bug",
+        "priority": "high"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "bug",
+        "priority": "high",
+        "confidence": 0.95,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 977.5157099999997,
+      "inputTokens": 389,
+      "outputTokens": 66,
+      "estCostMicros": 282,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-08",
+      "expected": {
+        "category": "account",
+        "priority": "high"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "account",
+        "priority": "normal",
+        "confidence": 1,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": false,
+      "calls": 1,
+      "latencyMs": 1080.4483169999949,
+      "inputTokens": 378,
+      "outputTokens": 63,
+      "estCostMicros": 271,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-09",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "how-to",
+        "priority": "high",
+        "confidence": 0.9,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": false,
+      "calls": 1,
+      "latencyMs": 967.5876849999986,
+      "inputTokens": 380,
+      "outputTokens": 66,
+      "estCostMicros": 279,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-11",
+      "expected": {
+        "category": "billing",
+        "priority": "low"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "billing",
+        "priority": "low",
+        "confidence": 1,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 1030.745311999999,
+      "inputTokens": 371,
+      "outputTokens": 64,
+      "estCostMicros": 271,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-12",
+      "expected": {
+        "category": "how-to",
+        "priority": "high"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "how-to",
+        "priority": "normal",
+        "confidence": 0.9,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": false,
+      "calls": 1,
+      "latencyMs": 1021.5066850000003,
+      "inputTokens": 382,
+      "outputTokens": 72,
+      "estCostMicros": 295,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-13",
+      "expected": {
+        "category": "account",
+        "priority": "high"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "account",
+        "priority": "high",
+        "confidence": 0.9,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 937.1756939999905,
+      "inputTokens": 374,
+      "outputTokens": 64,
+      "estCostMicros": 272,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-14",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "bug",
+        "priority": "normal",
+        "confidence": 0.8,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": false,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 949.5307870000106,
+      "inputTokens": 395,
+      "outputTokens": 69,
+      "estCostMicros": 291,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-16",
+      "expected": {
+        "category": "billing",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "billing",
+        "priority": "high",
+        "confidence": 1,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": false,
+      "calls": 1,
+      "latencyMs": 968.5927430000011,
+      "inputTokens": 372,
+      "outputTokens": 63,
+      "estCostMicros": 269,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-17",
+      "expected": {
+        "category": "account",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "account",
+        "priority": "normal",
+        "confidence": 0.85,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 1002.7011340000026,
+      "inputTokens": 374,
+      "outputTokens": 71,
+      "estCostMicros": 290,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-18",
+      "expected": {
+        "category": "bug",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "bug",
+        "priority": "normal",
+        "confidence": 0.9,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 976.151113999993,
+      "inputTokens": 365,
+      "outputTokens": 64,
+      "estCostMicros": 270,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-19",
+      "expected": {
+        "category": "billing",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "billing",
+        "priority": "high",
+        "confidence": 1,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": false,
+      "calls": 1,
+      "latencyMs": 1061.7097769999964,
+      "inputTokens": 381,
+      "outputTokens": 68,
+      "estCostMicros": 284,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-21",
+      "expected": {
+        "category": "account",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "account",
+        "priority": "normal",
+        "confidence": 0.95,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 851.7094300000026,
+      "inputTokens": 382,
+      "outputTokens": 62,
+      "estCostMicros": 270,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-22",
+      "expected": {
+        "category": "bug",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "bug",
+        "priority": "normal",
+        "confidence": 0.95,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 812.1842130000005,
+      "inputTokens": 372,
+      "outputTokens": 69,
+      "estCostMicros": 284,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-23",
+      "expected": {
+        "category": "other",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "how-to",
+        "priority": "low",
+        "confidence": 0.9,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": false,
+      "priorityCorrect": false,
+      "calls": 1,
+      "latencyMs": 929.3157409999985,
+      "inputTokens": 375,
+      "outputTokens": 69,
+      "estCostMicros": 285,
+      "providerErrors": []
+    },
+    {
+      "key": "nim-24",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal"
+      },
+      "status": "succeeded",
+      "errorCode": null,
+      "got": {
+        "category": "how-to",
+        "priority": "normal",
+        "confidence": 0.95,
+        "language": "en"
+      },
+      "needsReview": false,
+      "categoryCorrect": true,
+      "priorityCorrect": true,
+      "calls": 1,
+      "latencyMs": 888.4661220000125,
+      "inputTokens": 372,
+      "outputTokens": 69,
+      "estCostMicros": 284,
+      "providerErrors": []
+    }
+  ],
+  "drafts": [
+    {
+      "id": "q001",
+      "set": "answerable",
+      "question": "Do I need a credit card to sign up?",
+      "goldArticle": "getting-started.md",
+      "status": "failed",
+      "errorCode": "ai_timeout",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": null,
+          "message": "ai_timeout"
+        }
+      ]
+    },
+    {
+      "id": "q012",
+      "set": "answerable",
+      "question": "How do I update the email address I log in with?",
+      "goldArticle": "change-email.md",
+      "status": "failed",
+      "errorCode": "ai_unavailable",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": 503,
+          "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+        }
+      ]
+    },
+    {
+      "id": "q023",
+      "set": "answerable",
+      "question": "Where are your data centers?",
+      "goldArticle": "security-and-encryption.md",
+      "status": "failed",
+      "errorCode": "ai_unavailable",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": 503,
+          "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+        }
+      ]
+    },
+    {
+      "id": "q034",
+      "set": "answerable",
+      "question": "There's a mistake on my invoice. Can you edit it?",
+      "goldArticle": "billing-cycle-and-invoices.md",
+      "status": "failed",
+      "errorCode": "ai_timeout",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": null,
+          "message": "ai_timeout"
+        }
+      ]
+    },
+    {
+      "id": "q045",
+      "set": "answerable",
+      "question": "Can our company pay by bank transfer instead of by card?",
+      "goldArticle": "payment-methods.md",
+      "status": "failed",
+      "errorCode": "ai_unavailable",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": 503,
+          "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+        }
+      ]
+    },
+    {
+      "id": "q056",
+      "set": "answerable",
+      "question": "Do old versions of my files use up storage?",
+      "goldArticle": "storage-quota.md",
+      "status": "failed",
+      "errorCode": "ai_unavailable",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": null,
+          "message": "ai_unavailable"
+        }
+      ]
+    },
+    {
+      "id": "q067",
+      "set": "answerable",
+      "question": "My laptop disk is almost full. Can I keep files only in the cloud?",
+      "goldArticle": "selective-sync.md",
+      "status": "failed",
+      "errorCode": "ai_unavailable",
+      "warnings": [],
+      "modelCalled": true,
+      "citedTitles": [],
+      "citesGold": false,
+      "invalidCitations": 0,
+      "ttftMs": null,
+      "endToEndMs": null,
+      "finishReason": null,
+      "modelText": null,
+      "calls": 1,
+      "latencyMs": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "estCostMicros": 0,
+      "providerErrors": [
+        {
+          "status": null,
+          "message": "ai_unavailable"
+        }
+      ]
+    }
+  ],
+  "injection": [],
+  "summary": {
+    "triage": {
+      "run": 20,
+      "succeeded": 20,
+      "categoryAccuracyPct": 90,
+      "priorityAccuracyPct": 65,
+      "needsReview": 0,
+      "latencyMs": {
+        "n": 20,
+        "p50": 969,
+        "p95": 1062
+      }
+    },
+    "drafts": {
+      "answerable": 7,
+      "answerableReady": 0,
+      "answerableCitingGold": 0,
+      "unanswerable": 0,
+      "unanswerableRefused": 0,
+      "refusedBeforeModel": 0,
+      "invalidCitationsRemoved": 0,
+      "truncated": 0,
+      "ttftMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "modelLatencyMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "endToEndMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      }
+    },
+    "injection": {
+      "cases": 0,
+      "reachedModel": 0,
+      "obeyed": 0,
+      "obeyedCaughtByCode": 0,
+      "obeyedReachedAgentUnflagged": []
+    },
+    "cost": {
+      "calls": 27,
+      "failedCalls": 7,
+      "inputTokens": 7582,
+      "outputTokens": 1336,
+      "estCostUsd": 0.005616,
+      "perTriageUsd": 0.000281,
+      "perDraftUsd": null
+    }
+  }
+}
