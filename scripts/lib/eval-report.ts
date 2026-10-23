@@ -60,6 +60,17 @@ export function describeConfig(config: Record<string, unknown>) {
   };
 }
 
+/**
+ * Which model actually wrote the drafts. When the main draft model is overloaded the app
+ * answers with the fallback (ADR-0016), so the configured model alone could mislead.
+ */
+export function describeDrafters(byModel: Record<string, number>, config: Record<string, unknown>): string {
+  const fallback = ((config.models ?? {}) as Record<string, string | null>).draftFallback;
+  const entries = Object.entries(byModel).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (!entries.length) return "no drafts yet";
+  return entries.map(([model, n]) => `${model} ${n}${model === fallback ? " (fallback)" : ""}`).join(", ");
+}
+
 export function formatMarkdown(r: EvalReportFile): string {
   const s = r.summary;
   const cfg = describeConfig(r.run.config);
@@ -73,6 +84,7 @@ export function formatMarkdown(r: EvalReportFile): string {
     `- **Prompts:** ${cfg.prompts} · **models:** ${cfg.models} · **embeddings:** ${cfg.embedding}`,
     `- **Dataset hash:** \`${r.run.datasetHash.slice(0, 12)}\` · **settings hash:** \`${r.run.configHash.slice(0, 12)}\``,
     `- **Items:** retrieval ${s.items.retrieval}, triage ${s.items.triage}, drafts ${s.items.draft}, injection ${s.items.injection} · provider requests ${r.run.calls}`,
+    `- **Drafts written by:** ${describeDrafters(s.drafts.byModel, r.run.config)}`,
     "",
   ];
   if (r.run.provider === "mock") {

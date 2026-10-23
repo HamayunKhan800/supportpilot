@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import type { DraftResult, InjectionResult, TriageResult } from "../../scripts/lib/ai-smoke";
-import { formatMarkdown, type EvalReportFile } from "../../scripts/lib/eval-report";
+import { describeDrafters, formatMarkdown, type EvalReportFile } from "../../scripts/lib/eval-report";
 import { datasetHash, plannedItems, stableHash, type EvalDataset } from "../../scripts/lib/eval-runner";
 import { floorValues, loadFloors, summarizeEval, type SavedItem } from "../../scripts/lib/eval-summary";
 import { loadInjectionCases } from "../../scripts/lib/injection-cases";
@@ -250,6 +250,18 @@ describe("formatMarkdown", () => {
     expect(md).not.toContain("Mock run");
     expect(md).toContain("| triage.category | ≥ 0.85 | 0.800 |");
     expect(md).toContain("| drafts.falseRefusal | ≤ 0.1 | no data |");
+  });
+
+  it("says which model actually wrote the drafts, marking the fallback", () => {
+    const config = report("gemini", { checked: false, failures: [] }).run.config;
+    expect(describeDrafters({}, config)).toBe("no drafts yet");
+    expect(describeDrafters({ "d-model": 3, "f-model": 11 }, config)).toBe(
+      "f-model 11 (fallback), d-model 3",
+    );
+    expect(describeDrafters({ "d-model": 2 }, {})).toBe("d-model 2");
+    expect(formatMarkdown(report("mock", { checked: false, failures: [] }))).toContain(
+      "- **Drafts written by:** no drafts yet",
+    );
   });
 
   it("says when every floor passed", () => {
