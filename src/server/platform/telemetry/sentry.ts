@@ -1,6 +1,7 @@
 import type { Breadcrumb, ErrorEvent, NodeOptions } from "@sentry/node";
 
 import type { ErrorReportContext, ErrorReporter } from "../error-reporting";
+import { redactQueryValues } from "../query-errors";
 
 /**
  * Sentry settings shared by the web server (@sentry/nextjs) and the worker (@sentry/node)
@@ -15,8 +16,8 @@ import type { ErrorReportContext, ErrorReporter } from "../error-reporting";
  *   types/datacollection.d.ts). No Session Replay (server side only).
  * - Integrations that attach request data, local variable values or console output are also
  *   removed, so a changed default cannot bring them back.
- * - beforeSend drops the request and user, and scrubs emails, query strings and token-like
- *   strings from messages, the transaction name and breadcrumbs.
+ * - beforeSend drops the request and user, and scrubs query values (query-errors.ts), emails,
+ *   query strings and token-like strings from messages, the transaction name and breadcrumbs.
  */
 type Integration = Parameters<
   Extract<NonNullable<NodeOptions["integrations"]>, (defaults: never) => unknown>
@@ -39,7 +40,7 @@ const TOKEN = /[A-Za-z0-9_-]{32,}/g;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function scrubText(text: string): string {
-  return text
+  return redactQueryValues(text)
     .replace(EMAIL, "[email]")
     .replace(QUERY, "?[query]")
     .replace(TOKEN, (match) => (UUID.test(match) ? match : "[token]"));

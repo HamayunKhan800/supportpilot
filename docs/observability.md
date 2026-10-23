@@ -12,7 +12,7 @@ The rule for all three is the one M5 set for logs: **no customer text, prompts, 
 
 ## Logs
 
-Pino writes JSON to stdout (NFR-OBS1). Each request has a `requestId`, and when tracing is on, every line written inside a span also has `trace_id` and `span_id`, so one search finds the matching trace. Without tracing, those two fields are absent; nothing else changes.
+Pino writes JSON to stdout (NFR-OBS1). Keys such as `password`, `token`, `email`, `body` and `prompt` are redacted, and every error logged under `err` passes through `query-errors.ts`, which replaces the values a failed query carries (Drizzle appends them to the error message, and Postgres quotes a value it can't convert) while keeping the SQL. Each request has a `requestId`, and when tracing is on, every line written inside a span also has `trace_id` and `span_id`, so one search finds the matching trace. Without tracing, those two fields are absent; nothing else changes.
 
 ## Traces
 
@@ -89,7 +89,7 @@ Server errors only: a request that ends in a 500 (with tags `route` and `request
 
 ### What is not sent
 
-Sentry SDK 11 collects a lot by default: user details, cookies, headers, request bodies, query strings, AI prompts and answers, query data, job arguments and local variable values. The app turns every one of those off with `dataCollection` (a compile-time check fails if an SDK upgrade adds a kind the app hasn't decided on), removes the integrations that attach request data, local variables or console output, and scrubs every event in `beforeSend`: no user or server name, the request reduced to its method, and emails, query strings and token-like strings replaced in messages, the transaction name and breadcrumbs. Sentry does not set up its own tracing; it reads the app's OpenTelemetry spans.
+Sentry SDK 11 collects a lot by default: user details, cookies, headers, request bodies, query strings, AI prompts and answers, query data, job arguments and local variable values. The app turns every one of those off with `dataCollection` (a compile-time check fails if an SDK upgrade adds a kind the app hasn't decided on), removes the integrations that attach request data, local variables or console output, and scrubs every event in `beforeSend`: no user or server name, the request reduced to its method, failed-query values replaced in every exception (linked causes included), and emails, query strings and token-like strings replaced in messages, the transaction name and breadcrumbs. Sentry does not set up its own tracing; it reads the app's OpenTelemetry spans.
 
 Stack traces keep the source lines around each frame (`frameContextLines: 5`). Those are lines of code, not data, and the repository is public. `tests/unit/sentry-sdk.test.ts` checks all of this against the real SDK, with a transport that keeps the event in memory.
 

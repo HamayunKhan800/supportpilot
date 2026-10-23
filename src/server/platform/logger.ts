@@ -1,5 +1,6 @@
 import pino, { type DestinationStream, type Logger, type LoggerOptions } from "pino";
 
+import { serializeErrorForLog } from "./query-errors";
 import { activeTraceIds } from "./telemetry/spans";
 
 /**
@@ -42,6 +43,8 @@ export function createLogger(
     level: options.level ?? "info",
     base: { service: "supportpilot" },
     redact: { paths: [...REDACT_PATHS], censor: "[REDACTED]" },
+    // Failed queries put their values (customer text, emails) in the error message and stack.
+    serializers: { err: serializeErrorForLog },
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {
       level: (label) => ({ level: label }),
