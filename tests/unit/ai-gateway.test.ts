@@ -490,12 +490,14 @@ describe("streamText: fault injection", () => {
   });
 
   it("the first-text deadline stops once text arrives: a slow but steady answer completes", async () => {
+    // First text at ~100 ms, deadline 250 ms, stream ends at ~600 ms: the deadline would fire
+    // mid-answer if it kept running, and slow CI machines still have 150 ms of margin (CI #25).
     const model = streaming([...textChunks("a ", "b ", "c ", "d "), finish()], {
-      initialDelayInMs: 10,
-      chunkDelayInMs: 40,
+      initialDelayInMs: 0,
+      chunkDelayInMs: 100,
     });
     const { gateway } = setup(model, {
-      settings: { draft: { timeout: { totalMs: 5000, firstChunkMs: 60, chunkMs: 5000 } } },
+      settings: { draft: { timeout: { totalMs: 5000, firstChunkMs: 250, chunkMs: 5000 } } },
     });
     const { result } = await collect(gateway);
     expect(result).toMatchObject({ text: "a b c d ", finishReason: "stop" });

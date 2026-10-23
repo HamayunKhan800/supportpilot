@@ -1,0 +1,8 @@
+# Reviewed false positives. Each line is a gitleaks fingerprint (commit:file:rule:line) for one
+# finding in history that can't be rewritten without force-pushing published commits.
+#
+# Commit f00cd27 (M6 step 4) has a made-up 43-character value in two unit tests. It is shaped like
+# a tracking token so the tests can check that telemetry scrubbing hides it. It was never a real
+# credential. Since then the tests build it at run time (CI #25).
+f00cd270414af2d2961ae902f7c871d48d9056a0:tests/unit/sentry-scrub.test.ts:generic-api-key:14
+f00cd270414af2d2961ae902f7c871d48d9056a0:tests/unit/telemetry.test.ts:generic-api-key:22
