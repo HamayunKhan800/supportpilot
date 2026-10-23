@@ -1,6 +1,6 @@
 # Plan: design system and UX overhaul ("M6.5")
 
-Status: **approved 2026-10-23** (accent Iris; theme follows the device, with a switch). Step 1 (foundations) done: see `docs/design/tokens.md`.
+Status: **approved 2026-10-23** (accent Iris; theme follows the device, with a switch). Step 1 (foundations) done: see `docs/design/tokens.md`. Step 2 (app shell) done: see `docs/design/app-shell.md`.
 
 ## 1. Why
 

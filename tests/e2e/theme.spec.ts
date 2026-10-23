@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { audit, email, expect, signIn, signUp, test } from "./fixtures";
+import { accountMenu, audit, closeDrawer, email, expect, signIn, signUp, test } from "./fixtures";
 
 /**
  * Design system step 1: light, dark and "follow the device" themes (docs/plans/design-system.md).
@@ -43,17 +43,32 @@ async function createWorkspace(page: Page, who: string, name: string) {
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
 }
 
+/** Picks a theme in the account menu and closes the menu again. */
+async function chooseTheme(page: Page, name: "Light" | "Dark" | "Device") {
+  const menu = await accountMenu(page);
+  await menu.getByRole("menuitemradio", { name }).click();
+  await expect(menu.getByRole("menuitemradio", { name })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await closeDrawer(page);
+}
+
+async function checkedTheme(page: Page) {
+  const menu = await accountMenu(page);
+  const checked = await menu.getByRole("menuitemradio", { checked: true }).textContent();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await closeDrawer(page);
+  return checked?.trim();
+}
+
 test("follows the device theme until the user picks one, and remembers the choice", async ({ page }) => {
   await createWorkspace(page, email(`theme-${test.info().project.name}`), "Theme Co");
   const html = page.locator("html");
-  const theme = page.getByRole("group", { name: "Theme" });
 
   // No choice yet: the device decides.
   await expect(html).not.toHaveAttribute("data-theme");
-  await expect(theme.getByRole("button", { name: "Use device theme" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  expect(await checkedTheme(page)).toBe("Device");
   await page.emulateMedia({ colorScheme: "dark" });
   await expectDark(page);
   await page.emulateMedia({ colorScheme: "light" });
@@ -61,15 +76,15 @@ test("follows the device theme until the user picks one, and remembers the choic
 
   // An explicit choice beats the device setting, immediately and after a reload.
   await page.emulateMedia({ colorScheme: "dark" });
-  await theme.getByRole("button", { name: "Light theme" }).click();
+  await chooseTheme(page, "Light");
   await expect(html).toHaveAttribute("data-theme", "light");
   await expectLight(page);
   await page.reload();
   await expect(html).toHaveAttribute("data-theme", "light");
-  await expect(theme.getByRole("button", { name: "Light theme" })).toHaveAttribute("aria-pressed", "true");
+  expect(await checkedTheme(page)).toBe("Light");
   await expectLight(page);
 
-  await theme.getByRole("button", { name: "Dark theme" }).click();
+  await chooseTheme(page, "Dark");
   await page.emulateMedia({ colorScheme: "light" });
   await expectDark(page);
   await page.goto("/app/members");
@@ -77,7 +92,7 @@ test("follows the device theme until the user picks one, and remembers the choic
   await expectDark(page);
 
   // Back to the device setting: the cookie is removed.
-  await page.getByRole("group", { name: "Theme" }).getByRole("button", { name: "Use device theme" }).click();
+  await chooseTheme(page, "Device");
   await expect(html).not.toHaveAttribute("data-theme");
   await expectLight(page);
   await page.reload();

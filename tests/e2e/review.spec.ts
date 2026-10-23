@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import pg from "pg";
-import { audit, email, expect, signIn, signUp, test } from "./fixtures";
+import { appShell, audit, email, expect, signIn, signUp, test, workspaceNav } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 /**
@@ -44,7 +44,7 @@ async function signInReviewer(page: Page, address: string, project: string) {
   // Wait for what is on screen, not the URL: "/app" matches for a moment before the server
   // redirects a new user to /app/onboarding (a race that once skipped workspace creation).
   const workspaceName = page.getByLabel("Workspace name");
-  await expect(workspaceName.or(page.getByRole("navigation", { name: "Workspace" }))).toBeVisible();
+  await expect(workspaceName.or(appShell(page))).toBeVisible();
   if (await workspaceName.isVisible()) {
     await page.getByLabel("Workspace name").fill("Review Co");
     await page.getByLabel("Workspace address").fill(`review-${project}-${Date.now().toString(36)}`);
@@ -56,7 +56,7 @@ async function signInReviewer(page: Page, address: string, project: string) {
 test("a listed reviewer checks items with one tap each", async ({ page }, info) => {
   await signInReviewer(page, reviewerEmail(info.project.name), info.project.name);
 
-  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Review" }).click();
+  await (await workspaceNav(page)).getByRole("link", { name: "Review" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Review" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Triage labels" })).toBeVisible();
   await audit(page, "review overview");
@@ -102,9 +102,7 @@ test("anyone else gets no link and a 404", async ({ page }, info) => {
   await page.getByRole("button", { name: "Create workspace" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Other Co" })).toBeVisible();
 
-  await expect(
-    page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Review" }),
-  ).toHaveCount(0);
+  await expect((await workspaceNav(page)).getByRole("link", { name: "Review" })).toHaveCount(0);
   const res = await page.goto("/app/review");
   expect(res?.status()).toBe(404);
   const api = await page.request.post(

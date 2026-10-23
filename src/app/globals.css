@@ -120,6 +120,13 @@
   html {
     @apply font-sans;
   }
+  /* Narrow screens have a sticky 3.5rem top bar: keep focused and anchored content below
+     it (WCAG 2.2 2.4.11 Focus Not Obscured). */
+  @media (width < 64rem) {
+    html {
+      scroll-padding-top: 4.5rem;
+    }
+  }
 }
 
 /*

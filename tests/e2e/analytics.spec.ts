@@ -1,5 +1,5 @@
 import pg from "pg";
-import { audit, email, expect, signIn, signUp, test, waitForTriage } from "./fixtures";
+import { audit, email, expect, signIn, signUp, test, waitForTriage, workspaceNav } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 /**
@@ -88,7 +88,7 @@ async function ownerWithOneTriagedRequest(page: Page, project: string) {
 test("usage: a triaged request appears, periods switch, charts have a table", async ({ page }, info) => {
   await ownerWithOneTriagedRequest(page, info.project.name);
 
-  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Analytics" }).click();
+  await (await workspaceNav(page)).getByRole("link", { name: "Analytics", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Analytics" })).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Analytics" }).getByRole("link", { name: "Usage" }),

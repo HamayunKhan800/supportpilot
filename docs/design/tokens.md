@@ -4,14 +4,14 @@ How SupportPilot's colours, type and themes work (design system step 1, `docs/pl
 
 ## Where things live
 
-| File                                                  | Role                                                                                                                                                 |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/design/tokens.ts`                            | **Source of truth.** Generates every colour from a few inputs: brand hue and chroma (Iris, 277°), status hues, per-step lightness and chroma curves. |
-| `src/lib/design/color.ts`                             | OKLCH → sRGB conversion, gamut fitting, WCAG contrast.                                                                                               |
-| `src/app/theme.css`                                   | **Generated** by `pnpm design:tokens`. Never edit by hand.                                                                                           |
-| `src/app/globals.css`                                 | Maps tokens to Tailwind utilities (`bg-warning-subtle`, …), fonts, radius and the `dark:` variant.                                                   |
-| `src/lib/theme.ts`, `src/components/theme-toggle.tsx` | Theme preference cookie and the light/dark/device switch.                                                                                            |
-| `tests/unit/design-tokens.test.ts`                    | Contrast, gamut, scale order, stylesheet drift, and a ban on raw palette classes.                                                                    |
+| File                                                | Role                                                                                                                                                                                                                                      |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/design/tokens.ts`                          | **Source of truth.** Generates every colour from a few inputs: brand hue and chroma (Iris, 277°), status hues, per-step lightness and chroma curves.                                                                                      |
+| `src/lib/design/color.ts`                           | OKLCH → sRGB conversion, gamut fitting, WCAG contrast.                                                                                                                                                                                    |
+| `src/app/theme.css`                                 | **Generated** by `pnpm design:tokens`. Never edit by hand.                                                                                                                                                                                |
+| `src/app/globals.css`                               | Maps tokens to Tailwind utilities (`bg-warning-subtle`, …), fonts, radius and the `dark:` variant.                                                                                                                                        |
+| `src/lib/theme.ts`, `src/lib/preferences-client.ts` | Theme preference cookie and applying it in the browser. The switch lives in the user menu and the command palette (`docs/design/app-shell.md`); `src/components/theme-toggle.tsx` is a standalone switch for pages without the app shell. |
+| `tests/unit/design-tokens.test.ts`                  | Contrast, gamut, scale order, stylesheet drift, and a ban on raw palette classes.                                                                                                                                                         |
 
 ## Colour model
 

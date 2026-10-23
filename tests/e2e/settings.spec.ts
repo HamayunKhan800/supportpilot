@@ -1,4 +1,4 @@
-import { audit, email, expect, signIn, signUp, test, waitForTriage } from "./fixtures";
+import { audit, email, expect, signIn, signUp, test, waitForTriage, workspaceNav } from "./fixtures";
 
 /**
  * M5 step 5 through the real stack (production build, worker, mock AI): an owner sees this
@@ -56,10 +56,7 @@ test("an owner manages the AI budget, and drafts stop and resume with it", async
 
   // 1. Usage: the triage run is counted.
   await page.goto("/app");
-  await page
-    .getByRole("navigation", { name: "Workspace" })
-    .getByRole("link", { name: "AI settings" })
-    .click();
+  await (await workspaceNav(page)).getByRole("link", { name: "AI settings" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "AI settings" })).toBeVisible();
   const usage = page.getByRole("table", { name: "AI calls this month by feature" });
   await expect(

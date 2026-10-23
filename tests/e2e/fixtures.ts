@@ -45,6 +45,40 @@ export async function signIn(page: Page, address: string) {
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
+/**
+ * The sidebar navigation. On narrow screens it lives in a drawer behind the menu button,
+ * which this opens first, so the same test steps run on desktop and mobile.
+ */
+export async function workspaceNav(page: Page) {
+  const menuButton = page.getByRole("button", { name: "Open navigation" });
+  const nav = page.getByRole("navigation", { name: "Workspace" });
+  await expect(menuButton.or(nav).first()).toBeVisible();
+  if (!(await nav.isVisible())) await menuButton.click();
+  await expect(nav).toBeVisible();
+  return nav;
+}
+
+/** Opens the account menu at the foot of the sidebar and returns it. */
+export async function accountMenu(page: Page) {
+  await workspaceNav(page);
+  await page.getByRole("button", { name: /^Account menu/ }).click();
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+/** Closes the mobile navigation drawer if it is open (no-op on wide screens). */
+export async function closeDrawer(page: Page) {
+  const close = page.getByRole("button", { name: "Close navigation" });
+  if (await close.isVisible()) {
+    await close.click();
+    await expect(close).toBeHidden();
+  }
+}
+
+/** Present on every workspace page once the app shell has rendered (desktop and mobile). */
+export const appShell = (page: Page) => page.getByRole("button", { name: /^Search or jump to/ });
+
 /** WCAG 2.2 A/AA rules. Done-when for M2: zero serious or critical violations. */
 export async function audit(page: Page, label: string) {
   // Scan a settled page: once (finding #111) axe ran right after a save and found no <title>,

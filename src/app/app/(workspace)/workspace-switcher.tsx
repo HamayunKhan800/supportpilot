@@ -18,7 +18,7 @@ export function WorkspaceSwitcher({ activeId, workspaces }: Props) {
     return <span className="font-medium">{workspaces[0]?.name}</span>;
   }
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex w-full items-center gap-2">
       <label htmlFor={id} className="sr-only">
         Active workspace
       </label>
@@ -26,7 +26,7 @@ export function WorkspaceSwitcher({ activeId, workspaces }: Props) {
         id={id}
         value={activeId}
         disabled={pending}
-        className="border-input bg-background h-9 rounded-md border px-2 text-sm font-medium"
+        className="border-input bg-background h-9 w-full min-w-0 rounded-md border px-2 text-sm font-medium"
         onChange={async (e) => {
           setPending(true);
           await authClient.organization.setActive({ organizationId: e.target.value });

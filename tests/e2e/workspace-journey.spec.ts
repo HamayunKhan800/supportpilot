@@ -1,4 +1,4 @@
-import { email, expect, signIn, signUp, test } from "./fixtures";
+import { accountMenu, email, expect, signIn, signUp, test } from "./fixtures";
 
 /**
  * The M2 journey: an owner creates a workspace and invites an agent, the agent joins
@@ -113,7 +113,7 @@ test("signing out ends the session", async ({ page }) => {
   await page.goto("/sign-in");
   await signIn(page, owner);
   await expect(page).toHaveURL(/\/app$/);
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await (await accountMenu(page)).getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/sign-in/);
   await page.goto("/app");
   await expect(page).toHaveURL(/\/sign-in\?next=%2Fapp/);

@@ -3,22 +3,14 @@
 import { cn } from "cn";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useState } from "react";
-import { type ThemePreference, themeAttribute, themeCookie } from "@/lib/theme";
+import { applyTheme } from "@/lib/preferences-client";
+import type { ThemePreference } from "@/lib/theme";
 
 const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
   { value: "light", label: "Light theme", Icon: Sun },
   { value: "dark", label: "Dark theme", Icon: Moon },
   { value: "system", label: "Use device theme", Icon: Monitor },
 ];
-
-/** Saves the preference and re-themes the page immediately (a browser side effect, kept out of render). */
-function applyTheme(next: ThemePreference) {
-  document.cookie = themeCookie(next, window.location.protocol === "https:");
-  const root = document.documentElement;
-  const attribute = themeAttribute(next);
-  if (attribute) root.dataset.theme = attribute;
-  else delete root.dataset.theme;
-}
 
 /**
  * Three-way theme switch. The server renders the initial theme from the cookie; a click
