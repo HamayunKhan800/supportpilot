@@ -53,7 +53,7 @@ export function DocumentActions({ id, title, canRetry }: { id: string; title: st
         <div
           role="group"
           aria-labelledby="confirm-delete-text"
-          className="flex flex-col gap-3 rounded-lg border border-red-300 p-4"
+          className="border-danger-border flex flex-col gap-3 rounded-lg border p-4"
         >
           <p id="confirm-delete-text" className="text-sm">
             Delete “{title}”? Its passages stop appearing in search immediately. This cannot be undone.

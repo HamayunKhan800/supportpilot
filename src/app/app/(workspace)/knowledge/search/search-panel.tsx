@@ -136,12 +136,12 @@ export function SearchPanel() {
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="text-muted-foreground">Found by:</span>
                     {r.vector && (
-                      <Badge variant="outline" className="border-blue-300 text-blue-800">
+                      <Badge variant="outline" className="border-info-border text-info-strong">
                         Meaning #{r.vector.rank} · similarity {r.vector.similarity.toFixed(2)}
                       </Badge>
                     )}
                     {r.keyword && (
-                      <Badge variant="outline" className="border-violet-300 text-violet-800">
+                      <Badge variant="outline" className="border-brand-border text-brand-strong">
                         Keywords #{r.keyword.rank}
                       </Badge>
                     )}

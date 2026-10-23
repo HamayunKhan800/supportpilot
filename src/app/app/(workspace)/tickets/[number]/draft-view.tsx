@@ -70,7 +70,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {draft.warnings.length > 0 && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+        <div className="border-warning-border bg-warning-subtle text-warning-strong rounded-lg border p-3 text-sm">
           <p className="font-semibold">Check before sending</p>
           <ul className="mt-1 list-disc pl-5">
             {draft.warnings.map((w) => (
@@ -92,7 +92,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded }: Props) {
           hint="Numbers like [1] show which source a sentence uses. They are removed before sending."
         />
       ) : (
-        <div className="rounded-lg border bg-white p-3" data-testid="draft-text">
+        <div className="bg-card rounded-lg border p-3" data-testid="draft-text">
           <p className="break-words whitespace-pre-wrap">
             {splitCitations(body).map((s, i) =>
               s.type === "text" ? (
@@ -105,7 +105,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded }: Props) {
                   aria-expanded={openSource === s.marker}
                   aria-controls={sourceId(s.marker)}
                   aria-label={`Source ${s.marker}: ${byMarker.get(s.marker)!.documentTitle}`}
-                  className="mx-0.5 rounded bg-blue-100 px-1 align-baseline text-xs font-semibold text-blue-900 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                  className="bg-brand-subtle text-brand-strong focus-visible:ring-ring mx-0.5 rounded px-1 align-baseline text-xs font-semibold underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:outline-none"
                 >
                   [{s.marker}]
                 </button>
@@ -178,22 +178,22 @@ function SourceItem({
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={regionId}
-        className="flex w-full items-start gap-2 p-2 text-left hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+        className="hover:bg-muted focus-visible:ring-ring flex w-full items-start gap-2 p-2 text-left focus-visible:ring-2 focus-visible:outline-none"
       >
-        <span className="font-semibold text-blue-900">[{c.marker}]</span>
+        <span className="text-brand-strong font-semibold">[{c.marker}]</span>
         <span className="min-w-0 flex-1 break-words">
           {c.documentTitle}
           {c.headingPath && <span className="text-muted-foreground"> › {c.headingPath}</span>}
         </span>
         {c.sourceRemoved && (
-          <Badge variant="outline" className="border-amber-400 text-amber-900">
+          <Badge variant="outline" className="border-warning-border text-warning-strong">
             Source removed
           </Badge>
         )}
       </button>
       <div id={regionId} hidden={!open} className={cn("border-t p-2")}>
         {c.sourceRemoved && (
-          <p className="mb-1 text-xs text-amber-900">
+          <p className="text-warning-strong mb-1 text-xs">
             This article was deleted or replaced after the draft was written. This is the passage as it was.
           </p>
         )}

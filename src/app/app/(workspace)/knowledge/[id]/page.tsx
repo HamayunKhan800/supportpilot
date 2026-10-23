@@ -79,7 +79,7 @@ export default async function DocumentPage({ params }: PageProps<"/app/knowledge
       </div>
 
       {d.status === "failed" && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <div className="border-danger-border bg-danger-subtle text-danger-strong rounded-lg border p-4 text-sm">
           <p className="font-medium">This document could not be processed.</p>
           <p>{ingestErrorMessage(d.errorCode)}</p>
         </div>

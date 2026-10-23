@@ -17,11 +17,9 @@ export default function Home() {
   return (
     <main id="main" className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-6 py-16">
       <header className="flex flex-col gap-3">
-        <p className="text-sm font-medium tracking-wide text-zinc-600 uppercase dark:text-zinc-400">
-          Work in progress
-        </p>
+        <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">Work in progress</p>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">SupportPilot</h1>
-        <p className="text-lg text-zinc-700 dark:text-zinc-300">
+        <p className="text-muted-foreground text-lg">
           AI-assisted customer support with grounded, cited answers and a human in the loop.
         </p>
         <div className="mt-2 flex flex-wrap gap-3">
@@ -41,15 +39,12 @@ export default function Home() {
           {milestones.map((m) => (
             <li
               key={m.id}
-              className="flex items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-800"
+              className="border-border bg-card flex items-center gap-3 rounded-lg border px-4 py-3"
             >
-              <span
-                aria-hidden="true"
-                className={m.done ? "text-green-700 dark:text-green-400" : "text-zinc-400 dark:text-zinc-500"}
-              >
+              <span aria-hidden="true" className={m.done ? "text-success-strong" : "text-muted-foreground"}>
                 {m.done ? "✓" : "○"}
               </span>
-              <span className="font-mono text-sm text-zinc-600 dark:text-zinc-400">{m.id}</span>
+              <span className="text-muted-foreground font-mono text-sm">{m.id}</span>
               <span>{m.label}</span>
               <span className="sr-only">{m.done ? "(complete)" : "(not started)"}</span>
             </li>

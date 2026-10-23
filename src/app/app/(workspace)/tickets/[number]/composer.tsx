@@ -101,13 +101,13 @@ export function Composer({
           onChange={(e) => setBody(e.target.value)}
           error={error.body}
           hint={internal ? "Only your team sees this." : "The customer sees this on their tracking page."}
-          className={cn(internal && "border-amber-300 bg-amber-50")}
+          className={cn(internal && "border-warning-border bg-warning-subtle")}
         />
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" size="lg" disabled={pending}>
             {pending ? "Saving…" : internal ? "Add internal note" : "Send reply"}
           </Button>
-          <p role="status" className="text-sm text-green-800">
+          <p role="status" className="text-success-strong text-sm">
             {sent}
           </p>
         </div>

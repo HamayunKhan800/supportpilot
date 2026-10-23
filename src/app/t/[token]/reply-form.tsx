@@ -59,7 +59,7 @@ export function ReplyForm({ token }: { token: string }) {
           <Button type="submit" size="lg" disabled={pending}>
             {pending ? "Sending…" : "Send reply"}
           </Button>
-          <p role="status" className="text-sm text-green-800">
+          <p role="status" className="text-success-strong text-sm">
             {sent}
           </p>
         </div>

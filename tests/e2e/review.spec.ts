@@ -41,8 +41,11 @@ async function signInReviewer(page: Page, address: string, project: string) {
   if (rowCount) await page.goto("/sign-in");
   else await signUp(page, "Riley Reviewer", address);
   await signIn(page, address);
-  await expect(page).toHaveURL(/\/app/);
-  if (page.url().includes("/app/onboarding")) {
+  // Wait for what is on screen, not the URL: "/app" matches for a moment before the server
+  // redirects a new user to /app/onboarding (a race that once skipped workspace creation).
+  const workspaceName = page.getByLabel("Workspace name");
+  await expect(workspaceName.or(page.getByRole("navigation", { name: "Workspace" }))).toBeVisible();
+  if (await workspaceName.isVisible()) {
     await page.getByLabel("Workspace name").fill("Review Co");
     await page.getByLabel("Workspace address").fill(`review-${project}-${Date.now().toString(36)}`);
     await page.getByRole("button", { name: "Create workspace" }).click();

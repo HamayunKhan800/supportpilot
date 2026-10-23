@@ -220,7 +220,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
       </form>
 
       {invalid ? (
-        <p role="alert" className="rounded-lg border border-red-300 p-4 text-sm text-red-800">
+        <p role="alert" className="border-danger-border text-danger-strong rounded-lg border p-4 text-sm">
           Some filters in the address are not valid.{" "}
           <Link href="/app/tickets" className="underline">
             Show all active tickets
@@ -265,7 +265,9 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    {t.needsReview && <Badge className="bg-amber-100 text-amber-900">Needs review</Badge>}
+                    {t.needsReview && (
+                      <Badge className="bg-warning-subtle text-warning-strong">Needs review</Badge>
+                    )}
                     <Badge variant={t.status === "open" ? "default" : "secondary"}>
                       {STATUS_LABEL[t.status]}
                     </Badge>

@@ -14,12 +14,12 @@ export const PRIORITY_LABEL: Record<TicketPriority, string> = {
   urgent: "Urgent",
 };
 
-/** Text + border colours that pass WCAG AA contrast on white. */
+/** Text + border colours from the design tokens (contrast-tested in both themes). */
 export const PRIORITY_CLASS: Record<TicketPriority, string> = {
-  low: "border-zinc-300 text-zinc-700",
-  normal: "border-zinc-300 text-zinc-700",
-  high: "border-orange-300 text-orange-800",
-  urgent: "border-red-300 bg-red-50 text-red-800",
+  low: "border-border text-muted-foreground",
+  normal: "border-border text-muted-foreground",
+  high: "border-warning-border text-warning-strong",
+  urgent: "border-danger-border bg-danger-subtle text-danger-strong",
 };
 
 export const dateFormat = new Intl.DateTimeFormat("en", {

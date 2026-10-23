@@ -9,12 +9,12 @@ export const STATUS_LABEL: Record<DocumentStatus, string> = {
   failed: "Failed",
 };
 
-/** Text + border colours that pass WCAG AA contrast on white; the label carries the meaning. */
+/** Text + border colours from the design tokens (contrast-tested in both themes); the label carries the meaning. */
 export const STATUS_CLASS: Record<DocumentStatus, string> = {
-  pending: "border-zinc-300 text-zinc-700",
-  processing: "border-blue-300 bg-blue-50 text-blue-800",
-  ready: "border-green-300 bg-green-50 text-green-800",
-  failed: "border-red-300 bg-red-50 text-red-800",
+  pending: "border-border text-muted-foreground",
+  processing: "border-info-border bg-info-subtle text-info-strong",
+  ready: "border-success-border bg-success-subtle text-success-strong",
+  failed: "border-danger-border bg-danger-subtle text-danger-strong",
 };
 
 export const isInProgress = (status: string) => status === "pending" || status === "processing";

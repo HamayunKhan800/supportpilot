@@ -119,7 +119,7 @@ export function DraftFeedback({ draft, onSaved }: { draft: ApiDraft; onSaved: (d
         </form>
       )}
       <FormAlert message={error} />
-      <p role="status" className="text-sm text-green-800">
+      <p role="status" className="text-success-strong text-sm">
         {status}
       </p>
     </div>

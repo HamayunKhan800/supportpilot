@@ -109,7 +109,7 @@ export function DraftPanel({
       )}
 
       {state.phase === "streaming" && (
-        <div aria-busy="true" className="rounded-lg border bg-white p-3" data-testid="draft-streaming">
+        <div aria-busy="true" className="bg-card rounded-lg border p-3" data-testid="draft-streaming">
           <p className="text-muted-foreground mb-1 text-xs" aria-hidden="true">
             Writing…
           </p>
@@ -143,7 +143,7 @@ export function DraftPanel({
 
       {state.phase === "blocked" && (
         <div
-          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-950"
+          className="border-danger-border bg-danger-subtle text-danger-strong rounded-lg border p-3 text-sm"
           data-testid="draft-outcome"
         >
           <p className="font-semibold">Draft blocked</p>
@@ -153,7 +153,7 @@ export function DraftPanel({
 
       {state.phase === "error" && (
         <div
-          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-950"
+          className="border-danger-border bg-danger-subtle text-danger-strong rounded-lg border p-3 text-sm"
           data-testid="draft-outcome"
         >
           <p className="font-semibold">No draft this time</p>
@@ -163,7 +163,7 @@ export function DraftPanel({
       )}
 
       {state.phase === "sent" && (
-        <p className="text-sm text-green-800" data-testid="draft-outcome">
+        <p className="text-success-strong text-sm" data-testid="draft-outcome">
           Reply sent to {customerName}. It now appears in the conversation.
         </p>
       )}

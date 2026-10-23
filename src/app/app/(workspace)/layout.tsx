@@ -1,6 +1,9 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
+import { parseThemePreference, THEME_COOKIE } from "@/lib/theme";
 import { isReviewer } from "@/server/modules/eval-review/service";
 import { can } from "@/server/platform/auth/permissions";
 import { NavLinks } from "./nav-links";
@@ -10,6 +13,7 @@ import { WorkspaceSwitcher } from "./workspace-switcher";
 /** Every page below requires a session and a verified workspace membership. */
 export default async function WorkspaceLayout({ children }: LayoutProps<"/app">) {
   const { ctx, memberships } = await requireAppWorkspace();
+  const theme = parseThemePreference((await cookies()).get(THEME_COOKIE)?.value);
 
   const links = [
     { href: "/app", label: "Overview" },
@@ -43,6 +47,7 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground hidden text-sm sm:inline">{ctx.user.email}</span>
+            <ThemeToggle initial={theme} />
             <SignOutButton />
           </div>
         </div>

@@ -66,10 +66,10 @@ function Suggestion({
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {open && <Badge className="bg-amber-100 text-amber-900">Needs review</Badge>}
+        {open && <Badge className="bg-warning-subtle text-warning-strong">Needs review</Badge>}
         {!open && triage.reviewedAt && <Badge variant="secondary">Reviewed</Badge>}
         {flagged && (
-          <Badge variant="outline" className="border-red-300 text-red-800">
+          <Badge variant="outline" className="border-danger-border text-danger-strong">
             Hidden characters removed
           </Badge>
         )}

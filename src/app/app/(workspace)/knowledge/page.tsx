@@ -78,7 +78,7 @@ export default async function KnowledgePage({ searchParams }: PageProps<"/app/kn
                     {d.status === "ready" ? ` · ${d.chunkCount} passage${d.chunkCount === 1 ? "" : "s"}` : ""}
                   </span>
                   {d.status === "failed" && (
-                    <span className="text-sm text-red-800">{ingestErrorMessage(d.errorCode)}</span>
+                    <span className="text-danger-strong text-sm">{ingestErrorMessage(d.errorCode)}</span>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-sm">

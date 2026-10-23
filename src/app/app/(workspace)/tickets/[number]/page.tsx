@@ -83,7 +83,7 @@ export default async function TicketPage({ params }: PageProps<"/app/tickets/[nu
                   <li key={m.id}>
                     <Card
                       className={cn(
-                        internal && "border-amber-300 bg-amber-50",
+                        internal && "border-warning-border bg-warning-subtle",
                         m.authorType === "agent" && !internal && "border-l-4 border-l-blue-700",
                       )}
                     >
@@ -92,7 +92,7 @@ export default async function TicketPage({ params }: PageProps<"/app/tickets/[nu
                           <span className="font-medium">
                             {who}
                             {internal ? (
-                              <span className="font-semibold text-amber-900">
+                              <span className="text-warning-strong font-semibold">
                                 {" "}
                                 · Internal note, not visible to the customer
                               </span>

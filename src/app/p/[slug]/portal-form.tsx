@@ -170,8 +170,8 @@ function Submitted({ trackingUrl }: { trackingUrl: string }) {
           Request received
         </h2>
         <p>Use this private link to follow your request and reply to our team.</p>
-        <Alert role="note" className="border-amber-300 bg-amber-50 text-amber-950">
-          <AlertDescription className="text-amber-950">
+        <Alert role="note" className="border-warning-border bg-warning-subtle text-warning-strong">
+          <AlertDescription className="text-warning-strong">
             <strong>Save this link now.</strong> It&apos;s the only way to open your request, and we
             can&apos;t show it again. Anyone with the link can read the conversation, so don&apos;t share it.
           </AlertDescription>

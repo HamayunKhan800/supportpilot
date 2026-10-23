@@ -36,6 +36,7 @@
     "eval:ai": "tsx scripts/eval-ai-smoke.ts",
     "eval:review": "tsx scripts/eval-review.ts",
     "eval:state": "tsx scripts/eval-state.ts",
+    "design:tokens": "tsx scripts/design-tokens.ts",
     "kb:reembed": "tsx scripts/kb-reembed.ts",
     "otel:capture": "tsx scripts/otel-capture.ts",
     "sentry:check": "tsx scripts/sentry-check.ts"
@@ -57,6 +58,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
     "drizzle-orm": "^0.45.4",
+    "geist": "1.8.2",
     "lucide-react": "^1.60.0",
     "next": "16.4.2",
     "pg": "^8.23.1",

@@ -1,6 +1,6 @@
 # Plan: design system and UX overhaul ("M6.5")
 
-Status: **proposed, waiting for the owner's approval.** No application code is written until it is approved.
+Status: **approved 2026-10-23** (accent Iris; theme follows the device, with a switch). Step 1 (foundations) done: see `docs/design/tokens.md`.
 
 ## 1. Why
 
