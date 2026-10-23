@@ -116,6 +116,7 @@ docker compose --profile full up --build
 | `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                                       |
 | `pnpm db:generate` / `db:migrate` | create / apply migrations                                                                                       |
 | `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                                       |
+| `pnpm eval`                       | the full evaluation with 95% intervals (`--check-floors`, `--provider gemini`, `--resume`)                      |
 | `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)                                  |
 | `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                                        |
 | `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced)                    |

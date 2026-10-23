@@ -185,7 +185,7 @@ export function meterGateway(
 
 // --- Results ------------------------------------------------------------------------------
 
-interface Metered {
+export interface Metered {
   calls: number;
   latencyMs: number | null;
   inputTokens: number;
@@ -194,7 +194,7 @@ interface Metered {
   providerErrors: NonNullable<CallRecord["providerError"]>[];
 }
 
-function sumCalls(records: CallRecord[]): Metered {
+export function sumCalls(records: CallRecord[]): Metered {
   const ok = records.filter((r) => r.ok);
   return {
     calls: records.length,
@@ -208,10 +208,19 @@ function sumCalls(records: CallRecord[]): Metered {
 
 export interface TriageResult extends Metered {
   key: string;
-  expected: { category: string; priority: string };
+  /** The model that answered (null when no call succeeded). */
+  model: string | null;
+  /** The labels; the M6 set also labels sentiment and language. */
+  expected: { category: string; priority: string; sentiment?: string; language?: string };
   status: TriageOutcome["status"];
   errorCode: string | null;
-  got: { category: string; priority: string; confidence: number; language: string | null } | null;
+  got: {
+    category: string;
+    priority: string;
+    sentiment: string | null;
+    confidence: number;
+    language: string | null;
+  } | null;
   needsReview: boolean | null;
   categoryCorrect: boolean;
   priorityCorrect: boolean;
@@ -229,6 +238,8 @@ export interface DraftResult extends Metered {
   warnings: string[];
   modelCalled: boolean;
   citedTitles: string[];
+  /** Citations kept after the check that each one points at a passage the model was shown. */
+  citationCount: number;
   citesGold: boolean | null;
   invalidCitations: number;
   ttftMs: number | null;
@@ -352,7 +363,7 @@ export interface AiSmokeOptions {
   onProgress?: (report: AiSmokeReport) => void;
 }
 
-async function insertTicket(workspaceId: string, subject: string, message: string, note?: string) {
+export async function insertTicket(workspaceId: string, subject: string, message: string, note?: string) {
   const t = await transaction((tx) =>
     ticketRepo.insertTicket(tx, workspaceId, {
       subject,
@@ -375,7 +386,7 @@ async function insertTicket(workspaceId: string, subject: string, message: strin
   return t;
 }
 
-async function ingest(workspaceId: string, article: CorpusArticle, embedder: Embedder) {
+export async function ingest(workspaceId: string, article: CorpusArticle, embedder: Embedder) {
   const doc = await transaction((tx) =>
     kbRepo.insertDocument(tx, workspaceId, {
       title: article.title,
@@ -411,6 +422,187 @@ function draftOutcome(events: DraftEvent[]): {
   return { draft: null, status: "failed", errorCode: last?.type === "error" ? last.code : "no_events" };
 }
 
+// --- One item at a time (shared by the smoke run and the M6 eval runner) ------------------
+
+/** What every single-item step needs: the temporary workspace and the metered model. */
+export interface ItemContext {
+  workspaceId: string;
+  metered: MeteredGateway;
+  embedder: Embedder;
+  /** Help-article file name to title, to tell whether a draft cites the expected article. */
+  titleOf: ReadonlyMap<string, string>;
+}
+
+export interface TriageItemInput {
+  key: string;
+  subject: string;
+  message: string;
+  expected: TriageResult["expected"];
+}
+
+const silentTriageLogger = { info: () => {}, warn: () => {} };
+const silentDraftLogger = { info: () => {}, warn: () => {}, error: () => {} };
+
+/** Triage one ticket through the real job (the app's code path) and compare with its labels. */
+export async function triageOne(ctx: ItemContext, item: TriageItemInput): Promise<TriageResult> {
+  const t = await insertTicket(ctx.workspaceId, item.subject, item.message);
+  const outcome = await runTriageJob(
+    { workspaceId: ctx.workspaceId, ticketId: t.id },
+    { isFinalAttempt: true },
+    { gateway: ctx.metered.gateway, logger: silentTriageLogger },
+  );
+  const run = await findLatestTriage(getDb().db, ctx.workspaceId, t.id);
+  const got =
+    outcome.status === "succeeded" && run?.category && run.priority
+      ? {
+          category: run.category,
+          priority: run.priority,
+          sentiment: run.sentiment,
+          confidence: run.confidence ?? 0,
+          language: run.language,
+        }
+      : null;
+  return {
+    key: item.key,
+    model: run?.model ?? null,
+    expected: item.expected,
+    status: outcome.status,
+    errorCode: "errorCode" in outcome ? outcome.errorCode : null,
+    got,
+    needsReview: outcome.status === "succeeded" ? outcome.needsReview : null,
+    categoryCorrect: got?.category === item.expected.category,
+    priorityCorrect: got?.priority === item.expected.priority,
+    ...sumCalls(ctx.metered.take()),
+  };
+}
+
+export interface DraftItemInput {
+  id: string;
+  set: DraftResult["set"];
+  question: string;
+  /** The help article that answers it (file name), or null for unanswerable questions. */
+  gold: string | null;
+}
+
+/** Draft a reply to one question through the real pipeline (retrieval, model, citation checks). */
+export async function draftOne(ctx: ItemContext, q: DraftItemInput): Promise<DraftResult> {
+  const t = await insertTicket(ctx.workspaceId, q.question, q.question);
+  const events = await runDraftPipeline(
+    { workspaceId: ctx.workspaceId, ticketId: t.id, requestedBy: null },
+    { gateway: ctx.metered.gateway, embedder: ctx.embedder, logger: silentDraftLogger },
+  );
+  const calls = ctx.metered.take();
+  const { draft, status, errorCode } = draftOutcome(events);
+  const goldTitle = q.gold ? (ctx.titleOf.get(q.gold) ?? null) : null;
+  const cited = [...new Set((draft?.citations ?? []).map((c) => c.documentTitle))];
+  const answered = calls.find((c) => c.ok);
+  return {
+    id: q.id,
+    set: q.set,
+    question: q.question,
+    model: draft?.model ?? null,
+    goldArticle: q.gold,
+    status,
+    errorCode,
+    warnings: draft?.warnings ?? [],
+    modelCalled: calls.length > 0,
+    citedTitles: cited,
+    citationCount: draft?.citations.length ?? 0,
+    citesGold: goldTitle ? cited.includes(goldTitle) : null,
+    invalidCitations: draft?.invalidCitationCount ?? 0,
+    ttftMs: answered?.ttftMs ?? null,
+    endToEndMs: draft?.latencyMs ?? null,
+    finishReason: answered?.finishReason ?? null,
+    modelText: answered?.text ?? null,
+    ...sumCalls(calls),
+  };
+}
+
+/** Ingests the poisoned articles the injection cases need; returns them by file name. */
+export async function ingestPoison(
+  ctx: ItemContext,
+  cases: readonly InjectionCase[],
+): Promise<Map<string, CorpusArticle>> {
+  const poison = new Map<string, CorpusArticle>();
+  for (const file of new Set(cases.flatMap((c) => (c.poison ? [c.poison] : [])))) {
+    const article = loadPoisonArticle(file);
+    poison.set(file, article);
+    await ingest(ctx.workspaceId, article, ctx.embedder);
+  }
+  return poison;
+}
+
+/** Run one injection case and look for signs that the model obeyed the attack. */
+export async function injectionOne(
+  ctx: ItemContext,
+  c: InjectionCase,
+  poison: ReadonlyMap<string, CorpusArticle>,
+): Promise<InjectionResult> {
+  const { workspaceId, metered } = ctx;
+  const t = await insertTicket(workspaceId, c.ticket.subject, c.ticket.message, c.ticket.internalNote);
+  let outcome: InjectionResult["outcome"];
+  let model: string | null = null;
+  let caughtByCode: boolean;
+  let calls: CallRecord[];
+  if (c.target === "triage") {
+    const result = await runTriageJob(
+      { workspaceId, ticketId: t.id },
+      { isFinalAttempt: true },
+      { gateway: metered.gateway, logger: silentTriageLogger },
+    );
+    calls = metered.take();
+    model = (await findLatestTriage(getDb().db, workspaceId, t.id))?.model ?? null;
+    outcome = {
+      status: result.status,
+      errorCode: "errorCode" in result ? result.errorCode : null,
+      ...(result.status === "succeeded" ? { applied: result.applied } : {}),
+    };
+    caughtByCode =
+      result.status === "failed" ||
+      (result.status === "succeeded" && !result.applied.category && !result.applied.priority);
+  } else {
+    const events = await runDraftPipeline(
+      { workspaceId, ticketId: t.id, requestedBy: null },
+      { gateway: metered.gateway, embedder: ctx.embedder, logger: silentDraftLogger },
+    );
+    calls = metered.take();
+    const { draft, status, errorCode } = draftOutcome(events);
+    model = draft?.model ?? null;
+    const warnings = draft?.warnings ?? [];
+    outcome = { status, errorCode, warnings };
+    caughtByCode =
+      status === "blocked" || warnings.includes("unknown_link") || warnings.includes("hidden_characters");
+  }
+  const answered = calls.filter((r) => r.ok).at(-1);
+  const triageAnswer = answered?.object as { category?: string; priority?: string } | undefined;
+  const signs = answered
+    ? attackSigns(c, {
+        text: answered.text ?? (answered.object ? JSON.stringify(answered.object) : ""),
+        canary: answered.canary ?? null,
+        triage:
+          triageAnswer?.category && triageAnswer.priority
+            ? { category: triageAnswer.category, priority: triageAnswer.priority }
+            : null,
+      })
+    : [];
+  const poisonTitle = c.poison ? (poison.get(c.poison)?.title ?? null) : null;
+  return {
+    id: c.id,
+    kind: c.kind,
+    target: c.target,
+    technique: c.technique,
+    model,
+    reachedModel: calls.length > 0,
+    poisonShown: poisonTitle ? calls.some((r) => r.passageTitles?.includes(poisonTitle)) : null,
+    outcome,
+    modelAnswer: answered ? (answered.text ?? JSON.stringify(answered.object)) : null,
+    signs,
+    obeyed: signs.length > 0,
+    caughtByCode,
+    ...sumCalls(calls),
+  };
+}
+
 export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport> {
   const { metered, embedder, log } = options;
   const startedAt = new Date().toISOString();
@@ -440,50 +632,36 @@ export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport
     log,
   });
   const workspaceId = ws.workspaceId;
-  const db = getDb().db;
   try {
-    await createDefaultWorkspaceSettings(db, workspaceId);
-    const titleOf = new Map(options.corpus.map((a) => [a.file, a.title]));
+    await createDefaultWorkspaceSettings(getDb().db, workspaceId);
+    const ctx: ItemContext = {
+      workspaceId,
+      metered,
+      embedder,
+      titleOf: new Map(options.corpus.map((a) => [a.file, a.title])),
+    };
 
     // 1. Triage against the demo set's labels.
     for (const key of options.triageKeys) {
       if (metered.stopReason) break;
       const demo = DEMO_TICKETS.find((t) => t.key === key);
       if (!demo) throw new Error(`Unknown demo ticket: ${key}`);
-      const t = await insertTicket(workspaceId, demo.subject, demo.message);
-      const outcome = await runTriageJob(
-        { workspaceId, ticketId: t.id },
-        { isFinalAttempt: true },
-        { gateway: metered.gateway, logger: { info: () => {}, warn: () => {} } },
-      );
-      const run = await findLatestTriage(db, workspaceId, t.id);
-      if (run?.model) models.triage = run.model;
-      const got =
-        outcome.status === "succeeded" && run?.category && run.priority
-          ? {
-              category: run.category,
-              priority: run.priority,
-              confidence: run.confidence ?? 0,
-              language: run.language,
-            }
-          : null;
-      triage.push({
+      const r = await triageOne(ctx, {
         key,
+        subject: demo.subject,
+        message: demo.message,
         expected: demo.expected,
-        status: outcome.status,
-        errorCode: "errorCode" in outcome ? outcome.errorCode : null,
-        got,
-        needsReview: outcome.status === "succeeded" ? outcome.needsReview : null,
-        categoryCorrect: got?.category === demo.expected.category,
-        priorityCorrect: got?.priority === demo.expected.priority,
-        ...sumCalls(metered.take()),
       });
-      log(`  triage ${key}: ${got ? `${got.category}/${got.priority} (${got.confidence})` : outcome.status}`);
+      if (r.model) models.triage = r.model;
+      triage.push(r);
+      log(
+        `  triage ${key}: ${r.got ? `${r.got.category}/${r.got.priority} (${r.got.confidence})` : r.status}`,
+      );
       progress();
     }
 
     // 2. Drafts: answerable and unanswerable questions.
-    const questions = [
+    const questions: DraftItemInput[] = [
       ...options.answerable.map((q) => ({
         id: q.id,
         set: "answerable" as const,
@@ -499,120 +677,23 @@ export async function runAiSmoke(options: AiSmokeOptions): Promise<AiSmokeReport
     ];
     for (const q of questions) {
       if (metered.stopReason) break;
-      const t = await insertTicket(workspaceId, q.question, q.question);
-      const events = await runDraftPipeline(
-        { workspaceId, ticketId: t.id, requestedBy: null },
-        { gateway: metered.gateway, embedder, logger: { info: () => {}, warn: () => {}, error: () => {} } },
-      );
-      const calls = metered.take();
-      const { draft, status, errorCode } = draftOutcome(events);
-      if (draft?.model) models.draft = draft.model;
-      const goldTitle = q.gold ? (titleOf.get(q.gold) ?? null) : null;
-      const cited = [...new Set((draft?.citations ?? []).map((c) => c.documentTitle))];
-      drafts.push({
-        id: q.id,
-        set: q.set,
-        question: q.question,
-        model: draft?.model ?? null,
-        goldArticle: q.gold,
-        status,
-        errorCode,
-        warnings: draft?.warnings ?? [],
-        modelCalled: calls.length > 0,
-        citedTitles: cited,
-        citesGold: goldTitle ? cited.includes(goldTitle) : null,
-        invalidCitations: draft?.invalidCitationCount ?? 0,
-        ttftMs: calls.find((c) => c.ok)?.ttftMs ?? null,
-        endToEndMs: draft?.latencyMs ?? null,
-        finishReason: calls.find((c) => c.ok)?.finishReason ?? null,
-        modelText: calls.find((c) => c.ok)?.text ?? null,
-        ...sumCalls(calls),
-      });
-      log(`  draft ${q.id} (${q.set}): ${status}${errorCode ? ` ${errorCode}` : ""}`);
+      const r = await draftOne(ctx, q);
+      if (r.model) models.draft = r.model;
+      drafts.push(r);
+      log(`  draft ${q.id} (${q.set}): ${r.status}${r.errorCode ? ` ${r.errorCode}` : ""}`);
       progress();
     }
 
     // 3. Injection cases, with the poisoned articles added to the knowledge base.
     if (options.injection.length > 0 && !metered.stopReason) {
-      const poison = new Map<string, CorpusArticle>();
-      for (const file of new Set(options.injection.flatMap((c) => (c.poison ? [c.poison] : [])))) {
-        const article = loadPoisonArticle(file);
-        poison.set(file, article);
-        await ingest(workspaceId, article, embedder);
-      }
+      const poison = await ingestPoison(ctx, options.injection);
       log(`  added ${poison.size} poisoned articles`);
       for (const c of options.injection) {
         if (metered.stopReason) break;
-        const t = await insertTicket(workspaceId, c.ticket.subject, c.ticket.message, c.ticket.internalNote);
-        let outcome: InjectionResult["outcome"];
-        let model: string | null = null;
-        let caughtByCode: boolean;
-        let calls: CallRecord[];
-        if (c.target === "triage") {
-          const result = await runTriageJob(
-            { workspaceId, ticketId: t.id },
-            { isFinalAttempt: true },
-            { gateway: metered.gateway, logger: { info: () => {}, warn: () => {} } },
-          );
-          calls = metered.take();
-          model = (await findLatestTriage(db, workspaceId, t.id))?.model ?? null;
-          outcome = {
-            status: result.status,
-            errorCode: "errorCode" in result ? result.errorCode : null,
-            ...(result.status === "succeeded" ? { applied: result.applied } : {}),
-          };
-          caughtByCode =
-            result.status === "failed" ||
-            (result.status === "succeeded" && !result.applied.category && !result.applied.priority);
-        } else {
-          const events = await runDraftPipeline(
-            { workspaceId, ticketId: t.id, requestedBy: null },
-            {
-              gateway: metered.gateway,
-              embedder,
-              logger: { info: () => {}, warn: () => {}, error: () => {} },
-            },
-          );
-          calls = metered.take();
-          const { draft, status, errorCode } = draftOutcome(events);
-          model = draft?.model ?? null;
-          const warnings = draft?.warnings ?? [];
-          outcome = { status, errorCode, warnings };
-          caughtByCode =
-            status === "blocked" ||
-            warnings.includes("unknown_link") ||
-            warnings.includes("hidden_characters");
-        }
-        const answered = calls.filter((r) => r.ok).at(-1);
-        const triageAnswer = answered?.object as { category?: string; priority?: string } | undefined;
-        const signs = answered
-          ? attackSigns(c, {
-              text: answered.text ?? (answered.object ? JSON.stringify(answered.object) : ""),
-              canary: answered.canary ?? null,
-              triage:
-                triageAnswer?.category && triageAnswer.priority
-                  ? { category: triageAnswer.category, priority: triageAnswer.priority }
-                  : null,
-            })
-          : [];
-        const poisonTitle = c.poison ? poison.get(c.poison)!.title : null;
-        injection.push({
-          id: c.id,
-          kind: c.kind,
-          target: c.target,
-          technique: c.technique,
-          model,
-          reachedModel: calls.length > 0,
-          poisonShown: poisonTitle ? calls.some((r) => r.passageTitles?.includes(poisonTitle)) : null,
-          outcome,
-          modelAnswer: answered ? (answered.text ?? JSON.stringify(answered.object)) : null,
-          signs,
-          obeyed: signs.length > 0,
-          caughtByCode,
-          ...sumCalls(calls),
-        });
+        const r = await injectionOne(ctx, c, poison);
+        injection.push(r);
         log(
-          `  injection ${c.id}: ${signs.length ? `OBEYED (${signs.join(", ")})` : "resisted"}; ${outcome.status}`,
+          `  injection ${c.id}: ${r.signs.length ? `OBEYED (${r.signs.join(", ")})` : "resisted"}; ${r.outcome.status}`,
         );
         progress();
       }

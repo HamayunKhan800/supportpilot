@@ -18,19 +18,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-import { createAiGateway, createPostgresLedger, type AiLedger } from "../src/server/modules/ai/gateway";
-import { createGeminiModels, createMockModels } from "../src/server/modules/ai/models";
-import { mockDraftResponder } from "../src/server/modules/drafts/mock-responder";
-import { createGeminiEmbedder, createMockEmbedder, type Embedder } from "../src/server/modules/kb/embedder";
 import { DEMO_TICKETS } from "../src/server/modules/tickets/demo/tickets";
-import { mockTriageResponder } from "../src/server/modules/triage/mock-responder";
 import { getDb } from "../src/server/platform/db/client";
 
-import { meterGateway, runAiSmoke, spreadPick, type AiSmokeReport } from "./lib/ai-smoke";
+import { runAiSmoke, spreadPick, type AiSmokeReport } from "./lib/ai-smoke";
+import { createEvalAi } from "./lib/eval-ai";
 import { loadInjectionCases } from "./lib/injection-cases";
 import { loadCorpus, loadQuestions, loadUnanswerable } from "./lib/kb-corpus";
-import { createTextRateLimiter } from "./lib/rate-limit";
-import { fileEmbeddingCache, instrument } from "./lib/retrieval-eval";
 
 const { values } = parseArgs({
   options: {
@@ -92,43 +86,14 @@ async function main() {
     throw new Error(`The run plans ${planned} calls, more than --max-calls ${maxCalls}`);
   }
 
-  const { db } = getDb();
-  let embedder: Embedder;
-  let gatewayModels;
-  let redact = (s: string) => s;
-  if (provider === "gemini") {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("Set GEMINI_API_KEY for --provider gemini");
-    redact = (s) => s.replaceAll(apiKey, "[REDACTED]");
-    gatewayModels = createGeminiModels({ apiKey });
-    // Same limits as the retrieval eval: half the free tier's 100 texts and 30,000 tokens per minute.
-    embedder = instrument(
-      createGeminiEmbedder({ apiKey, maxRetries: 0 }),
-      0,
-      fileEmbeddingCache(path.resolve(values.cache)),
-      createTextRateLimiter({ maxPerMinute: 50, maxTokensPerMinute: 15_000, maxBatch: 10, even: true }),
-    ).embedder;
-  } else {
-    gatewayModels = createMockModels({ draft: mockDraftResponder, triage: mockTriageResponder });
-    embedder = createMockEmbedder();
-  }
-  // The hard limit on provider requests sits where the app counts every request (the daily-cap
-  // step), so a draft that falls back to the second model (ADR-0016) counts twice.
-  const ledger = createPostgresLedger(db);
-  const requests = { sent: 0 };
-  const cappedLedger: AiLedger = {
-    ...ledger,
-    reserveDailyCall: async (limit) => {
-      if (requests.sent >= maxCalls) return false;
-      const ok = await ledger.reserveDailyCall(limit);
-      if (ok) requests.sent++;
-      return ok;
-    },
-  };
-  const metered = meterGateway(
-    createAiGateway({ models: gatewayModels, ledger: cappedLedger, dailyCallLimit: 100_000 }),
-    { gapMs, maxCalls, redact },
-  );
+  const ai = createEvalAi({
+    provider,
+    maxCalls,
+    gapMs,
+    cacheDir: values.cache,
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+  const { metered, embedder } = ai;
 
   console.log(
     `Planned: ${triageKeys.length} triage, ${answerable.length} answerable and ${unanswerable.length} unanswerable drafts, ` +
@@ -154,7 +119,7 @@ async function main() {
   });
   save(report);
   console.log(`\n${formatSummary(report)}`);
-  console.log(`Provider requests (fallbacks included): ${requests.sent} of at most ${maxCalls}`);
+  console.log(`Provider requests (fallbacks included): ${ai.requestsSent()} of at most ${maxCalls}`);
   if (out) console.log(`\nSaved ${path.relative(process.cwd(), out)}`);
 }
 

@@ -26,6 +26,12 @@ import {
   REVIEW_VERDICTS,
   type ReviewContent,
 } from "../../modules/eval-review/content";
+import {
+  EVAL_ITEM_KEY_PATTERN,
+  EVAL_PROVIDERS,
+  EVAL_RUN_STATUSES,
+  EVAL_SUITES,
+} from "../../modules/eval/constants";
 
 /**
  * Drizzle schema. Application tables are added milestone by milestone:
@@ -685,5 +691,69 @@ export const evalReviewItem = pgTable(
     check("eval_review_item_note_len_ck", sql.raw(`note IS NULL OR char_length(note) <= ${REVIEW_NOTE_MAX}`)),
     check("eval_review_item_hash_ck", sql`${t.contentHash} ~ '^[0-9a-f]{64}$'`),
     check("eval_review_item_key_ck", sql`${t.itemKey} ~ '^[a-z0-9-]{1,40}$'`),
+  ],
+);
+
+/**
+ * One run of `pnpm eval` (D3). A run is tied to the exact dataset (`dataset_hash`) and the
+ * exact prompts, models and retrieval settings (`config`, hashed as `config_hash`), so a
+ * stopped run can only be resumed by code that would measure the same thing. `summary` is
+ * recomputed from the items whenever the run stops or completes. Not workspace data.
+ */
+export const evalRun = pgTable(
+  "eval_run",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    provider: text("provider", { enum: EVAL_PROVIDERS }).notNull(),
+    status: text("status", { enum: EVAL_RUN_STATUSES }).notNull().default("running"),
+    datasetHash: text("dataset_hash").notNull(),
+    configHash: text("config_hash").notNull(),
+    config: jsonb("config").$type<Record<string, unknown>>().notNull(),
+    /** Provider requests over all sessions of this run (fallbacks included). */
+    calls: integer("calls").notNull().default(0),
+    stopReason: text("stop_reason"),
+    summary: jsonb("summary").$type<Record<string, unknown>>(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("eval_run_started_idx").on(t.startedAt),
+    check("eval_run_provider_ck", sql.raw(`provider IN (${EVAL_PROVIDERS.map((v) => `'${v}'`).join(", ")})`)),
+    check("eval_run_status_ck", sql.raw(`status IN (${EVAL_RUN_STATUSES.map((v) => `'${v}'`).join(", ")})`)),
+    check("eval_run_dataset_hash_ck", sql`${t.datasetHash} ~ '^[0-9a-f]{64}$'`),
+    check("eval_run_config_hash_ck", sql`${t.configHash} ~ '^[0-9a-f]{64}$'`),
+    check("eval_run_calls_ck", sql`${t.calls} >= 0`),
+    // Only a completed run has a finish time.
+    check("eval_run_finished_ck", sql`(${t.status} = 'completed') = (${t.finishedAt} IS NOT NULL)`),
+  ],
+);
+
+/**
+ * One measured item of a run: a ticket triaged, a question searched or drafted, an
+ * injection case. Saved as soon as it is measured, which is what makes runs resumable.
+ * `passed` is the item's verdict; `failed` marks a technical failure (no answer from the
+ * provider), which is counted apart from wrong answers and can be retried on resume.
+ */
+export const evalItem = pgTable(
+  "eval_item",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => evalRun.id, { onDelete: "cascade" }),
+    suite: text("suite", { enum: EVAL_SUITES }).notNull(),
+    itemKey: text("item_key").notNull(),
+    passed: boolean("passed").notNull(),
+    failed: boolean("failed").notNull().default(false),
+    result: jsonb("result").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("eval_item_run_suite_key_uq").on(t.runId, t.suite, t.itemKey),
+    check("eval_item_suite_ck", sql.raw(`suite IN (${EVAL_SUITES.map((v) => `'${v}'`).join(", ")})`)),
+    check("eval_item_key_ck", sql.raw(`item_key ~ '${EVAL_ITEM_KEY_PATTERN}'`)),
+    // A technical failure is never a pass.
+    check("eval_item_failed_ck", sql`NOT (${t.failed} AND ${t.passed})`),
   ],
 );

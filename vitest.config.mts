@@ -88,6 +88,8 @@ export default defineConfig({
         // tests/integration/eval-review.test.ts; the pure parts (nextUnreviewed, allowlist
         // parsing, schemas, content) are unit-tested and stay included.
         "src/server/modules/eval-review/{repository,service}.ts",
+        // Database-only: covered by tests/integration/eval-runner.test.ts (the runner's store).
+        "src/server/modules/eval/repository.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

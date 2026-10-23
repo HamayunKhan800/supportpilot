@@ -29,6 +29,7 @@
     "auth:generate": "auth generate --config scripts/auth-cli.config.ts --output src/server/platform/db/auth-schema.ts",
     "test:e2e": "playwright test",
     "db:seed-demo": "tsx scripts/seed-demo.ts",
+    "eval": "tsx scripts/eval.ts",
     "eval:retrieval": "tsx scripts/eval-retrieval.ts",
     "eval:fusion": "tsx scripts/eval-fusion.ts",
     "eval:ai": "tsx scripts/eval-ai-smoke.ts",

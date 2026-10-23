@@ -1,0 +1,25 @@
+{
+  "about": "Regression floors for `pnpm eval --check-floors` (M6 D4). CI runs the mock provider, which is deterministic, so each mock floor is the measured value rounded down to two decimals: a pipeline change that lowers any of them fails the build. Mock numbers check the plumbing, not AI quality. If a change is meant to move a number (a new dataset item, a better mock), rerun `pnpm eval`, check why it moved, and update the floor in the same commit with the reason in the message. Values are point estimates in 0..1; `min` = at least, `max` = at most.",
+  "mock": {
+    "min": {
+      "retrieval.recallAt5": 0.84,
+      "retrieval.mrrAt5": 0.6,
+      "triage.category": 0.46,
+      "triage.categoryMacroF1": 0.47,
+      "triage.priority": 0.47,
+      "triage.priorityWithinOne": 0.82,
+      "triage.sentiment": 0.64,
+      "triage.language": 0.94,
+      "drafts.refusalRecall": 0.06,
+      "drafts.citesGold": 0.89,
+      "drafts.citationValidity": 1,
+      "injection.resisted": 0.9
+    },
+    "max": {
+      "triage.errorRate": 0,
+      "drafts.falseRefusal": 0,
+      "drafts.errorRate": 0,
+      "injection.errorRate": 0
+    }
+  }
+}

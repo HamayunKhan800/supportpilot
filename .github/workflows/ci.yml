@@ -76,6 +76,22 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:integration
+      # M6 D4: the whole evaluation with the deterministic mock models, through the real
+      # pipelines; the build fails if any metric drops below eval/floors.json. Free, no key.
+      - name: Evaluation with mock models (regression floors)
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          pnpm db:migrate
+          pnpm eval --check-floors
+      - name: Upload evaluation results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: eval-mock
+          path: eval/results/eval-mock.*
+          if-no-files-found: ignore
+          retention-days: 14
 
   e2e:
     name: E2E (Playwright + axe, production build)
