@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="iris">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SupportPilot: design direction preview</title>
+    <style>
+      /* Design direction preview (not app code). Every colour comes from 3 inputs:
+   accent hue (--h), accent chroma (--c) and the theme, in OKLCH (Linear-style generation). */
+      :root {
+        --h: 277;
+        --c: 0.19;
+        --l9: 0.54;
+        --on9: #fff;
+      }
+      [data-accent="teal"] {
+        --h: 190;
+        --c: 0.11;
+        --l9: 0.5;
+        --on9: #fff;
+      }
+      [data-accent="amber"] {
+        --h: 70;
+        --c: 0.16;
+        --l9: 0.8;
+        --on9: oklch(0.25 0.05 70);
+      }
+      [data-theme="light"] {
+        --g1: oklch(0.99 0.002 var(--h));
+        --g2: oklch(0.975 0.004 var(--h));
+        --g3: oklch(0.95 0.006 var(--h));
+        --g4: oklch(0.925 0.008 var(--h));
+        --g6: oklch(0.89 0.008 var(--h));
+        --g7: oklch(0.83 0.01 var(--h));
+        --g11: oklch(0.47 0.015 var(--h));
+        --g12: oklch(0.2 0.015 var(--h));
+        --a3: oklch(0.955 0.035 var(--h));
+        --a4: oklch(0.93 0.05 var(--h));
+        --a6: oklch(0.86 0.08 var(--h));
+        --a9: oklch(var(--l9) var(--c) var(--h));
+        --a10: oklch(calc(var(--l9) - 0.05) var(--c) var(--h));
+        --a11: oklch(0.45 calc(var(--c) * 0.9) var(--h));
+        --ok: oklch(0.52 0.13 150);
+        --okbg: oklch(0.96 0.04 150);
+        --warn: oklch(0.5 0.12 65);
+        --warnbg: oklch(0.96 0.05 85);
+        --bad: oklch(0.53 0.19 25);
+        --badbg: oklch(0.96 0.03 25);
+        --shadow: 0 8px 30px oklch(0.2 0.02 var(--h)/0.14), 0 1px 3px oklch(0.2 0.02 var(--h)/0.1);
+      }
+      [data-theme="dark"] {
+        --g1: oklch(0.17 0.006 var(--h));
+        --g2: oklch(0.2 0.008 var(--h));
+        --g3: oklch(0.235 0.01 var(--h));
+        --g4: oklch(0.27 0.012 var(--h));
+        --g6: oklch(0.31 0.012 var(--h));
+        --g7: oklch(0.38 0.014 var(--h));
+        --g11: oklch(0.72 0.015 var(--h));
+        --g12: oklch(0.95 0.006 var(--h));
+        --a3: oklch(0.26 0.05 var(--h));
+        --a4: oklch(0.3 0.07 var(--h));
+        --a6: oklch(0.4 0.09 var(--h));
+        --a9: oklch(var(--l9) var(--c) var(--h));
+        --a10: oklch(calc(var(--l9) + 0.05) var(--c) var(--h));
+        --a11: oklch(0.8 calc(var(--c) * 0.8) var(--h));
+        --ok: oklch(0.78 0.14 150);
+        --okbg: oklch(0.27 0.05 150);
+        --warn: oklch(0.82 0.13 80);
+        --warnbg: oklch(0.28 0.05 80);
+        --bad: oklch(0.74 0.15 25);
+        --badbg: oklch(0.28 0.06 25);
+        --shadow: 0 8px 30px oklch(0 0 0/0.5), 0 0 0 1px var(--g6);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--g1);
+        color: var(--g12);
+        font:
+          14px/20px "Geist",
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .mono {
+        font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+      }
+      :focus-visible {
+        outline: 2px solid var(--a9);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 232px 1fr;
+        min-height: 100vh;
+      }
+      /* Sidebar */
+      .side {
+        background: var(--g2);
+        border-right: 1px solid var(--g6);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      .ws {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+      }
+      .logo {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: var(--a9);
+        color: var(--on9);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0 8px;
+        padding: 0 8px;
+        height: 32px;
+        border: 1px solid var(--g6);
+        border-radius: 6px;
+        background: var(--g1);
+        color: var(--g11);
+        width: 100%;
+        text-align: left;
+      }
+      kbd {
+        white-space: nowrap;
+        margin-left: auto;
+        font:
+          11px/16px ui-monospace,
+          monospace;
+        padding: 0 5px;
+        border: 1px solid var(--g6);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        color: var(--g11);
+        background: var(--g2);
+      }
+      .grp {
+        font-size: 12px;
+        color: var(--g11);
+        padding: 12px 8px 4px;
+        font-weight: 500;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 32px;
+        padding: 0 8px;
+        border-radius: 6px;
+        color: var(--g11);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .nav:hover {
+        background: var(--g4);
+        color: var(--g12);
+      }
+      .nav[aria-current] {
+        background: var(--a3);
+        color: var(--a11);
+      }
+      .nav svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+      }
+      .count {
+        margin-left: auto;
+        font-size: 12px;
+        background: var(--a9);
+        color: var(--on9);
+        border-radius: 999px;
+        padding: 0 7px;
+        line-height: 18px;
+      }
+      .me {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 6px;
+      }
+      .av {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--a4);
+        color: var(--a11);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 600;
+        flex: none;
+      }
+      /* Main */
+      .main {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-width: 0;
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 52px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--g6);
+        position: sticky;
+        top: 0;
+        background: color-mix(in oklch, var(--g1) 85%, transparent);
+        backdrop-filter: blur(8px);
+        z-index: 2;
+      }
+      .crumb {
+        color: var(--g11);
+      }
+      .crumb b {
+        color: var(--g12);
+        font-weight: 600;
+      }
+      .tools {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 6px;
+        border: 1px solid var(--g6);
+        background: var(--g1);
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn:hover {
+        background: var(--g3);
+      }
+      .btn.primary {
+        background: var(--a9);
+        border-color: transparent;
+        color: var(--on9);
+      }
+      .btn.primary:hover {
+        background: var(--a10);
+      }
+      .btn.ghost {
+        border-color: transparent;
+        background: transparent;
+      }
+      .btn.ghost:hover {
+        background: var(--g4);
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--g6);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .seg button {
+        height: 30px;
+        padding: 0 10px;
+        border: 0;
+        background: var(--g1);
+        color: var(--g11);
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--a3);
+        color: var(--a11);
+        font-weight: 600;
+      }
+      .body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 280px;
+        min-height: 0;
+      }
+      .thread {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 820px;
+      }
+      h1 {
+        font-size: 20px;
+        line-height: 28px;
+        margin: 0;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        color: var(--g11);
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--g3);
+        color: var(--g11);
+        border: 1px solid var(--g6);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--ok);
+      }
+      .msg {
+        display: flex;
+        gap: 12px;
+      }
+      .bubble {
+        border: 1px solid var(--g6);
+        background: var(--g2);
+        border-radius: 8px;
+        padding: 12px 14px;
+        flex: 1;
+      }
+      .who {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        margin-bottom: 4px;
+      }
+      .who b {
+        font-weight: 600;
+      }
+      .who span {
+        color: var(--g11);
+        font-size: 12px;
+      }
+      /* AI draft card */
+      .draft {
+        border: 1px solid var(--a6);
+        border-radius: 8px;
+        background: var(--g1);
+        overflow: hidden;
+      }
+      .dhead {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: var(--a3);
+        border-bottom: 1px solid var(--a6);
+        color: var(--a11);
+        font-weight: 600;
+        flex-wrap: wrap;
+      }
+      .dhead .mono {
+        color: var(--g11);
+        font-weight: 400;
+      }
+      .dtext {
+        padding: 14px;
+        line-height: 22px;
+      }
+      .cite {
+        display: inline-grid;
+        place-items: center;
+        min-width: 24px;
+        height: 24px;
+        margin: 0 2px;
+        padding: 0 6px;
+        border-radius: 6px;
+        border: 1px solid var(--a6);
+        background: var(--a3);
+        color: var(--a11);
+        font:
+          600 11px/1 ui-monospace,
+          monospace;
+        vertical-align: 1px;
+      }
+      .cite:hover,
+      .cite[aria-expanded="true"] {
+        background: var(--a9);
+        color: var(--on9);
+        border-color: transparent;
+      }
+      .pop {
+        margin: 0 14px 14px;
+        border: 1px solid var(--g6);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        background: var(--g1);
+        padding: 12px 14px;
+        display: none;
+      }
+      .pop.show {
+        display: block;
+      }
+      .pop .src {
+        font-weight: 600;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .pop mark {
+        background: color-mix(in oklch, var(--warn) 28%, transparent);
+        color: inherit;
+        border-radius: 3px;
+        padding: 0 2px;
+      }
+      .checks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 0 14px 12px;
+      }
+      .chk {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--ok);
+        background: var(--okbg);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-weight: 500;
+      }
+      .dfoot {
+        display: flex;
+        gap: 8px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--g6);
+        background: var(--g2);
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .dfoot .hint {
+        margin-left: auto;
+        color: var(--g11);
+        font-size: 12px;
+      }
+      .refuse {
+        border: 1px dashed var(--g7);
+        border-radius: 8px;
+        padding: 12px 14px;
+        color: var(--g11);
+        background: var(--g2);
+      }
+      .refuse b {
+        color: var(--g12);
+      }
+      /* Properties */
+      .props {
+        border-left: 1px solid var(--g6);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        background: var(--g1);
+      }
+      .props h2 {
+        font-size: 12px;
+        color: var(--g11);
+        margin: 0;
+        font-weight: 500;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        align-items: center;
+        gap: 8px;
+        min-height: 28px;
+      }
+      .row > span:first-child {
+        color: var(--g11);
+      }
+      .pri {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--bad);
+        font-weight: 500;
+      }
+      .why {
+        font-size: 13px;
+        color: var(--g11);
+        border: 1px solid var(--g6);
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: var(--g2);
+      }
+      .note {
+        max-width: 820px;
+        margin: 0 24px 32px;
+        color: var(--g11);
+        font-size: 12px;
+      }
+      .menu-btn {
+        display: none;
+      }
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          display: none;
+        }
+        .side.open {
+          display: flex;
+          position: fixed;
+          inset: 0 25% 0 0;
+          z-index: 5;
+          box-shadow: var(--shadow);
+        }
+        .menu-btn {
+          display: inline-flex;
+        }
+        .body {
+          grid-template-columns: 1fr;
+        }
+        .props {
+          border-left: 0;
+          border-top: 1px solid var(--g6);
+        }
+        .thread {
+          padding: 16px;
+        }
+        .top {
+          padding: 0 12px;
+          height: auto;
+          min-height: 52px;
+          flex-wrap: wrap;
+          padding-block: 8px;
+        }
+        .dfoot .hint {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .pop.show {
+          animation: in 0.16s ease-out;
+        }
+        @keyframes in {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side" id="side" aria-label="Main">
+        <div class="ws"><span class="logo">S</span>Nimbus Cloud</div>
+        <button class="search" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" /></svg
+          >Search…<kbd>Ctrl K</kbd>
+        </button>
+        <div class="grp">Work</div>
+        <a class="nav" href="#" aria-current="page"
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+            <path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z" /></svg
+          >Inbox<span class="count">12</span></a
+        >
+        <a class="nav" href="#"
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6.5A2.5 2.5 0 0 0 4 21.5z" /></svg
+          >Knowledge</a
+        >
+        <div class="grp">Insights</div>
+        <a class="nav" href="#"
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3v18h18" />
+            <path d="m7 15 4-4 3 3 5-6" /></svg
+          >Analytics</a
+        >
+        <a class="nav" href="#"
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3 8-8" />
+            <path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></svg
+          >Evaluation</a
+        >
+        <div class="grp">Admin</div>
+        <a class="nav" href="#"
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="8" r="4" />
+            <path d="M2 21a7 7 0 0 1 14 0" />
+            <path d="M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.6" /></svg
+          >Members</a
+        >
+        <a class="nav" href="#"
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"
+            />
+            <circle cx="12" cy="12" r="4" /></svg
+          >AI settings</a
+        >
+        <a class="nav" href="#"
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg
+          >Audit log</a
+        >
+        <div class="me">
+          <span class="av">AK</span>
+          <div>
+            <div style="font-weight: 500">Agent Kim</div>
+            <div style="font-size: 12px; color: var(--g11)">agent</div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="main">
+        <header class="top">
+          <button
+            class="btn ghost menu-btn"
+            type="button"
+            aria-label="Open menu"
+            aria-controls="side"
+            aria-expanded="false"
+            onclick="
+              var s = document.getElementById('side');
+              s.classList.toggle('open');
+              this.setAttribute('aria-expanded', s.classList.contains('open'));
+            "
+          >
+            ☰
+          </button>
+          <span class="crumb">Inbox / <b class="mono" style="font-size: 13px">#1042</b></span>
+          <div class="tools">
+            <div class="seg" role="group" aria-label="Accent colour">
+              <button type="button" aria-pressed="true" data-a="iris">Iris</button
+              ><button type="button" aria-pressed="false" data-a="teal">Teal</button
+              ><button type="button" aria-pressed="false" data-a="amber">Amber</button>
+            </div>
+            <button class="btn" type="button" id="theme">◐ Dark</button>
+          </div>
+        </header>
+
+        <div class="body">
+          <main class="thread" id="main">
+            <div>
+              <h1>Charged twice for my Family plan this month</h1>
+              <div class="meta" style="margin-top: 6px">
+                <span class="tag"><span class="dot"></span>Open</span>
+                <span class="tag">Billing</span>
+                <span
+                  class="tag"
+                  style="color: var(--bad); background: var(--badbg); border-color: transparent"
+                  >High priority</span
+                >
+                <span class="mono">opened 14 min ago</span>
+              </div>
+            </div>
+
+            <div class="msg">
+              <span class="av" style="background: var(--g4); color: var(--g11)">MR</span>
+              <div class="bubble">
+                <div class="who"><b>Maya Rahman</b><span>maya@example.com · 14 min ago</span></div>
+                Hi, I see two charges of $14.99 on my card for October. I only have one Family plan. Can I get
+                one of them refunded?
+              </div>
+            </div>
+
+            <section class="draft" aria-label="AI draft reply">
+              <div class="dhead">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+                </svg>
+                AI draft <span class="mono">gemini-3.8-flash · 1.4 s · needs your approval</span>
+              </div>
+              <div class="dtext">
+                Hi Maya, sorry about the double charge. The Family plan is $14.99 per month<button
+                  class="cite"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="p1"
+                  data-p="p1"
+                >
+                  1</button
+                >, so one of these charges is a mistake. Refunds are available within 30 days of a
+                charge<button class="cite" type="button" aria-expanded="false" aria-controls="p2" data-p="p2">
+                  2</button
+                >, and I've started one for the duplicate. You'll see it on your card within 5–10 business
+                days.
+              </div>
+              <div class="pop" id="p1" role="region" aria-label="Source 1">
+                <div class="src">
+                  <span class="cite" style="pointer-events: none">1</span>Plans and pricing
+                  <span class="mono" style="color: var(--g11); font-weight: 400"
+                    >· match 0.84 (threshold 0.62)</span
+                  >
+                </div>
+                <p style="margin: 8px 0 0">
+                  … Personal is $9.99 per month.
+                  <mark>The Family plan is $14.99 per month and covers up to six people.</mark> Prices include
+                  …
+                </p>
+              </div>
+              <div class="pop" id="p2" role="region" aria-label="Source 2">
+                <div class="src">
+                  <span class="cite" style="pointer-events: none">2</span>Refund policy
+                  <span class="mono" style="color: var(--g11); font-weight: 400"
+                    >· match 0.79 (threshold 0.62)</span
+                  >
+                </div>
+                <p style="margin: 8px 0 0">
+                  … <mark>You can request a refund within 30 days of any charge.</mark> Refunds go back to the
+                  original payment method …
+                </p>
+              </div>
+              <div class="checks">
+                <span class="chk">✓ 2 sources</span><span class="chk">✓ Every claim cited</span
+                ><span class="chk">✓ Above match threshold</span>
+              </div>
+              <div class="dfoot">
+                <button class="btn primary" type="button">Approve &amp; send</button>
+                <button class="btn" type="button">Edit</button>
+                <button class="btn ghost" type="button">Regenerate</button>
+                <span class="hint"><kbd>A</kbd> approve · <kbd>E</kbd> edit · <kbd>R</kbd> regenerate</span>
+              </div>
+            </section>
+
+            <div class="refuse">
+              <b>Refusal state example:</b> "No help article covers data-export limits, so no draft was
+              written. Add an article or reply yourself." The AI says no instead of guessing.
+            </div>
+          </main>
+
+          <aside class="props" aria-label="Ticket properties">
+            <h2>Properties</h2>
+            <div class="row">
+              <span>Status</span
+              ><span class="tag" style="justify-self: start"><span class="dot"></span>Open</span>
+            </div>
+            <div class="row"><span>Priority</span><span class="pri">▲ High</span></div>
+            <div class="row"><span>Category</span><span>Billing</span></div>
+            <div class="row"><span>Sentiment</span><span>Frustrated</span></div>
+            <div class="row">
+              <span>Assignee</span
+              ><span style="display: flex; gap: 6px; align-items: center"
+                ><span class="av" style="width: 22px; height: 22px; font-size: 10px">AK</span>Agent Kim</span
+              >
+            </div>
+            <div class="row"><span>Ticket</span><span class="mono">#1042</span></div>
+            <h2 style="margin-top: 6px">Why the AI triaged it this way</h2>
+            <div class="why">
+              Mentions a duplicate charge and asks for money back → <b>Billing</b>. Money taken in error →
+              <b>High</b>.
+            </div>
+          </aside>
+        </div>
+        <p class="note">
+          Design direction preview, not the final app. In the app, fonts are Geist Sans and Geist Mono
+          (self-hosted); this preview falls back to your device font. Tap the
+          <span class="cite" style="pointer-events: none">1</span> chips to see the exact passage the AI used.
+        </p>
+      </div>
+    </div>
+    <script>
+      document.querySelectorAll(".dtext .cite").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var p = document.getElementById(b.dataset.p),
+            open = !p.classList.contains("show");
+          document.querySelectorAll(".pop").forEach(function (x) {
+            x.classList.remove("show");
+          });
+          document.querySelectorAll(".dtext .cite").forEach(function (x) {
+            x.setAttribute("aria-expanded", "false");
+          });
+          if (open) {
+            p.classList.add("show");
+            b.setAttribute("aria-expanded", "true");
+          }
+        });
+      });
+      document.querySelectorAll("[data-a]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          document.documentElement.dataset.accent = b.dataset.a;
+          document.querySelectorAll("[data-a]").forEach(function (x) {
+            x.setAttribute("aria-pressed", String(x === b));
+          });
+        });
+      });
+      var t = document.getElementById("theme");
+      t.addEventListener("click", function () {
+        var d = document.documentElement.dataset.theme === "dark";
+        document.documentElement.dataset.theme = d ? "light" : "dark";
+        t.textContent = d ? "◐ Dark" : "◐ Light";
+      });
+    </script>
+  </body>
+</html>
