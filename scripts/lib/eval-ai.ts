@@ -20,7 +20,8 @@ import { fileEmbeddingCache, instrument } from "./retrieval-eval";
  * The model connection for the evaluation scripts (eval:ai and eval): the mock, or Gemini
  * with the free-tier safeguards. Every generation call is spaced out (gapMs), the number of
  * provider requests is capped where the app counts them (the daily-cap step, so a draft that
- * falls back to the second model counts twice), and the run stops at the first 429.
+ * falls back to the second model counts twice), and the run stops at the first 429. The cap
+ * is the run's own: the deployment's shared daily counter is left untouched.
  */
 export interface EvalAi {
   metered: MeteredGateway;
@@ -69,13 +70,15 @@ export function createEvalAi(options: {
   }
   const ledger = createPostgresLedger(db);
   const requests = { sent: 0 };
+  // The run's own cap replaces the deployment's daily call counter instead of adding to it: an
+  // evaluation must not use up the app's daily AI allowance (finding #108). Token usage is
+  // still recorded, against the run's temporary workspace, which is deleted afterwards.
   const cappedLedger: AiLedger = {
     ...ledger,
-    reserveDailyCall: async (limit) => {
+    reserveDailyCall: async () => {
       if (requests.sent >= options.maxCalls) return false;
-      const ok = await ledger.reserveDailyCall(limit);
-      if (ok) requests.sent++;
-      return ok;
+      requests.sent++;
+      return true;
     },
   };
   const metered = meterGateway(

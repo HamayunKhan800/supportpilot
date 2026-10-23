@@ -14,6 +14,15 @@ export const RETRIEVAL_CANDIDATES = 8;
 /** Results returned after fusion. */
 export const RETRIEVAL_TOP_K = 5;
 
+/**
+ * Default `retrieval_min_score`: drafts are refused without a model call when the best passage
+ * scores below it (M5 D7). 0.62 from the M6 threshold analysis (docs/eval/refusal-threshold.md,
+ * Gemini embeddings): every answerable test question scored above it, and the only questions
+ * below it were off-topic. It is a backstop; the model's INSUFFICIENT_KNOWLEDGE answer does
+ * most of the refusing, because near-miss questions score like real ones.
+ */
+export const DEFAULT_RETRIEVAL_MIN_SCORE = 0.62;
+
 export interface VectorHit {
   chunkId: string;
   /** Cosine similarity, 1 − cosine distance. */

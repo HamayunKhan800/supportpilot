@@ -12,8 +12,8 @@ export const SETTINGS_LIMITS = {
   threshold: { min: 0.5, max: 1, step: 0.05 },
   /**
    * Cosine similarity a passage needs before a draft is attempted (M5 D7). The scale is Gemini
-   * embeddings' (gemini-embedding-2): the eval put relevant passages well above 0.65 (finding
-   * #87). 0 turns the gate off; above 0.95 would refuse almost everything.
+   * embeddings' (gemini-embedding-2); the default and its evidence are at
+   * DEFAULT_RETRIEVAL_MIN_SCORE. 0 turns the gate off; above 0.95 would refuse almost everything.
    */
   minScore: { min: 0, max: 0.95, step: 0.01 },
   categories: { min: 1, max: 20, maxLength: 32 },

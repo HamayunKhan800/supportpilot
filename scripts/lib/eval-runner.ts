@@ -5,7 +5,7 @@ import type { EvalProvider, EvalSuite } from "../../src/server/modules/eval/cons
 import * as evalRepo from "../../src/server/modules/eval/repository";
 import { DEFAULT_CHUNK_OPTIONS } from "../../src/server/modules/kb/chunker";
 import type { Embedder } from "../../src/server/modules/kb/embedder";
-import { RETRIEVAL_TOP_K } from "../../src/server/modules/kb/retrieval";
+import { DEFAULT_RETRIEVAL_MIN_SCORE, RETRIEVAL_TOP_K } from "../../src/server/modules/kb/retrieval";
 import { hybridSearch } from "../../src/server/modules/kb/service";
 import { TRIAGE_PROMPT_VERSION } from "../../src/server/modules/triage/prompt";
 import { createDefaultWorkspaceSettings } from "../../src/server/platform/auth/workspace-settings";
@@ -95,7 +95,7 @@ export function runConfig(options: {
     chunk: DEFAULT_CHUNK_OPTIONS,
     topK: RETRIEVAL_TOP_K,
     // The draft pipeline's refusal threshold: the embedder's own floor, or the workspace default.
-    retrievalMinScore: options.embedder.similarityFloor ?? 0.65,
+    retrievalMinScore: options.embedder.similarityFloor ?? DEFAULT_RETRIEVAL_MIN_SCORE,
   };
 }
 

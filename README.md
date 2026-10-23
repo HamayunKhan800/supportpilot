@@ -118,6 +118,7 @@ docker compose --profile full up --build
 | `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                                       |
 | `pnpm eval`                       | the full evaluation with 95% intervals (`--check-floors`, `--provider gemini`, `--resume`)                      |
 | `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)                                  |
+| `pnpm eval:threshold`             | refusal threshold analysis from cached Gemini embeddings (no API calls)                                         |
 | `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                                        |
 | `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced)                    |
 | `pnpm eval:review`                | `load` the human spot-check items into the database, `status`, or `export` the verdicts to `eval/review/*.json` |

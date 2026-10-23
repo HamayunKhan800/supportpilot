@@ -9,10 +9,11 @@ import { mockDraftResponder } from "@/server/modules/drafts/mock-responder";
 import { createMockEmbedder, type Embedder } from "@/server/modules/kb/embedder";
 import { mockTriageResponder } from "@/server/modules/triage/mock-responder";
 import { getDb } from "@/server/platform/db/client";
-import { evalItem, evalRun, organization } from "@/server/platform/db/schema";
+import { aiDailyCalls, evalItem, evalRun, organization } from "@/server/platform/db/schema";
 import { stopWebBoss } from "@/server/platform/jobs/boss";
 
 import { meterGateway, spreadPick } from "../../scripts/lib/ai-smoke";
+import { createEvalAi } from "../../scripts/lib/eval-ai";
 import { runConfig, runEval, type EvalDataset, type RunEvalOptions } from "../../scripts/lib/eval-runner";
 import { loadInjectionCases } from "../../scripts/lib/injection-cases";
 import { loadCorpus, loadQuestions, loadUnanswerable } from "../../scripts/lib/kb-corpus";
@@ -238,5 +239,25 @@ describe("evaluation runner", () => {
     expect(run!.status).toBe("stopped");
     expect(run!.stopReason).toBe("error: Embedding failed for key [REDACTED]");
     expect(await itemsOf(run!.id)).toHaveLength(0);
+  });
+
+  it("never uses the deployment's daily AI allowance: the run's own cap counts its calls (finding #108)", async () => {
+    const totalCalls = async () =>
+      (await db().select({ calls: aiDailyCalls.calls }).from(aiDailyCalls)).reduce((n, r) => n + r.calls, 0);
+    const before = await totalCalls();
+    const ai = createEvalAi({ provider: "mock", maxCalls: 3, gapMs: 0, cacheDir: "eval/cache" });
+    const result = await runEval({
+      provider: "mock",
+      metered: ai.metered,
+      embedder: ai.embedder,
+      dataset,
+      config: runConfig({ provider: "mock", models: ai.models, embedder: ai.embedder }),
+      requestsSent: ai.requestsSent,
+      log: () => {},
+    });
+    expect(ai.requestsSent()).toBe(3);
+    expect(result.run.calls).toBe(3);
+    expect(result.run.stopReason).toBe("call budget of 3 reached");
+    expect(await totalCalls()).toBe(before);
   });
 });

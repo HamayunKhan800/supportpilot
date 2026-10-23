@@ -6,6 +6,7 @@ import { getAiPolicy } from "@/server/modules/ai/repository";
 import { stripHiddenCharacters, type ThreadMessage } from "@/server/modules/ai/untrusted";
 import { createEmbedderFromEnv, type Embedder } from "@/server/modules/kb/embedder";
 import { KB_MAX_QUERY_LENGTH } from "@/server/modules/kb/limits";
+import { DEFAULT_RETRIEVAL_MIN_SCORE } from "@/server/modules/kb/retrieval";
 import { hybridSearch, type KbSearchResponse } from "@/server/modules/kb/service";
 import { canAgentPost } from "@/server/modules/tickets/lifecycle";
 import { findTicketById, listMessages, type Ticket } from "@/server/modules/tickets/repository";
@@ -171,9 +172,13 @@ export function draftRateLimitKeys(ctx: WorkspaceContext) {
 /** Subject plus the latest customer message (D7), as the retrieval query. */
 export function retrievalQuery(subject: string, thread: readonly ThreadMessage[]): string {
   const latest = [...thread].reverse().find((m) => m.from === "customer" && !m.internal);
-  const text = stripHiddenCharacters([subject, latest?.body ?? ""].join("\n"))
-    .text.replace(/\s+/g, " ")
-    .trim();
+  const clean = (t: string) => stripHiddenCharacters(t).text.replace(/\s+/g, " ").trim();
+  const subjectText = clean(subject);
+  const body = clean(latest?.body ?? "");
+  // A message that already contains its subject (customers often repeat it) is searched on its
+  // own: the repeat adds no meaning but would push the rest of the message past the length cap.
+  const repeats = subjectText !== "" && body.toLowerCase().includes(subjectText.toLowerCase());
+  const text = repeats ? body : [subjectText, body].filter(Boolean).join(" ");
   return text.slice(0, KB_MAX_QUERY_LENGTH);
 }
 
@@ -326,7 +331,7 @@ async function runDraft(input: RunInput, deps: DraftDeps): Promise<void> {
 
     // D7: refuse without calling the model.
     const settings = await getWorkspaceSettings(db, ws);
-    const minScore = embedder.similarityFloor ?? settings?.retrievalMinScore ?? 0.65;
+    const minScore = embedder.similarityFloor ?? settings?.retrievalMinScore ?? DEFAULT_RETRIEVAL_MIN_SCORE;
     if (topScore === null || topScore < minScore) {
       const errorCode = search.results.length === 0 ? "no_passages" : "below_min_score";
       await finish({ status: "refused", errorCode });

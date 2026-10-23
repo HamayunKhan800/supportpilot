@@ -43,7 +43,7 @@
 - `pnpm eval` runs the TypeScript eval runner (built in M6 step 2) over every dataset through the app's real code paths. It writes `eval/results/eval-<provider>-<run>.json` (every item) and a Markdown summary, and stores each item in the `eval_run` / `eval_item` tables as soon as it is measured, so a stopped run can resume. Every result is tagged with the prompt versions, models and a hash of the datasets.
 - **CI with mock provider (every push):** the whole evaluation with the deterministic stand-in models. It checks that the pipelines and the evaluation work end to end, and fails the build if a metric drops below `eval/floors.json`. It costs nothing. Mock numbers are not a measure of AI quality, and the report says so.
 - **Real-provider eval:** on demand only (the owner chose no weekly schedule, M6 plan question 4): locally, or as a GitHub Actions job that waits for the owner's approval. Hard request cap per session, pacing, a stop at the first 429, and no retries; a free-tier run is spread over several days with `--resume`. Results are committed under `eval/results/` and summarised in `docs/eval/`.
-- **Calibration:** `retrieval_min_score` is chosen at M6 from the answerable/unanswerable score distributions to balance refusal recall against false refusals. The chosen trade-off is documented.
+- **Calibration:** `retrieval_min_score` is chosen at M6 from the answerable/unanswerable score distributions to balance refusal recall against false refusals. The chosen trade-off is documented: 0.62, in [docs/eval/refusal-threshold.md](eval/refusal-threshold.md) (M6 step 3).
 
 ## 5. Production feedback loop
 

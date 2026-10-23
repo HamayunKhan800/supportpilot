@@ -32,6 +32,7 @@ import {
   EVAL_RUN_STATUSES,
   EVAL_SUITES,
 } from "../../modules/eval/constants";
+import { DEFAULT_RETRIEVAL_MIN_SCORE } from "../../modules/kb/retrieval";
 
 /**
  * Drizzle schema. Application tables are added milestone by milestone:
@@ -61,10 +62,9 @@ export const workspaceSettings = pgTable(
     triageConfidenceThreshold: real("triage_confidence_threshold").notNull().default(0.7),
     /**
      * Drafts are refused without a model call when the best passage scores below this (M5 D7).
-     * 0.65 from the Gemini eval (finding #87): a backstop for clearly off-topic tickets; the
-     * model's INSUFFICIENT_KNOWLEDGE answer is the main refusal signal.
+     * See DEFAULT_RETRIEVAL_MIN_SCORE (M6 threshold analysis; 0.65 before, finding #87).
      */
-    retrievalMinScore: real("retrieval_min_score").notNull().default(0.65),
+    retrievalMinScore: real("retrieval_min_score").notNull().default(DEFAULT_RETRIEVAL_MIN_SCORE),
     /** Optimistic concurrency for the AI settings page (M5 step 5): a stale version returns 409. */
     version: integer("version").notNull().default(1),
     updatedAt: timestamp("updated_at", { withTimezone: true })

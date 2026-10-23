@@ -143,7 +143,7 @@ export function AiSettingsForm({ initial }: { initial: EditableSettings }) {
 
   const minScoreHint =
     `Drafts are refused without an AI call when no help article scores at least this (0 to ${L.minScore.max}). ` +
-    "This is on the Gemini embedding scale (gemini-embedding-2), where relevant articles scored well above 0.65 in our evaluation." +
+    "This is on the Gemini embedding scale (gemini-embedding-2). The default, 0.62, comes from our evaluation: every answerable test question scored above it, and only off-topic ones fell below." +
     (initial.retrievalMinScoreApplies
       ? ""
       : " This deployment uses the offline demo embedder, which has its own fixed floor, so this value is saved but not used here.");
