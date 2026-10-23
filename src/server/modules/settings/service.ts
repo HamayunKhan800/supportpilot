@@ -1,8 +1,9 @@
-import { AI_FEATURES } from "@/server/modules/ai/config";
+import { BUDGET_FEATURES as APP_BUDGET_FEATURES } from "@/server/modules/ai/config";
 import { insertAuditEvent } from "@/server/platform/auth/audit";
 import { requireWorkspace } from "@/server/platform/auth/context";
 import { can } from "@/server/platform/auth/permissions";
 import { getDb } from "@/server/platform/db/client";
+import { REPORTED_USAGE_FEATURES } from "@/server/platform/db/schema";
 import { transaction } from "@/server/platform/db/tx";
 import { getEnv } from "@/server/platform/env";
 import { Errors } from "@/server/platform/errors";
@@ -36,7 +37,7 @@ export interface ApiAiUsage {
   /** Triage and draft tokens this month: what the budget counts. */
   budgetTokensUsed: number;
   features: {
-    feature: repo.UsageFeature;
+    feature: (typeof REPORTED_USAGE_FEATURES)[number];
     /** Embeddings are tracked but not counted against the budget (see ai/repository.ts). */
     countsTowardBudget: boolean;
     calls: number;
@@ -53,7 +54,7 @@ export interface ApiAiSettingsView {
   usage: ApiAiUsage;
 }
 
-const BUDGET_FEATURES: readonly string[] = AI_FEATURES;
+const BUDGET_FEATURES: readonly string[] = APP_BUDGET_FEATURES;
 
 function apiSettings(row: repo.SettingsRow): ApiAiSettings {
   return {
@@ -70,7 +71,7 @@ function apiSettings(row: repo.SettingsRow): ApiAiSettings {
 
 function apiUsage(usage: repo.MonthUsage): ApiAiUsage {
   // A fixed order, so the page and API clients see the same layout every time.
-  const order: repo.UsageFeature[] = ["triage", "draft", "embed"];
+  const order = REPORTED_USAGE_FEATURES;
   const features = order.map((feature) => {
     const f = usage.features.find((u) => u.feature === feature);
     return {

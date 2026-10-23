@@ -4,6 +4,7 @@ import { FEATURE_SETTINGS, MOCK_MODEL_ID } from "../../src/server/modules/ai/con
 import { createAiGateway, createPostgresLedger, type AiLedger } from "../../src/server/modules/ai/gateway";
 import { createGeminiModels, createMockModels } from "../../src/server/modules/ai/models";
 import { mockDraftResponder } from "../../src/server/modules/drafts/mock-responder";
+import { mockGraderResponder } from "../../src/server/modules/eval/grader-mock-responder";
 import {
   createGeminiEmbedder,
   createMockEmbedder,
@@ -23,11 +24,19 @@ import { fileEmbeddingCache, instrument } from "./retrieval-eval";
  * falls back to the second model counts twice), and the run stops at the first 429. The cap
  * is the run's own: the deployment's shared daily counter is left untouched.
  */
+export interface EvalModels {
+  triage: string;
+  draft: string;
+  draftFallback: string | null;
+  /** The groundedness grader (evaluation only). */
+  grade: string;
+}
+
 export interface EvalAi {
   metered: MeteredGateway;
   embedder: Embedder;
   /** Model ids as configured (what the run is tagged with). */
-  models: { triage: string; draft: string; draftFallback: string | null };
+  models: EvalModels;
   /** Provider requests sent so far in this session, fallbacks included. */
   requestsSent(): number;
   /** Removes the API key from text that will be printed or stored. */
@@ -62,11 +71,16 @@ export function createEvalAi(options: {
       triage: FEATURE_SETTINGS.triage.modelId,
       draft: FEATURE_SETTINGS.draft.modelId,
       draftFallback: FEATURE_SETTINGS.draft.fallbackModelId ?? null,
+      grade: FEATURE_SETTINGS.grade.modelId,
     };
   } else {
-    gatewayModels = createMockModels({ draft: mockDraftResponder, triage: mockTriageResponder });
+    gatewayModels = createMockModels({
+      draft: mockDraftResponder,
+      triage: mockTriageResponder,
+      grade: mockGraderResponder,
+    });
     embedder = createMockEmbedder();
-    models = { triage: MOCK_MODEL_ID, draft: MOCK_MODEL_ID, draftFallback: null };
+    models = { triage: MOCK_MODEL_ID, draft: MOCK_MODEL_ID, draftFallback: null, grade: MOCK_MODEL_ID };
   }
   const ledger = createPostgresLedger(db);
   const requests = { sent: 0 };

@@ -166,6 +166,8 @@ describe("reading the settings", () => {
           outcome: "timeout",
         },
         { ...base, workspaceId: acmeId, feature: "embed", inputTokens: 300, estCostMicros: 60 },
+        // The evaluation's grader (M6 step 3): never shown here and never counted in the budget.
+        { ...base, workspaceId: acmeId, feature: "grade", inputTokens: 4_444, estCostMicros: 99 },
         // Not this month, and not this workspace: neither may be counted.
         { ...base, workspaceId: acmeId, feature: "draft", inputTokens: 9_999, createdAt: lastMonth },
         { ...base, workspaceId: globexId, feature: "draft", inputTokens: 7_777 },

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { DRAFT_PROMPT_VERSION } from "../../src/server/modules/drafts/prompt";
 import type { EvalProvider, EvalSuite } from "../../src/server/modules/eval/constants";
+import { GRADER_PROMPT_VERSION } from "../../src/server/modules/eval/grader";
 import * as evalRepo from "../../src/server/modules/eval/repository";
 import { DEFAULT_CHUNK_OPTIONS } from "../../src/server/modules/kb/chunker";
 import type { Embedder } from "../../src/server/modules/kb/embedder";
@@ -25,6 +26,7 @@ import {
   type ItemContext,
   type MeteredGateway,
 } from "./ai-smoke";
+import type { EvalModels } from "./eval-ai";
 import { type EvalSummary, type RetrievalResult, type SavedItem, summarizeEval } from "./eval-summary";
 import { loadPoisonArticle, type InjectionCase } from "./injection-cases";
 import type { CorpusArticle, EvalQuestion, UnanswerableQuestion } from "./kb-corpus";
@@ -88,14 +90,18 @@ export function datasetHash(d: EvalDataset): string {
 /** The settings a run is tagged with: prompt versions, models and retrieval settings. */
 export function runConfig(options: {
   provider: EvalProvider;
-  models: { triage: string; draft: string; draftFallback: string | null };
+  models: EvalModels;
   embedder: Embedder;
   /** The triage prompt to measure (`--triage-prompt`); the app's own by default. */
   triagePrompt?: TriagePromptVersion;
 }): Record<string, unknown> {
   return {
     provider: options.provider,
-    promptVersions: { triage: options.triagePrompt ?? TRIAGE_PROMPT_VERSION, draft: DRAFT_PROMPT_VERSION },
+    promptVersions: {
+      triage: options.triagePrompt ?? TRIAGE_PROMPT_VERSION,
+      draft: DRAFT_PROMPT_VERSION,
+      grader: GRADER_PROMPT_VERSION,
+    },
     models: options.models,
     embeddingModel: options.embedder.modelId,
     chunk: DEFAULT_CHUNK_OPTIONS,
@@ -294,8 +300,10 @@ export async function runEval(options: RunEvalOptions): Promise<RunEvalResult> {
       ];
       for (const q of todo("draft", questions, (q) => q.id)) {
         if (metered.stopReason) break;
-        const r = await draftOne(ctx, q);
+        const r = await draftOne(ctx, q, { grade: true });
         if (r.status === "failed" && metered.stopReason) break;
+        // A grading cut off by the stop is not saved either: the draft and its grading run on resume.
+        if (r.grounding?.status === "failed" && metered.stopReason) break;
         const passed =
           q.set === "answerable" ? r.status === "ready" && r.citesGold === true : r.status === "refused";
         await save("draft", q.id, passed, r.status === "failed" && r.providerErrors.length > 0, r);

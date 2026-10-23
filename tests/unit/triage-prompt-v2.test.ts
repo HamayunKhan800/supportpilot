@@ -122,7 +122,7 @@ describe("prompt triage.v2", () => {
 });
 
 describe("choosing the prompt in pnpm eval", () => {
-  const models = { triage: "mock-llm", draft: "mock-llm", draftFallback: null };
+  const models = { triage: "mock-llm", draft: "mock-llm", draftFallback: null, grade: "mock-llm" };
   const embedder = createMockEmbedder();
 
   it("records the chosen prompt in the run settings, and reads it back from there", () => {

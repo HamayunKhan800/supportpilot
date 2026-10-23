@@ -61,7 +61,11 @@ const FALLBACK_ID = "gemini-3.5-flash-lite";
 function modelsWith(model: MockLanguageModelV4, fallback?: MockLanguageModelV4): AiModels {
   return {
     provider: "mock",
-    models: { triage: { model, modelId: MOCK_MODEL_ID }, draft: { model, modelId: MOCK_MODEL_ID } },
+    models: {
+      triage: { model, modelId: MOCK_MODEL_ID },
+      draft: { model, modelId: MOCK_MODEL_ID },
+      grade: { model, modelId: MOCK_MODEL_ID },
+    },
     ...(fallback ? { fallbacks: { draft: { model: fallback, modelId: FALLBACK_ID } } } : {}),
   };
 }

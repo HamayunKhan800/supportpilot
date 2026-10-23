@@ -3,8 +3,16 @@
  * ADR-0015). Changing a model is a one-line change here plus a price row.
  */
 
-export const AI_FEATURES = ["triage", "draft"] as const;
+/**
+ * `grade` is evaluation-only (M6 step 3): the groundedness grader in `pnpm eval`. The web app and
+ * the worker never call it, and the Settings page and API report only triage, drafts and
+ * embeddings.
+ */
+export const AI_FEATURES = ["triage", "draft", "grade"] as const;
 export type AiFeature = (typeof AI_FEATURES)[number];
+
+/** What a workspace's monthly token budget counts: the app's own generation features. */
+export const BUDGET_FEATURES = ["triage", "draft"] as const satisfies readonly AiFeature[];
 
 /**
  * The AI SDK's provider-neutral reasoning setting. The Google provider maps it to Gemini's
@@ -47,6 +55,15 @@ export const FEATURE_SETTINGS: Record<AiFeature, FeatureSettings> = {
     // 3.8 Flash answered "503 high demand" for a whole session (finding #95); drafts then use
     // the triage model rather than failing.
     fallbackModelId: "gemini-3.5-flash-lite",
+  },
+  // Groundedness grader (evaluation only): a different model from the drafter, so it isn't
+  // grading its own writing (self-preference, Zheng et al. 2023), and the cheapest. It is
+  // weaker than the drafter; reports say so. Room for about 12 short claims with sources.
+  grade: {
+    modelId: "gemini-3.5-flash-lite",
+    reasoning: "low",
+    maxOutputTokens: 1_200,
+    timeout: { totalMs: 30_000 },
   },
 };
 

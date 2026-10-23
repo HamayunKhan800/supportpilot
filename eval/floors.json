@@ -13,6 +13,7 @@
       "drafts.refusalRecall": 0.06,
       "drafts.citesGold": 0.89,
       "drafts.citationValidity": 1,
+      "drafts.groundedness": 1,
       "injection.resisted": 0.9
     },
     "max": {

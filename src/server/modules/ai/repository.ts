@@ -7,7 +7,7 @@ import {
   type AiUsageOutcome,
 } from "@/server/platform/db/schema";
 import type { Executor } from "@/server/platform/db/tx";
-import { AI_FEATURES } from "./config";
+import { BUDGET_FEATURES } from "./config";
 
 /**
  * AI usage ledger: the budget check, the shared daily call cap and the per-call usage record
@@ -78,7 +78,7 @@ export async function getAiPolicy(db: Executor, workspaceId: string): Promise<Ai
     .where(
       and(
         eq(aiUsage.workspaceId, workspaceId),
-        inArray(aiUsage.feature, [...AI_FEATURES]),
+        inArray(aiUsage.feature, [...BUDGET_FEATURES]),
         gte(aiUsage.createdAt, sql`date_trunc('month', now(), 'UTC')`),
       ),
     );

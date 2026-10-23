@@ -27,7 +27,10 @@ export function createMockModels(
     model: createMockLanguageModel({ respond: responders[feature] ?? placeholder, ...options }),
     modelId: MOCK_MODEL_ID,
   });
-  return { provider: "mock", models: { triage: make("triage"), draft: make("draft") } };
+  return {
+    provider: "mock",
+    models: { triage: make("triage"), draft: make("draft"), grade: make("grade") },
+  };
 }
 
 export function createGeminiModels(options: { apiKey: string; fetch?: typeof globalThis.fetch }): AiModels {
@@ -40,7 +43,11 @@ export function createGeminiModels(options: { apiKey: string; fetch?: typeof glo
   }
   return {
     provider: "gemini",
-    models: { triage: make(FEATURE_SETTINGS.triage.modelId), draft: make(FEATURE_SETTINGS.draft.modelId) },
+    models: {
+      triage: make(FEATURE_SETTINGS.triage.modelId),
+      draft: make(FEATURE_SETTINGS.draft.modelId),
+      grade: make(FEATURE_SETTINGS.grade.modelId),
+    },
     fallbacks,
   };
 }

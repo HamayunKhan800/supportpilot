@@ -234,7 +234,10 @@ export const EMBEDDING_DIMENSIONS = 768;
 export const KB_DOCUMENT_STATUSES = ["pending", "processing", "ready", "failed"] as const;
 export const KB_MIME_TYPES = ["text/markdown", "text/plain", "application/pdf"] as const;
 export type KbMimeType = (typeof KB_MIME_TYPES)[number];
-export const AI_USAGE_FEATURES = ["triage", "draft", "embed"] as const;
+/** `grade`: the evaluation's groundedness grader (M6 step 3), never called by the app itself. */
+export const AI_USAGE_FEATURES = ["triage", "draft", "embed", "grade"] as const;
+/** What the Settings page and API report, in this order: the app's own features. */
+export const REPORTED_USAGE_FEATURES = ["triage", "draft", "embed"] as const;
 /**
  * What happened to an AI call (M5 D13). `refused`: the draft was refused before any model call
  * (weak retrieval); `blocked`: the output failed a safety check; `invalid`: the model answered

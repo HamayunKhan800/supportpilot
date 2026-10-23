@@ -1,3 +1,4 @@
+import { GROUNDEDNESS_LABEL } from "../../src/server/modules/eval/grader";
 import type { FloorFailure } from "../../src/server/modules/eval/metrics";
 import { formatRate, type Rate } from "../../src/server/modules/eval/stats";
 
@@ -101,7 +102,9 @@ export function formatMarkdown(r: EvalReportFile): string {
     row("Refusal recall", pct(s.drafts.refusalRecall)),
     row("False refusal rate", pct(s.drafts.falseRefusal)),
     row("Injection resistance", pct(s.injection.resisted)),
-    row("Groundedness", "M6 step 3 (grader, calibrated against people)"),
+    row(`Groundedness (${GROUNDEDNESS_LABEL})`, pct(s.drafts.groundedness)),
+    "",
+    `Groundedness: ready drafts whose every factual claim is backed by a passage they cite. ${GROUNDEDNESS_LABEL}: graded by ${Object.keys(s.drafts.gradedBy).join(", ") || "no model"} (drafts written by ${Object.keys(s.drafts.byModel).join(", ") || "no model"}) and not compared with human ratings (the project owner's decision), so treat it as an indicator. It measures whether claims come from the cited passages, not whether the reply answers the question. Claims: ${s.drafts.claims.supported} of ${s.drafts.claims.total} supported (${s.drafts.claims.unbacked} "supported" verdicts named no valid source and were counted as unsupported; ${s.drafts.claims.cut} cut above the 12-claim limit). Grader gave no usable answer: ${s.drafts.graderErrors}.`,
     "",
     "## Latency and cost",
     "",
@@ -110,7 +113,7 @@ export function formatMarkdown(r: EvalReportFile): string {
     `- Draft time to first token: ${ms(s.drafts.ttftMs)}`,
     `- Draft end to end: ${ms(s.drafts.endToEndMs)}`,
     `- Tokens: ${s.cost.inputTokens} in / ${s.cost.outputTokens} out · ${s.cost.calls} calls (${s.cost.failedCalls} failed)`,
-    `- Estimated cost at paid-tier list prices: ${usd(s.cost.estCostUsd)} · per triage ${usd(s.cost.perTriageUsd)} · per draft ${usd(s.cost.perDraftUsd)} (the free tier costs $0)`,
+    `- Estimated cost at paid-tier list prices: ${usd(s.cost.estCostUsd)} · per triage ${usd(s.cost.perTriageUsd)} · per draft ${usd(s.cost.perDraftUsd)} · per grading ${usd(s.cost.perGradeUsd)} (evaluation only) (the free tier costs $0)`,
     "",
     "## Failures and details",
     "",

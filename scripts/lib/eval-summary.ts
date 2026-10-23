@@ -82,6 +82,16 @@ export interface EvalSummary {
     byModel: Record<string, number>;
     ttftMs: Spread;
     endToEndMs: Spread;
+    /**
+     * Ready drafts whose every factual claim is backed by a cited passage, per the AI grader.
+     * Always shown as GROUNDEDNESS_LABEL ("AI-graded, not checked against a human").
+     */
+    groundedness: Rate;
+    /** Claim counts across graded drafts. Claims in one draft aren't independent: no interval. */
+    claims: { total: number; supported: number; unbacked: number; cut: number };
+    /** Ready drafts the grader gave no usable answer for (left out of groundedness). */
+    graderErrors: number;
+    gradedBy: Record<string, number>;
   };
   injection: {
     n: number;
@@ -101,6 +111,8 @@ export interface EvalSummary {
     estCostUsd: number;
     perTriageUsd: number | null;
     perDraftUsd: number | null;
+    /** Grading one draft (evaluation cost only, never part of the app's cost per draft). */
+    perGradeUsd: number | null;
   };
 }
 
@@ -140,6 +152,9 @@ export function summarizeEval(items: readonly SavedItem[]): EvalSummary {
   const kept = drafts.reduce((n, d) => n + d.citationCount, 0);
   const invalid = drafts.reduce((n, d) => n + d.invalidCitations, 0);
   const modelDrafts = drafts.filter((d) => d.modelCalled);
+  const gradings = drafts.flatMap((d) => (d.grounding ? [d.grounding] : []));
+  const graded = gradings.filter((g) => g.status === "graded");
+  const allGradings = draftItems.flatMap((i) => (i.result.grounding ? [i.result.grounding] : []));
 
   const injectionItems = ofSuite(items, "injection");
   const injection = injectionItems.filter((i) => !i.failed).map((i) => i.result);
@@ -148,6 +163,7 @@ export function summarizeEval(items: readonly SavedItem[]): EvalSummary {
   const metered: Metered[] = [
     ...triageItems.map((i) => i.result),
     ...draftItems.map((i) => i.result),
+    ...allGradings,
     ...injectionItems.map((i) => i.result),
   ];
 
@@ -193,6 +209,15 @@ export function summarizeEval(items: readonly SavedItem[]): EvalSummary {
       byModel: countBy(drafts.flatMap((d) => (d.model ? [d.model] : []))),
       ttftMs: spread(modelDrafts.flatMap((d) => (d.ttftMs !== null ? [d.ttftMs] : []))),
       endToEndMs: spread(drafts.flatMap((d) => (d.endToEndMs !== null ? [d.endToEndMs] : []))),
+      groundedness: wilson(graded.filter((g) => g.grounded).length, graded.length),
+      claims: {
+        total: graded.reduce((n, g) => n + g.claims.length, 0),
+        supported: graded.reduce((n, g) => n + g.supported, 0),
+        unbacked: graded.reduce((n, g) => n + g.unbacked, 0),
+        cut: graded.reduce((n, g) => n + g.cut, 0),
+      },
+      graderErrors: gradings.length - graded.length,
+      gradedBy: countBy(graded.flatMap((g) => (g.model ? [g.model] : []))),
     },
     injection: {
       n: injectionItems.length,
@@ -209,6 +234,7 @@ export function summarizeEval(items: readonly SavedItem[]): EvalSummary {
       estCostUsd: Math.round(metered.reduce((n, m) => n + m.estCostMicros, 0)) / 1e6,
       perTriageUsd: perCall(triageItems.map((i) => i.result)),
       perDraftUsd: perCall(draftItems.map((i) => i.result).filter((d) => d.modelCalled)),
+      perGradeUsd: perCall(allGradings),
     },
   };
 }
@@ -233,6 +259,7 @@ export function floorValues(s: EvalSummary): Record<string, number | null> {
     "drafts.citesGold": s.drafts.citesGold.rate,
     "drafts.citationValidity": s.drafts.citationValidity.rate,
     "drafts.errorRate": s.drafts.errors.rate,
+    "drafts.groundedness": s.drafts.groundedness.rate,
     "injection.resisted": s.injection.resisted.rate,
     "injection.errorRate": s.injection.errors.rate,
   };

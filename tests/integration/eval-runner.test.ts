@@ -6,6 +6,7 @@ import { createAiGateway, createPostgresLedger, type AiGatewayOptions } from "@/
 import type { MockResponder } from "@/server/modules/ai/mock-model";
 import { createMockModels } from "@/server/modules/ai/models";
 import { mockDraftResponder } from "@/server/modules/drafts/mock-responder";
+import { mockGraderResponder } from "@/server/modules/eval/grader-mock-responder";
 import { createMockEmbedder, type Embedder } from "@/server/modules/kb/embedder";
 import { mockTriageResponder } from "@/server/modules/triage/mock-responder";
 import { getDb } from "@/server/platform/db/client";
@@ -37,10 +38,14 @@ const dataset: EvalDataset = {
 // 2 searches + 3 triage + 3 drafts + 2 injection cases.
 const PLANNED = 10;
 
-function metered(maxCalls = 100, triage: MockResponder = mockTriageResponder) {
+function metered(
+  maxCalls = 100,
+  triage: MockResponder = mockTriageResponder,
+  grade: MockResponder = mockGraderResponder,
+) {
   return meterGateway(
     createAiGateway({
-      models: createMockModels({ draft: mockDraftResponder, triage }),
+      models: createMockModels({ draft: mockDraftResponder, triage, grade }),
       ledger: createPostgresLedger(db()),
       dailyCallLimit: 100_000,
       logger: quiet,
@@ -52,7 +57,7 @@ function metered(maxCalls = 100, triage: MockResponder = mockTriageResponder) {
 const embedder = createMockEmbedder();
 const config = runConfig({
   provider: "mock",
-  models: { triage: "mock-llm", draft: "mock-llm", draftFallback: null },
+  models: { triage: "mock-llm", draft: "mock-llm", draftFallback: null, grade: "mock-llm" },
   embedder,
 });
 
@@ -263,7 +268,7 @@ describe("evaluation runner", () => {
   it("measures the chosen triage prompt, and --resume continues the run with the same settings (D6)", async () => {
     const v2config = runConfig({
       provider: "mock",
-      models: { triage: "mock-llm", draft: "mock-llm", draftFallback: null },
+      models: { triage: "mock-llm", draft: "mock-llm", draftFallback: null, grade: "mock-llm" },
       embedder,
       triagePrompt: "triage.v2",
     });
@@ -304,5 +309,63 @@ describe("evaluation runner", () => {
       runEval(options(metered(), { config: { ...config, promptVersions: { triage: "triage.v9" } } })),
     ).rejects.toThrow('Unknown triage prompt "triage.v9".');
     expect(await db().select().from(evalRun)).toHaveLength(before);
+  });
+  it("grades every ready draft against its citations, and keeps a grader failure apart (step 3)", async () => {
+    const ok = await runEval(options(metered()));
+    const drafts = (await itemsOf(ok.run.id)).filter((i) => i.suite === "draft");
+    expect(drafts).toHaveLength(3);
+    const ready = drafts.filter((i) => (i.result as { status: string }).status === "ready");
+    expect(ready.length).toBeGreaterThan(0);
+    for (const item of drafts) {
+      const r = item.result as { status: string; grounding: { status: string; model: string } | null };
+      if (r.status === "ready") expect(r.grounding).toMatchObject({ status: "graded", model: "mock-llm" });
+      else expect(r.grounding).toBeNull();
+    }
+    expect(ok.summary.drafts.groundedness.n).toBe(ready.length);
+    expect(ok.summary.drafts.graderErrors).toBe(0);
+    expect(ok.run.config).toMatchObject({
+      promptVersions: { grader: "grader.v1" },
+      models: { grade: "mock-llm" },
+    });
+
+    // A grader that never gives a usable answer: retried once, then counted apart. The draft's own
+    // result still counts, and the item is not a technical failure.
+    let gradeCalls = 0;
+    const broken = await runEval(
+      options(
+        metered(100, mockTriageResponder, () => {
+          gradeCalls++;
+          return "{}";
+        }),
+      ),
+    );
+    const brokenDrafts = (await itemsOf(broken.run.id)).filter((i) => i.suite === "draft");
+    expect(brokenDrafts.every((i) => !i.failed)).toBe(true);
+    expect(gradeCalls).toBe(2 * ready.length);
+    expect(broken.summary.drafts.graderErrors).toBe(ready.length);
+    expect(broken.summary.drafts.groundedness.n).toBe(0);
+    expect(broken.summary.drafts.falseRefusal).toEqual(ok.summary.drafts.falseRefusal);
+    expect(broken.summary.drafts.citesGold).toEqual(ok.summary.drafts.citesGold);
+  });
+
+  it("doesn't save a draft whose grading the call budget cut off, and grades it on resume", async () => {
+    // 3 triage calls, then the first draft (call 4); its grading would be call 5.
+    const stopped = await runEval(options(metered(4)));
+    expect(stopped.run.status).toBe("stopped");
+    const saved = await itemsOf(stopped.run.id);
+    expect(saved.map((i) => i.suite).sort()).toEqual([
+      "retrieval",
+      "retrieval",
+      "triage",
+      "triage",
+      "triage",
+    ]);
+
+    const resumed = await runEval(options(metered(), { resume: true }));
+    expect(resumed.run.status).toBe("completed");
+    const first = (await itemsOf(stopped.run.id)).find(
+      (i) => i.suite === "draft" && i.itemKey === dataset.answerable[0]!.id,
+    );
+    expect(first?.result).toMatchObject({ status: "ready", grounding: { status: "graded" } });
   });
 });

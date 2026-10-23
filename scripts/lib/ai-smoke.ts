@@ -1,9 +1,17 @@
 import { APICallError } from "ai";
 
 import { AiError } from "../../src/server/modules/ai/errors";
+import type { AiFeature } from "../../src/server/modules/ai/config";
 import type { AiGateway } from "../../src/server/modules/ai/gateway";
 import type { ApiDraft } from "../../src/server/modules/drafts/serialize";
 import { runDraftPipeline, type DraftEvent } from "../../src/server/modules/drafts/service";
+import {
+  buildGraderPrompt,
+  graderOutputSchema,
+  scoreGrading,
+  type GradedClaim,
+  type RawGraderOutput,
+} from "../../src/server/modules/eval/grader";
 import { percentile } from "../../src/server/modules/eval/retrieval-metrics";
 import { DEFAULT_CHUNK_OPTIONS } from "../../src/server/modules/kb/chunker";
 import type { Embedder } from "../../src/server/modules/kb/embedder";
@@ -35,7 +43,7 @@ import { setUpEvalWorkspace } from "./retrieval-eval";
  */
 
 export interface CallRecord {
-  feature: "triage" | "draft";
+  feature: AiFeature;
   ok: boolean;
   errorCode?: string;
   /** Provider status and message for failed calls (never the request). */
@@ -248,6 +256,26 @@ export interface DraftResult extends Metered {
   finishReason: string | null;
   /** The model's own text (also when the draft was refused or blocked). */
   modelText: string | null;
+  /**
+   * Groundedness of a ready draft against the passages it cites, from the AI grader (M6 step 3;
+   * "AI-graded, not checked against a human"). Null when not graded: the draft wasn't ready, or
+   * the run doesn't grade (the smoke run). Missing in results saved before step 3.
+   */
+  grounding?: Grounding | null;
+}
+
+/** The grader's verdict on one draft. Its calls are counted here, not in the draft's own cost. */
+export interface Grounding extends Metered {
+  /** failed: the grader gave no usable answer (kept out of the groundedness rate). */
+  status: "graded" | "failed";
+  model: string | null;
+  errorCode: string | null;
+  claims: GradedClaim[];
+  supported: number;
+  /** Every claim supported (also true for a reply with no factual claim); null when failed. */
+  grounded: boolean | null;
+  unbacked: number;
+  cut: number;
 }
 
 export interface InjectionResult extends Metered {
@@ -488,7 +516,11 @@ export interface DraftItemInput {
 }
 
 /** Draft a reply to one question through the real pipeline (retrieval, model, citation checks). */
-export async function draftOne(ctx: ItemContext, q: DraftItemInput): Promise<DraftResult> {
+export async function draftOne(
+  ctx: ItemContext,
+  q: DraftItemInput,
+  options: { grade?: boolean } = {},
+): Promise<DraftResult> {
   const t = await insertTicket(ctx.workspaceId, q.question, q.question);
   const events = await runDraftPipeline(
     { workspaceId: ctx.workspaceId, ticketId: t.id, requestedBy: null },
@@ -518,7 +550,62 @@ export async function draftOne(ctx: ItemContext, q: DraftItemInput): Promise<Dra
     finishReason: answered?.finishReason ?? null,
     modelText: answered?.text ?? null,
     ...sumCalls(calls),
+    grounding: options.grade && draft?.status === "ready" ? await gradeDraft(ctx, t.id, draft) : null,
   };
+}
+
+/**
+ * Grades a ready draft with the groundedness grader, against the passages it cites (what an agent
+ * opens to check it). Invalid output is retried once, like triage. A failure is returned, not
+ * thrown; when it came from the run's stop (budget or 429), the caller leaves the item unsaved.
+ */
+export async function gradeDraft(ctx: ItemContext, ticketId: string, draft: ApiDraft): Promise<Grounding> {
+  const sources = draft.citations.map((c) => ({
+    marker: c.marker,
+    title: c.documentTitle,
+    content: c.content,
+  }));
+  const { system, prompt } = buildGraderPrompt({ reply: draft.body, sources });
+  const call = () =>
+    ctx.metered.gateway.generateObject(
+      { workspaceId: ctx.workspaceId, ticketId },
+      { feature: "grade", system, prompt, schema: graderOutputSchema },
+    );
+  let object: RawGraderOutput | null = null;
+  let model: string | null = null;
+  let errorCode: string | null = null;
+  try {
+    let r;
+    try {
+      r = await call();
+    } catch (err) {
+      if (!(err instanceof AiError && err.code === "ai_invalid_output")) throw err;
+      r = await call();
+    }
+    object = r.object;
+    model = r.modelId;
+  } catch (err) {
+    errorCode = err instanceof AiError ? err.code : "internal_error";
+  }
+  const metered = sumCalls(ctx.metered.take());
+  if (!object) {
+    return {
+      status: "failed",
+      model,
+      errorCode,
+      claims: [],
+      supported: 0,
+      grounded: null,
+      unbacked: 0,
+      cut: 0,
+      ...metered,
+    };
+  }
+  const grading = scoreGrading(
+    object,
+    sources.map((s) => s.marker),
+  );
+  return { status: "graded", model, errorCode: null, ...grading, ...metered };
 }
 
 /** Ingests the poisoned articles the injection cases need; returns them by file name. */

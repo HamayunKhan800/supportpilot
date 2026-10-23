@@ -1,13 +1,13 @@
 import { z } from "zod";
 import {
   AI_DRAFT_STATUSES,
-  AI_USAGE_FEATURES,
   AI_USAGE_OUTCOMES,
   DRAFT_FEEDBACK,
   DRAFT_FEEDBACK_REASONS,
   KB_DOCUMENT_STATUSES,
   KB_MIME_TYPES,
   MESSAGE_AUTHOR_TYPES,
+  REPORTED_USAGE_FEATURES,
   SENTIMENTS,
   TICKET_PRIORITIES,
   TICKET_STATUSES,
@@ -368,7 +368,7 @@ export const AiSettingsView = z
       budgetTokensUsed: z.int().nonnegative().describe("Triage and draft tokens this month."),
       features: z.array(
         z.strictObject({
-          feature: z.enum(AI_USAGE_FEATURES),
+          feature: z.enum(REPORTED_USAGE_FEATURES),
           countsTowardBudget: z.boolean().describe("Embeddings are tracked but not counted."),
           calls: z.int().nonnegative(),
           inputTokens: z.int().nonnegative(),
