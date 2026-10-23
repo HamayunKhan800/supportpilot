@@ -221,7 +221,7 @@ Customers can submit and follow requests without an account. Agents can triage, 
 - **Done-when list:** all items ticked. CI (run 39718487987) and Security (run 39718487964) passed on `8ec626a`, including the dependency audit that had failed during the npm outage.
 - **Open items carried to later milestones:** AR-004 (trusted proxy), AR-005 (link expiry and recovery), email notifications (M8), and CAPTCHA if abuse appears (M8).
 
-## M4 · Knowledge base: in progress
+## M4 · Knowledge base: complete (2026-10-23, CI #20 and Security #20 green on `dfa6ae7`)
 
 Plan: [docs/plans/m4-knowledge-base.md](plans/m4-knowledge-base.md) (approved 2026-10-22).
 
