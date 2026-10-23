@@ -233,7 +233,12 @@ async function remember<T>(work: Promise<T>): Promise<T> {
   }
 }
 
-function instrument(inner: Embedder, paceMs: number, cache: EmbeddingCache, limiter?: TextRateLimiter) {
+export function instrument(
+  inner: Embedder,
+  paceMs: number,
+  cache: EmbeddingCache,
+  limiter?: TextRateLimiter,
+) {
   const m = {
     documentMs: [] as number[],
     documentTokens: 0,

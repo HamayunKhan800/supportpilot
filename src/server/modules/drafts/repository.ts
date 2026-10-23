@@ -18,7 +18,7 @@ export type CitationRow = typeof aiDraftCitation.$inferSelect;
 export async function insertDraft(
   db: Executor,
   workspaceId: string,
-  input: { ticketId: string; requestedBy: string; promptVersion: string },
+  input: { ticketId: string; requestedBy: string | null; promptVersion: string },
 ): Promise<string> {
   const [row] = await db
     .insert(aiDraft)

@@ -31,6 +31,7 @@
     "db:seed-demo": "tsx scripts/seed-demo.ts",
     "eval:retrieval": "tsx scripts/eval-retrieval.ts",
     "eval:fusion": "tsx scripts/eval-fusion.ts",
+    "eval:ai": "tsx scripts/eval-ai-smoke.ts",
     "kb:reembed": "tsx scripts/kb-reembed.ts"
   },
   "dependencies": {

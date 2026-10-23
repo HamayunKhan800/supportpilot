@@ -206,8 +206,38 @@ export async function startDraft(
     promptVersion: DRAFT_PROMPT_VERSION,
   });
   return ndjsonStream(options.signal, (emit, signal) =>
-    runDraft({ ctx, ticket, draftId, signal, emit }, options.deps ?? {}),
+    runDraft({ workspaceId: ctx.workspace.id, ticket, draftId, signal, emit }, options.deps ?? {}),
   );
+}
+
+/**
+ * The same pipeline for operator tools (the AI evaluation script and the injection tests),
+ * without the HTTP layer: no sign-in, permission check or rate limits, which the caller is
+ * responsible for. Every outcome is saved exactly as for an agent. Returns all events.
+ */
+export async function runDraftPipeline(
+  input: { workspaceId: string; ticketId: string; requestedBy: string | null; signal?: AbortSignal },
+  deps: DraftDeps = {},
+): Promise<DraftEvent[]> {
+  const ticket = await findTicketById(input.workspaceId, input.ticketId);
+  if (!ticket) throw Errors.notFound();
+  const draftId = await repo.insertDraft(getDb().db, input.workspaceId, {
+    ticketId: ticket.id,
+    requestedBy: input.requestedBy,
+    promptVersion: DRAFT_PROMPT_VERSION,
+  });
+  const events: DraftEvent[] = [];
+  await runDraft(
+    {
+      workspaceId: input.workspaceId,
+      ticket,
+      draftId,
+      signal: input.signal ?? new AbortController().signal,
+      emit: (event) => void events.push(event),
+    },
+    deps,
+  );
+  return events;
 }
 
 type Emit = (event: DraftEvent) => void;
@@ -246,7 +276,7 @@ function ndjsonStream(
 }
 
 interface RunInput {
-  ctx: WorkspaceContext;
+  workspaceId: string;
   ticket: Ticket;
   draftId: string;
   signal: AbortSignal;
@@ -254,8 +284,7 @@ interface RunInput {
 }
 
 async function runDraft(input: RunInput, deps: DraftDeps): Promise<void> {
-  const { ctx, ticket, draftId, signal, emit } = input;
-  const ws = ctx.workspace.id;
+  const { workspaceId: ws, ticket, draftId, signal, emit } = input;
   const log = deps.logger ?? defaultLogger;
   const clock = deps.clock ?? (() => performance.now());
   const db = getDb().db;
