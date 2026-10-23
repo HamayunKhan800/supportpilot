@@ -40,10 +40,19 @@ export const MULTIPART_ENVELOPE_BYTES = 64 * 1024;
 export function apiRoute<P extends z.ZodType, Q extends z.ZodType, B extends z.ZodType>(
   op: Operation<P, Q, B>,
   handler: (input: ApiInput<P, Q, B>) => Promise<unknown>,
+  options: {
+    /**
+     * Runs before anything else reads the request, for endpoints that must look absent
+     * (404) to anyone not allowed to use them: otherwise a 400 for a bad body or a 403
+     * from the origin check would reveal that the endpoint exists. Read-only checks only.
+     */
+    gate?: (req: Request) => Promise<void>;
+  } = {},
 ) {
   return withRoute<Record<string, string>>(
     op.id,
     async (req, ctx) => {
+      if (options.gate) await options.gate(req);
       if (op.method !== "GET") assertSameOrigin(req);
 
       const params = op.params ? parseParams(op.params, ctx.params ?? {}) : undefined;

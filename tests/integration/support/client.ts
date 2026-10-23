@@ -82,7 +82,8 @@ export async function resetDatabase() {
     `TRUNCATE "audit_log", "workspace_settings", "invitation", "member", "organization",
        "session", "account", "verification", "rate_limit", "user", "ticket_message", "ticket",
        "ticket_counter", "app_rate_limit", "kb_chunk", "kb_document_blob", "kb_document",
-       "ai_usage", "ai_daily_calls", "ticket_triage", "ai_draft", "ai_draft_citation"
+       "ai_usage", "ai_daily_calls", "ticket_triage", "ai_draft", "ai_draft_citation",
+       "eval_review_item"
        RESTART IDENTITY CASCADE`,
   );
 }

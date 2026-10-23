@@ -24,7 +24,7 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testMatch: /(accessibility|drafts|settings)\.spec\.ts/,
+      testMatch: /(accessibility|drafts|settings|review)\.spec\.ts/,
     },
   ],
   webServer: [
@@ -42,6 +42,8 @@ export default defineConfig({
         AUTH_RATE_LIMIT_ENABLED: "false",
         PORTAL_RATE_LIMIT_ENABLED: "false",
         AUTH_PASSWORD_BREACH_CHECK: "false",
+        // The evaluation Review page (M6), for the reviewers tests/e2e/review.spec.ts signs in as.
+        EVAL_REVIEWER_EMAILS: "reviewer-desktop@e2e.test,reviewer-mobile@e2e.test",
       },
     },
     {

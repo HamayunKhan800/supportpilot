@@ -84,6 +84,10 @@ export default defineConfig({
         // in tests/integration/settings.test.ts, 6 deliberate breaks all caught. Limits and the
         // request schema are unit-tested and stay included.
         "src/server/modules/settings/{service,repository}.ts",
+        // Review page (M6): SQL and the session/allowlist guard around it are covered by
+        // tests/integration/eval-review.test.ts; the pure parts (nextUnreviewed, allowlist
+        // parsing, schemas, content) are unit-tested and stay included.
+        "src/server/modules/eval-review/{repository,service}.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

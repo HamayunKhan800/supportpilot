@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { z } from "zod";
 
+import { RUBRIC_RULE_IDS, RUBRIC_RULES, type RubricRule } from "../../src/server/modules/eval/rubric";
 import { DEMO_TICKETS } from "../../src/server/modules/tickets/demo/tickets";
 import { TICKET_PRIORITIES } from "../../src/server/modules/tickets/types";
 import { DEFAULT_CATEGORIES } from "../../src/server/platform/auth/workspace-settings";
@@ -18,21 +19,6 @@ import { SENTIMENTS } from "../../src/server/platform/db/schema";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const TRIAGE_TICKETS_FILE = path.join(ROOT, "eval/triage/tickets.json");
 export const DEMO_LABELS_FILE = path.join(ROOT, "eval/triage/demo-labels.json");
-
-/** Priority rules in docs/eval/triage-rubric.md, and the priority each one sets. */
-export const RUBRIC_RULES = {
-  U1: "urgent",
-  U2: "urgent",
-  U3: "urgent",
-  H1: "high",
-  H2: "high",
-  H3: "high",
-  N1: "normal",
-  N2: "normal",
-  L1: "low",
-  L2: "low",
-} as const;
-export type RubricRule = keyof typeof RUBRIC_RULES;
 
 /** Languages the set covers (ISO 639-1). Roman Urdu is labelled `ur`, as the rubric says. */
 export const SET_LANGUAGES = ["en", "es", "ur", "fr", "de", "pt", "ar"] as const;
@@ -43,11 +29,11 @@ const expected = z.strictObject({
   sentiment: z.enum(SENTIMENTS),
   language: z.enum(SET_LANGUAGES),
 });
-const rule = z.enum(Object.keys(RUBRIC_RULES) as [RubricRule, ...RubricRule[]]);
+const rule = z.enum(RUBRIC_RULE_IDS as [RubricRule, ...RubricRule[]]);
 
 /** The rule must be the one that sets the labelled priority. */
 const ruleMatchesPriority = (t: { rule: RubricRule; expected: { priority: string } }) =>
-  RUBRIC_RULES[t.rule] === t.expected.priority;
+  RUBRIC_RULES[t.rule].priority === t.expected.priority;
 const ruleError = { error: "the rule doesn't set this priority", path: ["rule"] };
 
 const TAGS = [
@@ -110,6 +96,8 @@ const demoLabelsSchema = z.strictObject({
     )
     .min(1),
 });
+
+export { RUBRIC_RULES, type RubricRule };
 
 export type TriageTicketFile = z.infer<typeof ticketsSchema>;
 export type DemoLabelsFile = z.infer<typeof demoLabelsSchema>;

@@ -32,6 +32,7 @@
     "eval:retrieval": "tsx scripts/eval-retrieval.ts",
     "eval:fusion": "tsx scripts/eval-fusion.ts",
     "eval:ai": "tsx scripts/eval-ai-smoke.ts",
+    "eval:review": "tsx scripts/eval-review.ts",
     "kb:reembed": "tsx scripts/kb-reembed.ts"
   },
   "dependencies": {

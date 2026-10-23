@@ -43,6 +43,7 @@ About **420 requests**: 150 triage, 140 drafts, about 110 grader calls and 20 in
 ## 5. Steps (each committed locally, pushed when you send a token)
 
 1. **Datasets and review page:** priority rubric; 150 triage tickets; reference answers; the Review page (owner only) and the export of results into the dataset files. You do the spot-check after this step.
+   - _As built:_ `/app/review` with one ✅/❌ tap per item and an optional note. It's on only for the sign-in emails in `EVAL_REVIEWER_EMAILS` (everyone else gets 404). `pnpm eval:review load` fills it from the dataset files; if an item's content changes, its old verdict is cleared, so an answer always matches what you saw. `pnpm eval:review export` writes `eval/review/<set>.json` (verdicts and notes, no names) with the agreement rate and its Wilson interval. Four sets: the proposed label changes, 30 triage tickets, the 22 retrieval questions and (step 3) 30 drafts.
 2. **Eval runner (mock):** `pnpm eval` with every metric from docs/04 and Wilson intervals, `eval_run` / `eval_item` tables (migration), regression floors in CI, resumable runs.
 3. **Grader and calibration:** groundedness grader prompt, agreement with your 30 ratings, triage prompt v2, the `retrieval_min_score` analysis.
 4. **Observability:** OpenTelemetry in the web app and worker, trace IDs in logs, the no-customer-text test, optional Sentry, docs on how to view traces locally.

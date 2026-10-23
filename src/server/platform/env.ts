@@ -115,6 +115,23 @@ const envSchema = z
       .default("true")
       .transform((v) => v === "true"),
     ...aiFields,
+    /**
+     * Who may use the evaluation Review page (M6 D2): a comma-separated list of email
+     * addresses. Empty (the default) turns the page and its API off for everyone. For the
+     * project owner's local review only; leave it unset on public deployments.
+     */
+    EVAL_REVIEWER_EMAILS: z
+      .string()
+      .optional()
+      .transform((v) =>
+        v
+          ? v
+              .split(",")
+              .map((e) => e.trim().toLowerCase())
+              .filter(Boolean)
+          : [],
+      )
+      .pipe(z.array(z.email({ error: "EVAL_REVIEWER_EMAILS entries must be email addresses" })).max(10)),
     /** Optional GitHub OAuth. Both values or neither. */
     GITHUB_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_CLIENT_SECRET: z.string().min(1).optional(),

@@ -20,6 +20,12 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth-schema";
+import {
+  REVIEW_NOTE_MAX,
+  REVIEW_SETS,
+  REVIEW_VERDICTS,
+  type ReviewContent,
+} from "../../modules/eval-review/content";
 
 /**
  * Drizzle schema. Application tables are added milestone by milestone:
@@ -636,5 +642,48 @@ export const aiDraftCitation = pgTable(
     }).onDelete("cascade"),
     uniqueIndex("ai_draft_citation_draft_marker_uq").on(t.draftId, t.marker),
     check("ai_draft_citation_marker_ck", sql`${t.marker} BETWEEN 1 AND 20`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// M6 · Evaluation (docs/plans/m6-evaluation.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * Items from the evaluation datasets that the project owner checks on the Review page (D2).
+ * Not workspace data: the datasets are synthetic and live in the repository; rows are loaded
+ * from them by `pnpm eval:review load`, and the verdicts are exported back by `... export`.
+ * `content_hash` is what the reviewer saw; when an item changes, its verdict is cleared.
+ */
+export const evalReviewItem = pgTable(
+  "eval_review_item",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    set: text("set", { enum: REVIEW_SETS }).notNull(),
+    itemKey: text("item_key").notNull(),
+    position: integer("position").notNull(),
+    content: jsonb("content").$type<ReviewContent>().notNull(),
+    contentHash: text("content_hash").notNull(),
+    verdict: text("verdict", { enum: REVIEW_VERDICTS }),
+    note: text("note"),
+    reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("eval_review_item_set_key_uq").on(t.set, t.itemKey),
+    index("eval_review_item_set_position_idx").on(t.set, t.position),
+    check("eval_review_item_set_ck", sql.raw(`"set" IN (${REVIEW_SETS.map((v) => `'${v}'`).join(", ")})`)),
+    check(
+      "eval_review_item_verdict_ck",
+      sql.raw(`verdict IS NULL OR verdict IN (${REVIEW_VERDICTS.map((v) => `'${v}'`).join(", ")})`),
+    ),
+    // A verdict always has a time; a note only goes with a verdict.
+    check("eval_review_item_reviewed_ck", sql`(${t.verdict} IS NULL) = (${t.reviewedAt} IS NULL)`),
+    check("eval_review_item_note_ck", sql`${t.note} IS NULL OR ${t.verdict} IS NOT NULL`),
+    check("eval_review_item_note_len_ck", sql.raw(`note IS NULL OR char_length(note) <= ${REVIEW_NOTE_MAX}`)),
+    check("eval_review_item_hash_ck", sql`${t.contentHash} ~ '^[0-9a-f]{64}$'`),
+    check("eval_review_item_key_ck", sql`${t.itemKey} ~ '^[a-z0-9-]{1,40}$'`),
   ],
 );

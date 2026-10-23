@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Badge } from "@/components/ui/badge";
+import { isReviewer } from "@/server/modules/eval-review/service";
 import { can } from "@/server/platform/auth/permissions";
 import { NavLinks } from "./nav-links";
 import { requireAppWorkspace } from "./workspace-context";
@@ -17,6 +18,8 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
     { href: "/app/members", label: "Members" },
     ...(can(ctx.role, { settings: ["read"] }) ? [{ href: "/app/settings", label: "AI settings" }] : []),
     ...(can(ctx.role, { audit: ["read"] }) ? [{ href: "/app/audit", label: "Audit log" }] : []),
+    // The evaluation Review page: only for the reviewers named in EVAL_REVIEWER_EMAILS (M6 D2).
+    ...(isReviewer(ctx.user.email) ? [{ href: "/app/review", label: "Review" }] : []),
     { href: "/app/account", label: "Account" },
   ];
 

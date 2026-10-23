@@ -7,6 +7,8 @@ The retrieval eval is only as good as its labels. These 22 questions (every 5th 
 
 Mark each ✅ or ❌, and add a note if something is off. Any ❌ gets fixed and the eval re-run.
 
+> **Since M6, these checks are done on the Review page** (`/app/review`, "Help-centre questions"), one tap per question on a phone. The answers are exported to `eval/review/retrieval-labels.json`. This file stays as the readable list of the same 22 questions.
+
 ### q005: How long does a new password have to be?
 
 - **Article:** Reset your password

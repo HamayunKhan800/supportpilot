@@ -149,6 +149,36 @@ describe("apiRoute", () => {
     });
     expect((await bad.json()).instance).toBe("/api/v1/test/x");
   });
+
+  it("runs the gate before the origin, params and body are read, and stops there if it throws", async () => {
+    const seen: string[] = [];
+    const postOp = {
+      ...op,
+      method: "POST",
+      auth: "session",
+      body: z.strictObject({ ok: z.literal(true) }),
+    } as const;
+    const gated = (allow: boolean) =>
+      apiRoute(postOp, async () => (seen.push("handler"), {}), {
+        gate: async () => {
+          seen.push("gate");
+          if (!allow) throw new AppError(404, "not_found", "Not found");
+        },
+      });
+    // Cross-site, bad param and bad body: each would be 403, 404 or 400 without the gate.
+    const req = () =>
+      new Request("http://localhost:3000/api/v1/test/x", {
+        method: "POST",
+        headers: { cookie: "a=b", origin: "https://evil.example", "content-type": "application/json" },
+        body: "{}",
+      });
+    const denied = await gated(false)(req(), { params: Promise.resolve({ token: "x" }) });
+    expect(denied.status).toBe(404);
+    expect(seen).toEqual(["gate"]);
+    const allowed = await gated(true)(req(), { params: Promise.resolve({ token: "x" }) });
+    expect(allowed.status).toBe(403); // the gate passed, the usual checks still run
+    expect(seen).toEqual(["gate", "gate"]);
+  });
 });
 
 describe("serializers (opt-in fields only, matching the strict schemas)", () => {

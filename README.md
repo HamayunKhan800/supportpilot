@@ -104,21 +104,22 @@ docker compose --profile full up --build
 
 ## Scripts
 
-| Command                           | What it does                                                                                 |
-| --------------------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm check`                      | lint + typecheck + format check + unit tests                                                 |
-| `pnpm test:coverage`              | unit tests with coverage thresholds (80% lines/functions)                                    |
-| `pnpm test:integration`           | tests against real PostgreSQL (`TEST_DATABASE_URL`)                                          |
-| `pnpm test:smoke`                 | checks against a running server (`SMOKE_BASE_URL`) and worker (`SMOKE_DATABASE_URL`)         |
-| `pnpm test:e2e`                   | Playwright + axe against the production build (run `pnpm build` and `pnpm db:migrate` first) |
-| `pnpm build`                      | production build (needs **no** runtime secrets)                                              |
-| `pnpm worker`                     | background worker from source (needs only `DATABASE_URL` and `AI_PROVIDER`)                  |
-| `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                    |
-| `pnpm db:generate` / `db:migrate` | create / apply migrations                                                                    |
-| `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                    |
-| `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)               |
-| `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                     |
-| `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced) |
+| Command                           | What it does                                                                                                    |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`                      | lint + typecheck + format check + unit tests                                                                    |
+| `pnpm test:coverage`              | unit tests with coverage thresholds (80% lines/functions)                                                       |
+| `pnpm test:integration`           | tests against real PostgreSQL (`TEST_DATABASE_URL`)                                                             |
+| `pnpm test:smoke`                 | checks against a running server (`SMOKE_BASE_URL`) and worker (`SMOKE_DATABASE_URL`)                            |
+| `pnpm test:e2e`                   | Playwright + axe against the production build (run `pnpm build` and `pnpm db:migrate` first)                    |
+| `pnpm build`                      | production build (needs **no** runtime secrets)                                                                 |
+| `pnpm worker`                     | background worker from source (needs only `DATABASE_URL` and `AI_PROVIDER`)                                     |
+| `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                                       |
+| `pnpm db:generate` / `db:migrate` | create / apply migrations                                                                                       |
+| `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                                       |
+| `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)                                  |
+| `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                                        |
+| `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced)                    |
+| `pnpm eval:review`                | `load` the human spot-check items into the database, `status`, or `export` the verdicts to `eval/review/*.json` |
 
 ## Configuration
 
@@ -139,6 +140,7 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `AI_PROVIDER`                                                     | `mock` (must be set in production) | `gemini` for real embeddings, triage and drafts; `mock` for deterministic offline AI (tests, local work). Production must choose explicitly, so a deployment never silently runs on fake AI                                                                    |
 | `GEMINI_API_KEY`                                                  | none                               | Google AI Studio key, required when `AI_PROVIDER=gemini`. Free-tier inputs may be used by Google to improve its products: demo data only                                                                                                                       |
 | `AI_DAILY_CALL_LIMIT`                                             | `200`                              | Triage + draft calls per day for the whole deployment, counted per Pacific-time day (when Google resets free quotas). `0` turns AI generation off                                                                                                              |
+| `EVAL_REVIEWER_EMAILS`                                            | none                               | Sign-in emails (comma-separated) allowed to open the evaluation Review page, `/app/review`. Unset: off (no link; the page and its API answer 404)                                                                                                              |
 | `LOG_LEVEL`, `DATABASE_POOL_MAX`, `DATABASE_STATEMENT_TIMEOUT_MS` | `info`, `10`, `10000`              | Logging and database tuning                                                                                                                                                                                                                                    |
 
 ## Operational endpoints

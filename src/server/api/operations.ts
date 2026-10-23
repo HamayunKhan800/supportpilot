@@ -49,7 +49,8 @@ export interface Operation<
   path: string;
   summary: string;
   description?: string;
-  tag: "Portal" | "Tickets" | "Drafts" | "Knowledge" | "Settings" | "Meta";
+  /** "Internal": project tooling outside /api/v1, never in the OpenAPI document. */
+  tag: "Portal" | "Tickets" | "Drafts" | "Knowledge" | "Settings" | "Meta" | "Internal";
   /** public: no credentials · session: signed-in workspace member · tracking-token: secret path token. */
   auth: "public" | "session" | "tracking-token";
   /**

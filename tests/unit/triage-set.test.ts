@@ -41,7 +41,7 @@ describe("triage evaluation set (M6 D1)", () => {
   });
 
   it("names a rubric rule that sets each ticket's priority", () => {
-    for (const t of set) expect(RUBRIC_RULES[t.rule], t.key).toBe(t.expected.priority);
+    for (const t of set) expect(RUBRIC_RULES[t.rule].priority, t.key).toBe(t.expected.priority);
   });
 
   it("labels every feature request low (rule L1), whatever its tone", () => {
