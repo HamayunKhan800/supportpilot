@@ -2,16 +2,46 @@
 
 AI-assisted customer support with **grounded, cited answers** and a **human in the loop**.
 
-> 🚧 **Status: M0–M3 complete (foundation, accounts, workspaces, roles, ticketing). M4 knowledge base built and tested; the Gemini retrieval baseline is the last open item.** AI drafts arrive in M5–M6. See the [roadmap](docs/00-research-and-plan.md#5-implementation-roadmap-one-verifiable-milestone-at-a-time).
+> 🚧 **Status: M0–M5 complete:** accounts, workspaces and roles, ticketing, a knowledge base, and AI triage and cited reply drafts, tested against real Gemini models. Next: M6, an evaluation dashboard and monitoring. See the [roadmap](docs/00-research-and-plan.md#5-implementation-roadmap-one-verifiable-milestone-at-a-time).
 
 ## Tech stack
 
 TypeScript (strict) · Next.js 16 (App Router) · React 19 · Node.js 24 LTS · PostgreSQL 17 + pgvector · Drizzle ORM · Better Auth · Tailwind CSS + shadcn/ui · Zod · pino · Vitest · Playwright + axe · Docker · GitHub Actions.
 Reasons for each choice are in [`docs/adr/`](docs/adr/).
 
-## What works today (M4)
+## What works today (M5)
 
-**Knowledge base** (the help articles AI drafts will cite in M5)
+**AI triage and reply drafts**
+
+- **Triage:** a background job labels every new ticket with a category, priority, sentiment, language, confidence and a short reason (Gemini structured output, validated with Zod). Labels at or above the workspace's threshold (default 0.7) are applied; lower ones wait for an agent under **Needs review**. A label set by a person is never overwritten.
+- **Reply drafts grounded in the knowledge base:** the 5 best-matching passages go to the model, and the draft streams in with numbered **citations** the agent can open. Citations are checked against the passages actually given, and unknown links, hidden characters and leaked prompt text are flagged. If the knowledge base has nothing relevant, the draft is **refused**: without any AI call when no passage scores high enough, or by the model when the passages don't contain the answer. **Nothing is sent until an agent approves it**; agents can edit, preview what the customer will see, and rate the draft.
+- **One gateway for every model call:** an AI on/off switch and a monthly token budget per workspace, a daily call cap for the whole deployment (one atomic database update, so parallel workers can't overshoot it), timeouts, a circuit breaker per model, and a **fallback model** when the draft model is overloaded. A 429 is never rerouted, so the provider's rate limits are respected ([ADR-0015](docs/adr/0015-text-generation-gateway.md), [ADR-0016](docs/adr/0016-draft-model-fallback.md)). Every call is recorded with tokens, estimated cost and latency; prompts and answers are never logged.
+- **Prompt-injection defences** (OWASP LLM Top 10 2026): ticket text and articles are treated as untrusted data, hidden characters are stripped and the agent is warned, and AI output is rendered as plain text. A **20-case attack set** (12 in tickets, 8 in poisoned help articles) runs in CI.
+- **AI settings page** with this month's usage and cost per feature, the budget, the auto-apply threshold and the categories. Every change is in the audit log.
+
+**Measured on real Gemini models** (free tier, 2026-10-23; small samples, details and limits in the [smoke-run report](docs/eval/ai-smoke-2026-10-23.md)):
+
+| Check                                 | Result                                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Triage category (20 labelled tickets) | 90% correct (target ≥ 85%); priority 65%                                                                |
+| Answerable questions                  | 10/10 drafts with the right article cited, 0 invalid citations                                          |
+| Unanswerable questions                | 10/10 refused                                                                                           |
+| Prompt-injection attacks              | 19/20 resisted; the one that worked (a false policy in an article) was cited, so the agent can check it |
+| Cost at paid-tier prices              | about $0.0003 per triage and $0.0006 per draft                                                          |
+
+The run also found two problems, both fixed and tested: the draft model was overloaded (now a fallback model takes over) and a timeout that didn't apply while the provider held a request (findings #95–#96 in the [milestone log](docs/milestones.md)).
+
+| Ticket with AI triage and a cited draft (mock AI)                     | AI settings and usage                                       |
+| --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| ![Ticket with AI draft](docs/screenshots/m5-ticket-draft-desktop.png) | ![AI settings](docs/screenshots/m5-ai-settings-desktop.png) |
+
+| A citation opened                                     | Draft on a phone                                          |
+| ----------------------------------------------------- | --------------------------------------------------------- |
+| ![Citation](docs/screenshots/m5-citation-desktop.png) | ![Draft on a phone](docs/screenshots/m5-draft-mobile.png) |
+
+Screenshots use the offline mock AI, which builds its answer from the retrieved passages; real Gemini drafts are in the report above.
+
+**Knowledge base** (the help articles AI drafts cite)
 
 - Admins upload **Markdown, text or PDF** files. Uploads follow the OWASP file-upload rules: extension allowlist plus content check, size and quota limits, and files are never served back.
 - A **background worker** (pg-boss on PostgreSQL) extracts text, splits it into passages and embeds them. **PDFs are parsed in a sandboxed thread** with a memory cap and a hard 30 s kill ([ADR-0013](docs/adr/0013-embeddings-and-pdf-sandbox.md)). Temporary failures are retried; bad files fail with a plain-language reason.
@@ -57,7 +87,7 @@ docker compose up -d db             # PostgreSQL 17 + pgvector (creates the test
 pnpm install --frozen-lockfile
 pnpm db:migrate                     # apply SQL migrations + install job queues
 pnpm dev                            # http://localhost:3000
-pnpm worker                         # background jobs (document ingestion), in a second terminal
+pnpm worker                         # background jobs (document ingestion, triage), in a second terminal
 DEMO_PASSWORD='choose a long passphrase' pnpm db:seed-demo   # optional demo workspace
 ```
 
@@ -88,6 +118,7 @@ docker compose --profile full up --build
 | `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                    |
 | `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)               |
 | `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                     |
+| `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced) |
 
 ## Configuration
 
@@ -105,7 +136,7 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `TRUST_PROXY_HEADERS`                                             | `false`                            | Read the client IP from `X-Forwarded-For` for per-IP portal limits. **Enable only behind a proxy that overwrites that header.** Otherwise anyone can fake their IP. While off, all clients share one per-IP bucket ([AR-004](docs/security/accepted-risks.md)) |
 | `CSP_FRAME_ANCESTORS`                                             | `'none'`                           | Origins allowed to embed the app in a frame. Read by the proxy: an invalid value falls back to `'none'` (no framing) instead of stopping the server                                                                                                            |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`                       | none                               | Optional GitHub sign-in                                                                                                                                                                                                                                        |
-| `AI_PROVIDER`                                                     | `mock` (must be set in production) | `gemini` for real embeddings, `mock` for deterministic offline embeddings (tests, local work). Production must choose explicitly, so a deployment never silently runs on fake embeddings                                                                       |
+| `AI_PROVIDER`                                                     | `mock` (must be set in production) | `gemini` for real embeddings, triage and drafts; `mock` for deterministic offline AI (tests, local work). Production must choose explicitly, so a deployment never silently runs on fake AI                                                                    |
 | `GEMINI_API_KEY`                                                  | none                               | Google AI Studio key, required when `AI_PROVIDER=gemini`. Free-tier inputs may be used by Google to improve its products: demo data only                                                                                                                       |
 | `AI_DAILY_CALL_LIMIT`                                             | `200`                              | Triage + draft calls per day for the whole deployment, counted per Pacific-time day (when Google resets free quotas). `0` turns AI generation off                                                                                                              |
 | `LOG_LEVEL`, `DATABASE_POOL_MAX`, `DATABASE_STATEMENT_TIMEOUT_MS` | `info`, `10`, `10000`              | Logging and database tuning                                                                                                                                                                                                                                    |
@@ -126,12 +157,19 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `DELETE /api/v1/kb/documents/{id}`             | admin or owner              |
 | `POST /api/v1/kb/documents/{id}/retry`         | admin or owner              |
 | `POST /api/v1/kb/search` (test search)         | admin or owner              |
+| `POST /api/v1/tickets/{id}/drafts` (streamed)  | workspace member            |
+| `POST /api/v1/drafts/{id}/send`                | workspace member            |
+| `POST /api/v1/drafts/{id}/discard`             | workspace member            |
+| `POST /api/v1/drafts/{id}/feedback`            | workspace member            |
+| `POST /api/v1/tickets/{id}/triage/accept`      | workspace member            |
+| `GET /api/v1/settings/ai`                      | workspace member            |
+| `PATCH /api/v1/settings/ai`                    | admin or owner              |
 
 Agent endpoints use the browser session and accept writes only from the app's own origin.
 
 ## Quality gates (CI)
 
-Lint (incl. accessibility rules, zero warnings) · strict typecheck · Prettier · unit tests + coverage · integration tests on PostgreSQL + pgvector · production build + smoke tests · Playwright E2E + axe accessibility scans (fail on any CSP violation) · fail-fast config check · Docker build + container smoke (non-root, HEALTHCHECK) · CodeQL · gitleaks · dependency review · `pnpm audit` (production deps blocking). All actions are pinned to commit SHAs. Dependabot keeps them current.
+Lint (incl. accessibility rules, zero warnings) · strict typecheck · Prettier · unit tests + coverage · integration tests on PostgreSQL + pgvector (including the 20-case prompt-injection set) · production build + smoke tests · Playwright E2E + axe accessibility scans (fail on any CSP violation) · fail-fast config check · Docker build + container smoke (non-root, HEALTHCHECK) · CodeQL · gitleaks · dependency review · `pnpm audit` (production deps blocking). All actions are pinned to commit SHAs. Dependabot keeps them current.
 
 ## Documentation
 
@@ -146,7 +184,9 @@ Lint (incl. accessibility rules, zero warnings) · strict typecheck · Prettier 
 | [Accepted risks](docs/security/accepted-risks.md)         | Known limitations with mitigations and a revisit date                |
 | [M3 plan](docs/plans/m3-ticketing.md)                     | Ticketing design decisions D1–D10 and the "done when" list           |
 | [M4 plan](docs/plans/m4-knowledge-base.md)                | Knowledge-base decisions D1–D14 and the "done when" list             |
+| [M5 plan](docs/plans/m5-ai-features.md)                   | AI features: models, guardrails, the injection set, "done when"      |
 | [Retrieval baseline](docs/eval/retrieval-baseline.md)     | Search quality method, results and limitations                       |
+| [Gemini smoke run](docs/eval/ai-smoke-2026-10-23.md)      | Triage, draft and prompt-injection results with real models          |
 | [Milestone log](docs/milestones.md)                       | What was built and verified in each milestone                        |
 | [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Workflow, AI-assisted development policy, vulnerability reporting    |
 

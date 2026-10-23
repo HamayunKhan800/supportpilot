@@ -23,7 +23,7 @@ export function TriageCard({ triage, ticket, threshold, now }: Props) {
   if (!triage && now - ticket.createdAt.getTime() > PENDING_WINDOW_MS) return null;
 
   return (
-    <Card className="self-start" data-testid="triage-card">
+    <Card data-testid="triage-card">
       <CardHeader>
         <CardTitle>
           <h2>AI triage</h2>

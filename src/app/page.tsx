@@ -5,8 +5,12 @@ const milestones = [
   { id: "M1", label: "Foundation: CI, database, health checks", done: true },
   { id: "M2", label: "Authentication & multi-tenancy", done: true },
   { id: "M3", label: "Ticketing: portal, inbox, REST API", done: true },
-  { id: "M4", label: "Knowledge base ingestion", done: false },
-  { id: "M5", label: "AI triage & grounded drafts", done: false },
+  { id: "M4", label: "Knowledge base ingestion", done: true },
+  { id: "M5", label: "AI triage & grounded drafts", done: true },
+  { id: "M6", label: "AI evaluation & observability", done: false },
+  { id: "M7", label: "Security review", done: false },
+  { id: "M8", label: "Deployment", done: false },
+  { id: "M9", label: "Portfolio packaging", done: false },
 ];
 
 export default function Home() {

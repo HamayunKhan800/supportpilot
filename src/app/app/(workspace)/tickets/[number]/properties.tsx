@@ -77,7 +77,7 @@ export function TicketProperties({ ticket, assignees, categories, currentUserId 
     ticket.category && !categories.includes(ticket.category) ? [...categories, ticket.category] : categories;
 
   return (
-    <Card className="self-start">
+    <Card>
       <CardHeader>
         <CardTitle>
           <h2>Details</h2>
