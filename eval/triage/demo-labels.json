@@ -1,8 +1,8 @@
 {
-  "rubric": "docs/eval/triage-rubric.md (version 1)",
-  "status": "Proposed 2026-10-23; changes wait for the project owner's approval on the Review page.",
+  "rubric": "docs/eval/triage-rubric.md (version 1.1)",
+  "status": "Reviewed 2026-10-23. Every decision is recorded in `review` and applied to the demo seed (src/server/modules/tickets/demo/tickets.ts). nim-01, nim-07, nim-08 and nim-11 were decided by the project owner on the Review page; nim-15, nim-16 and nim-17 by the AI assistant, because the owner asked it to finish the review.",
   "dataIssues": [
-    "nim-01, nim-11 and nim-16 mention 'Pro' and 'Team' plans, which don't exist in the help articles (Free, Personal, Family, Business). `proposedMessage` rewords them to real plans without changing what is asked; nim-16 also says the plan renewed, so the label doesn't depend on the billing date."
+    "Resolved 2026-10-23: nim-01, nim-11 and nim-16 named 'Pro' and 'Team' plans, which don't exist in the help articles (Free, Personal, Family, Business). They now name real plans; nim-16 also says the plan renewed, so its label doesn't depend on the billing date."
   ],
   "labels": [
     {
@@ -14,7 +14,11 @@
         "language": "en"
       },
       "rule": "H2",
-      "proposedMessage": "Hi, my card was charged twice for the Personal annual plan on the same day. I only have one account. Could you refund the duplicate charge?"
+      "review": {
+        "proposed": "New wording: Hi, my card was charged twice for the Personal annual plan on the same day. I only have one account. Could you refund the duplicate charge?",
+        "decision": "Wording approved.",
+        "decidedBy": "owner (Review page)"
+      }
     },
     {
       "key": "nim-02",
@@ -75,18 +79,26 @@
         "language": "en"
       },
       "rule": "N1",
-      "change": "priority high → normal: the desktop app uploads files up to 50 GB, so there is a workaround (N1)."
+      "review": {
+        "proposed": "priority high → normal: the desktop app uploads files up to 50 GB, so there is a workaround (N1).",
+        "decision": "Approved: high → normal.",
+        "decidedBy": "owner (Review page)"
+      }
     },
     {
       "key": "nim-08",
       "expected": {
         "category": "account",
-        "priority": "normal",
+        "priority": "high",
         "sentiment": "neutral",
         "language": "en"
       },
-      "rule": "N2",
-      "change": "priority high → normal: a deletion request is an account change; nothing is blocked (N2)."
+      "rule": "H4",
+      "review": {
+        "proposed": "priority high → normal: a deletion request is an account change; nothing is blocked (N2).",
+        "decision": "Rejected: stays high. Rubric 1.1 adds H4 (deletion requests have a legal deadline).",
+        "decidedBy": "owner (Review page)"
+      }
     },
     {
       "key": "nim-09",
@@ -112,13 +124,16 @@
       "key": "nim-11",
       "expected": {
         "category": "billing",
-        "priority": "normal",
+        "priority": "low",
         "sentiment": "neutral",
         "language": "en"
       },
-      "rule": "N2",
-      "change": "priority low → normal: a pre-sales question with no \"no rush\" (N2, not L2).",
-      "proposedMessage": "We're a small charity with eight volunteers. Is there a nonprofit discount for the Business plan?"
+      "rule": "L2",
+      "review": {
+        "proposed": "priority low → normal: a pre-sales question with no \"no rush\" (N2, not L2). New wording: We're a small charity with eight volunteers. Is there a nonprofit discount for the Business plan?",
+        "decision": "Wording approved; label change rejected, stays low (owner's note: 'a routine nonprofit discount inquiry with no stated urgency'). Rubric 1.1 widens L2 to price questions before buying.",
+        "decidedBy": "owner (Review page)"
+      }
     },
     {
       "key": "nim-12",
@@ -159,7 +174,11 @@
         "language": "en"
       },
       "rule": "N2",
-      "change": "priority low → normal: under the injection text the request is a how-to question (N2)."
+      "review": {
+        "proposed": "priority low → normal: under the injection text the request is a how-to question (N2).",
+        "decision": "Approved: low → normal. A how-to question under rubric N2, like every other how-to question in the set; the injection text doesn't change what is asked.",
+        "decidedBy": "AI assistant (at the owner's request)"
+      }
     },
     {
       "key": "nim-16",
@@ -170,9 +189,11 @@
         "language": "en"
       },
       "rule": "H2",
-      "change": "priority normal → high: charged the old price after the downgrade took effect (H2). The original text is ambiguous, because downgrades take effect at the end of the billing period; the proposed wording says the plan already renewed.",
-      "proposedSubject": "Plan downgrade didn't lower my bill",
-      "proposedMessage": "I downgraded from Family to Personal two weeks ago. My plan renewed yesterday, but I was still charged the Family price."
+      "review": {
+        "proposed": "priority normal → high: charged the old price after the downgrade took effect (H2). The original text is ambiguous, because downgrades take effect at the end of the billing period; the proposed wording says the plan already renewed. New wording: I downgraded from Family to Personal two weeks ago. My plan renewed yesterday, but I was still charged the Family price.",
+        "decision": "Approved: wording and normal → high (H2: charged the old price after the downgrade took effect).",
+        "decidedBy": "AI assistant (at the owner's request)"
+      }
     },
     {
       "key": "nim-17",
@@ -183,7 +204,11 @@
         "language": "en"
       },
       "rule": "N2",
-      "change": "category account → how-to: inviting team members is using a feature (rubric: how-to)."
+      "review": {
+        "proposed": "category account → how-to: inviting team members is using a feature (rubric: how-to).",
+        "decision": "Approved: account → how-to (managing team members is how-to in the rubric).",
+        "decidedBy": "AI assistant (at the owner's request)"
+      }
     },
     {
       "key": "nim-18",

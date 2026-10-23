@@ -58,44 +58,55 @@ export function labelChangeItems(
   labels: readonly DemoLabel[] = loadDemoLabelFile().labels,
 ): ReviewItemSeed[] {
   const tickets = new Map(DEMO_TICKETS.map((t) => [t.key, t]));
-  return labels
-    .filter((l) => l.change || l.proposedMessage)
-    .map((l, i) => {
-      const t = tickets.get(l.key);
-      if (!t) throw new Error(`${l.key} is not a demo ticket`);
-      const relabel = Boolean(l.change);
-      const reword = Boolean(l.proposedMessage);
-      const fields: ReviewContentInput["fields"] = [
-        { label: "Customer's message", value: t.message, kind: "quote" },
-      ];
-      if (reword) fields.push({ label: "Proposed wording", value: l.proposedMessage!, kind: "quote" });
-      fields.push({ label: "Current labels", value: `${t.expected.category} · ${t.expected.priority}` });
-      if (relabel) {
-        fields.push({
-          label: "Proposed labels",
-          value: `${l.expected.category} · ${l.expected.priority} (${ruleText(l.rule)})`,
-        });
-      }
-      fields.push({
-        label: "Why",
-        value:
-          l.change ??
-          "The message names a plan that doesn't exist in the help articles (they have Free, Personal, Family and Business). The new wording uses a real plan and asks the same thing.",
-      });
-      const what =
-        relabel && reword
-          ? "the new labels and the new wording"
-          : relabel
-            ? "the new labels"
-            : "the new wording";
-      return seed("label-changes", l.key, i + 1, {
-        title: `${l.key}: ${t.subject}`,
-        fields,
-        question: `Approve ${what}?`,
-        agreeLabel: "Approve",
-        disagreeLabel: "Keep the old version",
-      });
-    });
+  const items: ReviewItemSeed[] = [];
+  // One question per item: a label change and a rewording of the same ticket are asked
+  // separately, so one tap never has to answer two questions (finding #101).
+  for (const l of labels) {
+    if (!l.change && !l.proposedMessage) continue;
+    const t = tickets.get(l.key);
+    if (!t) throw new Error(`${l.key} is not a demo ticket`);
+    const message = { label: "Customer's message", value: t.message, kind: "quote" } as const;
+    const current = { label: "Current labels", value: `${t.expected.category} · ${t.expected.priority}` };
+    if (l.change) {
+      items.push(
+        seed("label-changes", `${l.key}-labels`, items.length + 1, {
+          title: `${l.key}: ${t.subject}`,
+          fields: [
+            message,
+            current,
+            {
+              label: "Proposed labels",
+              value: `${l.expected.category} · ${l.expected.priority} (${ruleText(l.rule)})`,
+            },
+            { label: "Why", value: l.change },
+          ],
+          question: "Approve the new labels?",
+          agreeLabel: "Approve",
+          disagreeLabel: "Keep the old labels",
+        }),
+      );
+    }
+    if (l.proposedMessage) {
+      items.push(
+        seed("label-changes", `${l.key}-wording`, items.length + 1, {
+          title: `${l.key}: ${t.subject}`,
+          fields: [
+            message,
+            { label: "Proposed wording", value: l.proposedMessage, kind: "quote" },
+            {
+              label: "Why",
+              value:
+                "The message names a plan that doesn't exist in the help articles (they have Free, Personal, Family and Business). The new wording uses a real plan and asks the same thing.",
+            },
+          ],
+          question: "Approve the new wording?",
+          agreeLabel: "Approve",
+          disagreeLabel: "Keep the old wording",
+        }),
+      );
+    }
+  }
+  return items;
 }
 
 export function triageLabelItems(set: readonly TriageSetItem[] = loadTriageSet()): ReviewItemSeed[] {

@@ -1,5 +1,5 @@
 {
-  "rubric": "docs/eval/triage-rubric.md (version 1)",
+  "rubric": "docs/eval/triage-rubric.md (version 1.1)",
   "about": "Synthetic triage test tickets for the fictional Nimbus Cloud Storage, written with AI assistance and labelled by the rubric. Every person and address is invented; emails use .test (RFC 2606).",
   "tickets": [
     {
@@ -260,7 +260,7 @@
       "expected": {
         "category": "billing",
         "priority": "low",
-        "sentiment": "positive",
+        "sentiment": "neutral",
         "language": "pt"
       },
       "rule": "L2",
@@ -272,13 +272,13 @@
       "message": "URGENT PLEASE ANSWER ASAP!!! What's the difference between paying monthly and yearly for Personal? Is yearly cheaper?",
       "expected": {
         "category": "billing",
-        "priority": "normal",
+        "priority": "low",
         "sentiment": "neutral",
         "language": "en"
       },
-      "rule": "N2",
+      "rule": "L2",
       "tags": ["claims-urgent"],
-      "note": "M1: the urgency words don't change a pricing question (N2)."
+      "note": "M1: the urgency words don't change a pricing question (N2). Rubric 1.1: price questions before buying are low (L2), after the owner's decision on nim-11. The shouting doesn't count (M1)."
     },
     {
       "key": "tri-022",
@@ -726,13 +726,13 @@
       "message": "Hallo, mein Konto ist nach mehreren falschen Passwörtern gesperrt. Ich brauche die Dateien heute für meine Steuererklärung. Wie komme ich wieder hinein?",
       "expected": {
         "category": "account",
-        "priority": "high",
+        "priority": "normal",
         "sentiment": "neutral",
         "language": "de"
       },
-      "rule": "H1",
+      "rule": "N1",
       "tags": ["non-english", "ambiguous"],
-      "note": "The help articles say sign-in unlocks after 15 minutes. The label follows what the customer reports (blocked from the files they need today, M3); a model choosing normal is defensible, so this ticket is tagged ambiguous."
+      "note": "The help articles say sign-in unlocks after 15 minutes, and the password can be reset during the lock: a problem with a workaround (N1), the same reasoning the owner approved for nim-07. Corrected from high (H1) in the 2026-10-23 spot-check."
     },
     {
       "key": "tri-056",
@@ -806,12 +806,13 @@
       "message": "I'm moving to another service. Please delete my account and everything in it. I've already downloaded what I need. Thanks for the years of service.",
       "expected": {
         "category": "account",
-        "priority": "normal",
+        "priority": "high",
         "sentiment": "positive",
         "language": "en"
       },
-      "rule": "N2",
-      "tags": ["positive"]
+      "rule": "H4",
+      "tags": ["positive"],
+      "note": "Rubric 1.1: deletion requests are high (H4), after the owner's decision on nim-08."
     },
     {
       "key": "tri-062",
@@ -1134,7 +1135,7 @@
       "expected": {
         "category": "how-to",
         "priority": "low",
-        "sentiment": "positive",
+        "sentiment": "neutral",
         "language": "en"
       },
       "rule": "L2",
@@ -1467,12 +1468,13 @@
       "message": "Hi! I run a photography school with 3,000 students. We'd love to talk about a partnership or reseller discount. Who's the right person?",
       "expected": {
         "category": "other",
-        "priority": "normal",
+        "priority": "low",
         "sentiment": "positive",
         "language": "en"
       },
-      "rule": "N2",
-      "tags": ["positive"]
+      "rule": "L2",
+      "tags": ["positive"],
+      "note": "Rubric 1.1: discount enquiries before buying are low (L2), after the owner's decision on nim-11."
     },
     {
       "key": "tri-111",

@@ -91,6 +91,14 @@ const demoLabelsSchema = z.strictObject({
           /** Proposed rewording (wrong plan names), waiting for the owner's review. */
           proposedSubject: z.string().trim().min(3).max(200).optional(),
           proposedMessage: z.string().trim().min(10).max(10_000).optional(),
+          /** A reviewed change: what was proposed, what was decided and by whom (applied to the seed). */
+          review: z
+            .strictObject({
+              proposed: z.string().min(5),
+              decision: z.string().min(5),
+              decidedBy: z.enum(["owner (Review page)", "AI assistant (at the owner's request)"]),
+            })
+            .optional(),
         })
         .refine(ruleMatchesPriority, ruleError),
     )

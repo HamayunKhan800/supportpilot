@@ -1,0 +1,66 @@
+{
+  "set": "label-changes",
+  "title": "Proposed label changes",
+  "total": 7,
+  "reviewed": 4,
+  "agreed": 3,
+  "agreement": {
+    "successes": 3,
+    "n": 4,
+    "rate": 0.75,
+    "low": 0.30064184258240184,
+    "high": 0.9544127391902995
+  },
+  "summary": "4 of 7 checked; marked correct: 75% (30–95%, n=4); 3 still to check",
+  "items": [
+    {
+      "key": "nim-01",
+      "verdict": "agree",
+      "note": null,
+      "reviewedAt": "2026-10-23T08:33:00.763Z",
+      "contentHash": "9df5cb1a97b825fc51fcac7a8b33c02083e266f0d4da48878432f61f11c656ac"
+    },
+    {
+      "key": "nim-07",
+      "verdict": "agree",
+      "note": null,
+      "reviewedAt": "2026-10-23T08:33:39.135Z",
+      "contentHash": "4b1752af6d82bdb2026f4f521e3cba2f5b6c497161f84e69f677cc99bab1499d"
+    },
+    {
+      "key": "nim-08",
+      "verdict": "disagree",
+      "note": null,
+      "reviewedAt": "2026-10-23T08:34:05.917Z",
+      "contentHash": "009ca5291c3eeb7bb9ba4f848857e7b065767e44d97ee9c42af9967cf789b13e"
+    },
+    {
+      "key": "nim-11",
+      "verdict": "agree",
+      "note": "Approve the new wording, but reject the proposed labels.\nWording: Approve changing “Team plan” to “Business plan” if Business is the correct available plan.\nLabels: Keep billing · low. This is a routine nonprofit discount inquiry with no stated urgency. The absence of “no rush” alone doesn't justify increasing priority to normal.",
+      "reviewedAt": "2026-10-23T08:35:06.243Z",
+      "contentHash": "affe269e77277aa9d276dfa8bb6bb25cd953299fc39742e7f684f25438fd35eb"
+    },
+    {
+      "key": "nim-15",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "f6419fd55e823935ce76b6e7231e40a49a9cc0d929d8557bab158135125a5e79"
+    },
+    {
+      "key": "nim-16",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "57b15e74aa82351e56e73cabed5d6ef1e580979caf31dcdc5448e383b417b4d0"
+    },
+    {
+      "key": "nim-17",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "a836f373bbf9e2060f26b8f9edaaac0cecccea152047c32fba1651b203db9dac"
+    }
+  ]
+}

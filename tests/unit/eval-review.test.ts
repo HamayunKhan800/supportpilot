@@ -87,19 +87,55 @@ describe("review sample (mechanical, 20%)", () => {
     expect(retrievalLabelItems().map((i) => i.itemKey)).toEqual(listed);
   });
 
-  it("asks about every proposed label change and rewording, and nothing else", () => {
-    const pending = loadDemoLabelFile()
-      .labels.filter((l) => l.change || l.proposedMessage)
-      .map((l) => l.key);
-    expect(labelChangeItems().map((i) => i.itemKey)).toEqual(pending);
-    expect(pending).toEqual(["nim-01", "nim-07", "nim-08", "nim-11", "nim-15", "nim-16", "nim-17"]);
+  it("keeps the AI spot-check record in step with the sample, labelled as an AI check", () => {
+    const record = JSON.parse(readFileSync("eval/review/ai-check-2026-10-23.json", "utf8")) as {
+      checkedBy: string;
+      items: { set: string; key: string; verdict: string; note: string | null }[];
+    };
+    expect(record.checkedBy).toMatch(/^AI assistant.*NOT a human review/);
+    const sample = [...triageLabelItems(), ...retrievalLabelItems()].map((i) => [i.set, i.itemKey]);
+    expect(record.items.map((i) => [i.set, i.key])).toEqual(sample);
+    for (const i of record.items) {
+      expect(["agree", "disagree", "unclear"]).toContain(i.verdict);
+      if (i.verdict !== "agree") expect(i.note?.length ?? 0, i.key).toBeGreaterThan(40); // every finding is explained
+    }
   });
 
-  it("asks the right question for each kind of change", () => {
-    const q = new Map(labelChangeItems().map((i) => [i.itemKey, i.content.question]));
-    expect(q.get("nim-01")).toBe("Approve the new wording?");
-    expect(q.get("nim-07")).toBe("Approve the new labels?");
-    expect(q.get("nim-16")).toBe("Approve the new labels and the new wording?");
+  it("has no label changes left to ask about once every decision is applied", () => {
+    expect(labelChangeItems()).toEqual([]);
+    expect(loadDemoLabelFile().labels.filter((l) => l.review)).toHaveLength(7);
+  });
+
+  it("asks one question per item: labels and wording separately", () => {
+    const [nim16] = loadDemoLabelFile().labels.filter((l) => l.key === "nim-16");
+    const proposal = {
+      ...nim16!,
+      expected: { ...nim16!.expected, priority: "urgent" as const },
+      rule: "U2" as const,
+      change: "priority high → urgent: test proposal.",
+      proposedMessage: "I downgraded two weeks ago and was charged the old price at renewal.",
+    };
+    const nim07 = {
+      ...loadDemoLabelFile().labels.find((l) => l.key === "nim-07")!,
+      proposedMessage: "Uploads over 2 GB fail at 99% in Chrome.",
+    };
+    const items = labelChangeItems([proposal, nim07]);
+    expect(items.map((i) => [i.itemKey, i.content.question])).toEqual([
+      ["nim-16-labels", "Approve the new labels?"],
+      ["nim-16-wording", "Approve the new wording?"],
+      ["nim-07-wording", "Approve the new wording?"],
+    ]);
+    expect(items.map((i) => i.position)).toEqual([1, 2, 3]);
+    const labels = items[0]!.content.fields.map((f) => f.label);
+    expect(labels).toEqual(["Customer's message", "Current labels", "Proposed labels", "Why"]);
+    expect(items[0]!.content.fields[2]!.value).toBe(
+      "billing · urgent (rule U2: Data being lost now, or the trash period ends within 7 days)",
+    );
+    expect(items[1]!.content.fields.map((f) => f.label)).toEqual([
+      "Customer's message",
+      "Proposed wording",
+      "Why",
+    ]);
   });
 
   it("shows the rule behind each triage priority and the reference answer for each question", () => {
@@ -115,7 +151,7 @@ describe("review sample (mechanical, 20%)", () => {
 
   it("builds valid, uniquely keyed items in page order", () => {
     const items = buildReviewItems();
-    expect(items).toHaveLength(7 + 30 + 22);
+    expect(items).toHaveLength(30 + 22);
     expect(new Set(items.map((i) => `${i.set}/${i.itemKey}`)).size).toBe(items.length);
     for (const i of items) {
       expect(reviewContent.parse(i.content)).toEqual(i.content);

@@ -1,0 +1,318 @@
+{
+  "checkedBy": "AI assistant, at the project owner's request (2026-10-23). NOT a human review: the same kind of model wrote these labels.",
+  "method": "Each triage label re-derived from docs/eval/triage-rubric.md (v1.1), with every feature or limit it depends on looked up in the help articles (eval/corpus/nimbus). Each retrieval question checked for plausibility, and every fact in its passage and reference answer found in its article and read in context.",
+  "items": [
+    {
+      "set": "triage-labels",
+      "key": "nim-05",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "nim-10",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "nim-15",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "nim-20",
+      "verdict": "unclear",
+      "note": "Feature request (T4) assumes Nimbus can't sync a folder on an external drive. The desktop article lets you choose where the Nimbus folder goes but never mentions external drives, so how-to is also defensible. Label kept; a human should decide."
+    },
+    {
+      "set": "triage-labels",
+      "key": "nim-25",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-005",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-010",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-015",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-020",
+      "verdict": "disagree",
+      "note": "Sentiment was positive; the message is a friendly but factual question (rubric: politeness alone is not positive). Fixed: neutral."
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-025",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-030",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-035",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-040",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-045",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-050",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-055",
+      "verdict": "disagree",
+      "note": "Priority was high (H1, no workaround). The help articles say the lock lasts 15 minutes and the password can be reset meanwhile, so there is a workaround (N1), as the owner decided for nim-07. Fixed: normal."
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-060",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-065",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-070",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-075",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-080",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-085",
+      "verdict": "disagree",
+      "note": "Sentiment was positive; 'No rush … Thanks!' is politeness, not a happy or thankful main tone. Fixed: neutral."
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-090",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-095",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-100",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-105",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-110",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-115",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-120",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "triage-labels",
+      "key": "tri-125",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q005",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q010",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q015",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q020",
+      "verdict": "agree",
+      "note": "The article says both 'removed automatically' and 'suspended'; the reference answer follows the more specific sentence."
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q025",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q030",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q035",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q040",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q045",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q050",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q055",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q060",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q065",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q070",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q075",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q080",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q085",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q090",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q095",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q100",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q105",
+      "verdict": "agree",
+      "note": null
+    },
+    {
+      "set": "retrieval-labels",
+      "key": "q110",
+      "verdict": "agree",
+      "note": null
+    }
+  ]
+}

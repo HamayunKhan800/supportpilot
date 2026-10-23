@@ -1,0 +1,171 @@
+{
+  "set": "retrieval-labels",
+  "title": "Help-centre questions",
+  "total": 22,
+  "reviewed": 0,
+  "agreed": 0,
+  "agreement": {
+    "successes": 0,
+    "n": 0,
+    "rate": null,
+    "low": null,
+    "high": null
+  },
+  "summary": "0 of 22 checked; marked correct: no data; 22 still to check",
+  "items": [
+    {
+      "key": "q005",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "6fb71f685266c25ef6a8f0e16bfe53cf5107bb07858b17402839c810e73e4fa3"
+    },
+    {
+      "key": "q010",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "0a027149df344391264b03555b754b46cfa78609354bd2a053219890f61245c6"
+    },
+    {
+      "key": "q015",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "16c00da9eb0c60fe96c214c5d5570d4488d46ccb860b11fd053f1155b7d1ad1b"
+    },
+    {
+      "key": "q020",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "f7eb6556dd9eadcf7b5c1ae8a903612ccef560f7111593ac5a113cc30a538155"
+    },
+    {
+      "key": "q025",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "f4c325c9289d3327e24c44b5082e24d573466191a3d8576045e4801deb683fd7"
+    },
+    {
+      "key": "q030",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "620220127f33539b0b94974990086f19eff3263a6f4e4c84526095381caa4f5e"
+    },
+    {
+      "key": "q035",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "fab0a7737df125ff28a9a7a43d81707baa98d342b3a0e98f1a8eb282db9862d9"
+    },
+    {
+      "key": "q040",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "1d14e5cfdaec281ca8d85d44444ce1b267e70f62b604b02317df0fa93a0f92a9"
+    },
+    {
+      "key": "q045",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "0e10f7b3c8f86854c6b74dd305ed8bd5f5984f4141e4138cface88a80ae98759"
+    },
+    {
+      "key": "q050",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "35f2042e5d7bf4370e260099b1d97c24e0ab4dc322911cf83e00ebd91aee577e"
+    },
+    {
+      "key": "q055",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "e79773c76df60301221e152201be157da8c43e5085774e008db01d324c1500c7"
+    },
+    {
+      "key": "q060",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "cf1949de0d528dff110f36fe882c61d064e3b7aee23b7f1bec27ae28cf0a29fd"
+    },
+    {
+      "key": "q065",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "fc418a4e6895698fd4dea62a45862f5836454d727155d27ef4baba93a03eb35d"
+    },
+    {
+      "key": "q070",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "a22226946c72177cd27dda586effc0a5f713a151b10ea84d08a042f0b20b2fb0"
+    },
+    {
+      "key": "q075",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "c6c4ebb925050172f77c21080cc9cb6c5830f9440e35ed5d712a58e18dd3124c"
+    },
+    {
+      "key": "q080",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "cfc8a213303391d1a31b6e2f0ff01cec24c5f05149912928b30d7c62f8b3df57"
+    },
+    {
+      "key": "q085",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "26a2a0db084da66ebb05251a0f91c6021dedeb4096815d7bb89820f9d22fb2b9"
+    },
+    {
+      "key": "q090",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "e4409cee1d95899ad65e8975b3430fd05fa06d6f6bd5d1d8a47218d4492f452a"
+    },
+    {
+      "key": "q095",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "3e6e0554c5f4a771c469ee3c7ece83eb7b0927c3254f0e0b4ea9f2a83033399b"
+    },
+    {
+      "key": "q100",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "25886dc3fc4c5146a8bf164d68ff86ba3748fad8dce425f12feeaf4980019a3d"
+    },
+    {
+      "key": "q105",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "4091008a1f565aed6ace24039f1a8c774ba84d5b0e47bedf8faf0ea5f857d2c2"
+    },
+    {
+      "key": "q110",
+      "verdict": null,
+      "note": null,
+      "reviewedAt": null,
+      "contentHash": "5fc494635d811cd344cb2a715ccd332c996741f31cbb17f8b2b87263e38ef7ba"
+    }
+  ]
+}

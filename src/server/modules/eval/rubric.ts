@@ -14,8 +14,12 @@ export const RUBRIC_RULES = {
   H1: { priority: "high", summary: "One person blocked from their core work, with no workaround" },
   H2: { priority: "high", summary: "Money wrong: charged twice, the wrong amount, or after cancelling" },
   H3: { priority: "high", summary: "Getting deleted files back while they are still in the trash" },
+  H4: { priority: "high", summary: "A request to delete the account or personal data (legal deadline)" },
   N1: { priority: "normal", summary: "A problem with a workaround, or in one part of the product" },
-  L2: { priority: "low", summary: "A question with no time pressure: no rush, or plans for later" },
+  L2: {
+    priority: "low",
+    summary: "No time pressure: no rush, plans for later, or a price question before buying",
+  },
   N2: { priority: "normal", summary: "Questions and changes: how-to, billing questions, account changes" },
   L1: {
     priority: "low",
