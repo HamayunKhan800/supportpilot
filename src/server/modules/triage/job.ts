@@ -17,6 +17,7 @@ import {
   TRIAGE_PROMPT_VERSION,
   triageOutputSchema,
   type RawTriageOutput,
+  type TriagePromptVersion,
 } from "./prompt";
 import {
   applyTriageLabels,
@@ -46,6 +47,8 @@ import {
 export interface TriageDeps {
   gateway: AiGateway;
   logger?: Pick<Logger, "info" | "warn">;
+  /** Evaluation only (`pnpm eval --triage-prompt`); the worker always uses TRIAGE_PROMPT_VERSION. */
+  promptVersion?: TriagePromptVersion;
 }
 
 export interface TriageAttempt {
@@ -62,23 +65,28 @@ export type TriageOutcome =
 
 const SKIP_CODES = new Set(["ai_disabled", "ai_budget_exhausted", "ai_daily_limit"]);
 
-const emptyRun = (status: "failed" | "skipped", errorCode: string, modelId?: string): NewTriageRun => ({
-  status,
-  errorCode,
-  model: modelId ?? null,
-  promptVersion: TRIAGE_PROMPT_VERSION,
-});
+const emptyRun = (
+  status: "failed" | "skipped",
+  errorCode: string,
+  promptVersion: TriagePromptVersion,
+): NewTriageRun => ({ status, errorCode, model: null, promptVersion });
 
 /** Stores a failed or skipped run unless the ticket is gone or already has one. */
 async function recordUnsuccessful(
   payload: AiTriagePayload,
   status: "failed" | "skipped",
   errorCode: string,
+  promptVersion: TriagePromptVersion = TRIAGE_PROMPT_VERSION,
 ): Promise<boolean> {
   return transaction(async (tx) => {
     const locked = await lockTicketLabels(tx, payload.workspaceId, payload.ticketId);
     if (!locked || (await hasTriageRun(tx, payload.workspaceId, payload.ticketId))) return false;
-    await insertTriageRun(tx, payload.workspaceId, payload.ticketId, emptyRun(status, errorCode));
+    await insertTriageRun(
+      tx,
+      payload.workspaceId,
+      payload.ticketId,
+      emptyRun(status, errorCode, promptVersion),
+    );
     return true;
   });
 }
@@ -91,6 +99,7 @@ export async function runTriageJob(
   const log = deps.logger ?? defaultLogger;
   const { workspaceId, ticketId } = payload;
   const ids = { job: "ai.triage", workspaceId, ticketId };
+  const promptVersion = deps.promptVersion ?? TRIAGE_PROMPT_VERSION;
   const db = getDb().db;
 
   const ticket = await findTicketById(workspaceId, ticketId);
@@ -100,18 +109,21 @@ export async function runTriageJob(
   const settings = await getWorkspaceSettings(db, workspaceId);
   const categories = settings?.categories ?? [];
   if (categories.length === 0) {
-    await recordUnsuccessful(payload, "skipped", "no_categories");
+    await recordUnsuccessful(payload, "skipped", "no_categories", promptVersion);
     return { status: "skipped", errorCode: "no_categories" };
   }
 
   const messages = await listMessages(workspaceId, ticketId, { includeInternal: false });
-  const built = buildTriagePrompt({
-    subject: ticket.subject,
-    categories,
-    messages: messages.flatMap((m) =>
-      m.authorType === "system" ? [] : [{ from: m.authorType, body: m.body, internal: m.isInternal }],
-    ),
-  });
+  const built = buildTriagePrompt(
+    {
+      subject: ticket.subject,
+      categories,
+      messages: messages.flatMap((m) =>
+        m.authorType === "system" ? [] : [{ from: m.authorType, body: m.body, internal: m.isInternal }],
+      ),
+    },
+    promptVersion,
+  );
   if (built.flags.length)
     log.warn({ ...ids, flags: built.flags }, "hidden characters removed from triage input");
 
@@ -138,13 +150,13 @@ export async function runTriageJob(
   } catch (err) {
     if (!(err instanceof AiError)) throw err; // unexpected: let pg-boss retry, then dead-letter
     if (SKIP_CODES.has(err.code)) {
-      await recordUnsuccessful(payload, "skipped", err.code);
+      await recordUnsuccessful(payload, "skipped", err.code, promptVersion);
       log.info({ ...ids, errorCode: err.code }, "triage skipped");
       return { status: "skipped", errorCode: err.code };
     }
     const retryable = err.temporary || err.code === "ai_aborted";
     if (retryable && !attempt.isFinalAttempt) throw err;
-    await recordUnsuccessful(payload, "failed", err.code);
+    await recordUnsuccessful(payload, "failed", err.code, promptVersion);
     log.warn({ ...ids, errorCode: err.code }, "triage failed");
     return { status: "failed", errorCode: err.code };
   }
@@ -193,7 +205,7 @@ export async function runTriageJob(
     await insertTriageRun(tx, workspaceId, ticketId, {
       status: "succeeded",
       model: result.modelId,
-      promptVersion: TRIAGE_PROMPT_VERSION,
+      promptVersion,
       category: suggestion.category,
       priority: suggestion.priority,
       sentiment: suggestion.sentiment,

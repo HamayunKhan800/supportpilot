@@ -47,6 +47,10 @@ export async function signIn(page: Page, address: string) {
 
 /** WCAG 2.2 A/AA rules. Done-when for M2: zero serious or critical violations. */
 export async function audit(page: Page, label: string) {
+  // Scan a settled page: once (finding #111) axe ran right after a save and found no <title>,
+  // which never reproduced (6 repeats, and a probe watching the title through 5 saves). A page
+  // with no title at all still fails here, with a clearer message.
+  await expect(page, `${label}: the page has a title`).toHaveTitle(/\S/);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();

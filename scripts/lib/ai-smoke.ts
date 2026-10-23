@@ -13,6 +13,7 @@ import { DEMO_TICKETS } from "../../src/server/modules/tickets/demo/tickets";
 import * as ticketRepo from "../../src/server/modules/tickets/repository";
 import { generateTrackingToken } from "../../src/server/modules/tickets/tracking-token";
 import { runTriageJob, type TriageOutcome } from "../../src/server/modules/triage/job";
+import type { TriagePromptVersion } from "../../src/server/modules/triage/prompt";
 import { findLatestTriage } from "../../src/server/modules/triage/repository";
 import { createDefaultWorkspaceSettings } from "../../src/server/platform/auth/workspace-settings";
 import { getDb } from "../../src/server/platform/db/client";
@@ -431,6 +432,8 @@ export interface ItemContext {
   embedder: Embedder;
   /** Help-article file name to title, to tell whether a draft cites the expected article. */
   titleOf: ReadonlyMap<string, string>;
+  /** Triage prompt to measure; the app's own when omitted. */
+  triagePrompt?: TriagePromptVersion;
 }
 
 export interface TriageItemInput {
@@ -449,7 +452,7 @@ export async function triageOne(ctx: ItemContext, item: TriageItemInput): Promis
   const outcome = await runTriageJob(
     { workspaceId: ctx.workspaceId, ticketId: t.id },
     { isFinalAttempt: true },
-    { gateway: ctx.metered.gateway, logger: silentTriageLogger },
+    { gateway: ctx.metered.gateway, logger: silentTriageLogger, promptVersion: ctx.triagePrompt },
   );
   const run = await findLatestTriage(getDb().db, ctx.workspaceId, t.id);
   const got =

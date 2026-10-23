@@ -6,10 +6,12 @@
  *   pnpm eval --check-floors           # ... and fail below eval/floors.json (CI does this)
  *   GEMINI_API_KEY=... pnpm eval --provider gemini            # on demand, budgeted
  *   GEMINI_API_KEY=... pnpm eval --provider gemini --resume   # continue the stopped run
+ *   pnpm eval --triage-prompt v2       # measure another triage prompt (the app keeps its own)
  *
  * Every item is saved to the database (eval_run / eval_item) as soon as it is measured, so a
  * run that stops keeps what it measured; --resume measures only what is missing, and refuses
- * if the datasets, prompts, models or retrieval settings changed in between. --retry-failed
+ * if the datasets, prompts, models or retrieval settings changed in between (it continues the
+ * newest unfinished run with the same settings, so a v1 and a v2 run can share days). --retry-failed
  * (with --resume) also measures again the items the provider failed to answer.
  *
  * Gemini sessions are small and slow on purpose, for the free tier: at most --max-calls
@@ -17,8 +19,8 @@
  * retries, and a stop at the first "429 too many requests". The whole set takes several
  * sessions, a day apart (the daily quota resets at midnight Pacific time).
  *
- * Writes eval/results/eval-<provider>-<run>.json and .md (the mock run: eval-mock.json/.md,
- * overwritten each time and not committed). Needs DATABASE_URL with migrations applied.
+ * Writes eval/results/eval-<provider>-<run>.json and .md (the mock run: eval-mock.json/.md, or
+ * eval-mock-triage.v2.json/.md for another triage prompt, overwritten each time and not committed). Needs DATABASE_URL with migrations applied.
  * Refuses to run with NODE_ENV=production.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -26,6 +28,11 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { checkFloors } from "../src/server/modules/eval/metrics";
+import {
+  isTriagePromptVersion,
+  TRIAGE_PROMPT_VERSION,
+  TRIAGE_PROMPT_VERSIONS,
+} from "../src/server/modules/triage/prompt";
 import { getDb } from "../src/server/platform/db/client";
 
 import { createEvalAi } from "./lib/eval-ai";
@@ -48,6 +55,7 @@ const { values } = parseArgs({
     floors: { type: "string", default: "eval/floors.json" },
     out: { type: "string", default: "eval/results" },
     cache: { type: "string", default: "eval/cache" },
+    "triage-prompt": { type: "string", default: "v1" },
   },
 });
 
@@ -66,6 +74,12 @@ async function main() {
   const maxCalls = int("max-calls", values["max-calls"] ?? (provider === "gemini" ? "60" : "100000"));
   const gapMs = int("gap-ms", values["gap-ms"] ?? (provider === "gemini" ? "7000" : "0"));
   const floors = values["check-floors"] ? loadFloors(values.floors, provider) : null;
+  const triagePrompt = `triage.${values["triage-prompt"]}`;
+  if (!isTriagePromptVersion(triagePrompt)) {
+    throw new Error(
+      `--triage-prompt must be one of: ${TRIAGE_PROMPT_VERSIONS.map((v) => v.slice(7)).join(", ")}`,
+    );
+  }
 
   const dataset: EvalDataset = {
     corpus: loadCorpus(),
@@ -91,7 +105,7 @@ async function main() {
     metered: ai.metered,
     embedder: ai.embedder,
     dataset,
-    config: runConfig({ provider, models: ai.models, embedder: ai.embedder }),
+    config: runConfig({ provider, models: ai.models, embedder: ai.embedder, triagePrompt }),
     resume: values.resume ? (values.run ?? true) : false,
     retryFailed: values["retry-failed"],
     requestsSent: ai.requestsSent,
@@ -119,7 +133,9 @@ async function main() {
     items: result.items,
   };
   const markdown = formatMarkdown(report);
-  const base = provider === "mock" ? "eval-mock" : `eval-${provider}-${run.id.slice(0, 8)}`;
+  // Gemini reports carry the run id; a mock report of another triage prompt gets its own name.
+  const variant = triagePrompt === TRIAGE_PROMPT_VERSION ? "" : `-${triagePrompt}`;
+  const base = provider === "mock" ? `eval-mock${variant}` : `eval-${provider}-${run.id.slice(0, 8)}`;
   const outDir = path.resolve(values.out);
   mkdirSync(outDir, { recursive: true });
   writeFileSync(path.join(outDir, `${base}.json`), ai.redact(`${JSON.stringify(report, null, 2)}\n`));

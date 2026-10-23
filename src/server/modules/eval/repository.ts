@@ -31,15 +31,25 @@ export async function findRun(db: Executor, id: string): Promise<EvalRunRow | nu
   return row ?? null;
 }
 
-/** The newest run of this provider that has not completed (running means it was interrupted). */
+/**
+ * The newest run of this provider that has not completed (running means it was interrupted),
+ * optionally only among runs with the given settings hash.
+ */
 export async function findLatestUnfinishedRun(
   db: Executor,
   provider: EvalProvider,
+  configHash?: string,
 ): Promise<EvalRunRow | null> {
   const [row] = await db
     .select()
     .from(evalRun)
-    .where(and(eq(evalRun.provider, provider), inArray(evalRun.status, ["running", "stopped"])))
+    .where(
+      and(
+        eq(evalRun.provider, provider),
+        inArray(evalRun.status, ["running", "stopped"]),
+        configHash === undefined ? undefined : eq(evalRun.configHash, configHash),
+      ),
+    )
     .orderBy(desc(evalRun.startedAt), desc(evalRun.id))
     .limit(1);
   return row ?? null;

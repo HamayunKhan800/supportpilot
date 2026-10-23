@@ -104,24 +104,24 @@ docker compose --profile full up --build
 
 ## Scripts
 
-| Command                           | What it does                                                                                                    |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`                      | lint + typecheck + format check + unit tests                                                                    |
-| `pnpm test:coverage`              | unit tests with coverage thresholds (80% lines/functions)                                                       |
-| `pnpm test:integration`           | tests against real PostgreSQL (`TEST_DATABASE_URL`)                                                             |
-| `pnpm test:smoke`                 | checks against a running server (`SMOKE_BASE_URL`) and worker (`SMOKE_DATABASE_URL`)                            |
-| `pnpm test:e2e`                   | Playwright + axe against the production build (run `pnpm build` and `pnpm db:migrate` first)                    |
-| `pnpm build`                      | production build (needs **no** runtime secrets)                                                                 |
-| `pnpm worker`                     | background worker from source (needs only `DATABASE_URL` and `AI_PROVIDER`)                                     |
-| `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                                       |
-| `pnpm db:generate` / `db:migrate` | create / apply migrations                                                                                       |
-| `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                                       |
-| `pnpm eval`                       | the full evaluation with 95% intervals (`--check-floors`, `--provider gemini`, `--resume`)                      |
-| `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)                                  |
-| `pnpm eval:threshold`             | refusal threshold analysis from cached Gemini embeddings (no API calls)                                         |
-| `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                                        |
-| `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced)                    |
-| `pnpm eval:review`                | `load` the human spot-check items into the database, `status`, or `export` the verdicts to `eval/review/*.json` |
+| Command                           | What it does                                                                                                     |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`                      | lint + typecheck + format check + unit tests                                                                     |
+| `pnpm test:coverage`              | unit tests with coverage thresholds (80% lines/functions)                                                        |
+| `pnpm test:integration`           | tests against real PostgreSQL (`TEST_DATABASE_URL`)                                                              |
+| `pnpm test:smoke`                 | checks against a running server (`SMOKE_BASE_URL`) and worker (`SMOKE_DATABASE_URL`)                             |
+| `pnpm test:e2e`                   | Playwright + axe against the production build (run `pnpm build` and `pnpm db:migrate` first)                     |
+| `pnpm build`                      | production build (needs **no** runtime secrets)                                                                  |
+| `pnpm worker`                     | background worker from source (needs only `DATABASE_URL` and `AI_PROVIDER`)                                      |
+| `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                                        |
+| `pnpm db:generate` / `db:migrate` | create / apply migrations                                                                                        |
+| `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                                        |
+| `pnpm eval`                       | the full evaluation with 95% intervals (`--check-floors`, `--provider gemini`, `--resume`, `--triage-prompt v2`) |
+| `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)                                   |
+| `pnpm eval:threshold`             | refusal threshold analysis from cached Gemini embeddings (no API calls)                                          |
+| `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                                         |
+| `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced)                     |
+| `pnpm eval:review`                | `load` the human spot-check items into the database, `status`, or `export` the verdicts to `eval/review/*.json`  |
 
 ## Configuration
 

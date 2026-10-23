@@ -260,4 +260,49 @@ describe("evaluation runner", () => {
     expect(result.run.stopReason).toBe("call budget of 3 reached");
     expect(await totalCalls()).toBe(before);
   });
+  it("measures the chosen triage prompt, and --resume continues the run with the same settings (D6)", async () => {
+    const v2config = runConfig({
+      provider: "mock",
+      models: { triage: "mock-llm", draft: "mock-llm", draftFallback: null },
+      embedder,
+      triagePrompt: "triage.v2",
+    });
+    expect(v2config.promptVersions).toMatchObject({ triage: "triage.v2" });
+
+    // Both stop before triage; the v2 run is the newer one.
+    const v1 = await runEval(options(metered(0)));
+    const v2 = await runEval(options(metered(0), { config: v2config }));
+    expect([v1.run.status, v2.run.status]).toEqual(["stopped", "stopped"]);
+
+    const capturing = () => {
+      const systems: string[] = [];
+      const m = metered(100, (request) => {
+        systems.push(request.system);
+        return mockTriageResponder(request);
+      });
+      return { m, systems };
+    };
+
+    // Plain --resume with v1 settings continues the v1 run, not the newer v2 one.
+    const a = capturing();
+    const resumedV1 = await runEval(options(a.m, { resume: true }));
+    expect(resumedV1.run.id).toBe(v1.run.id);
+    expect(a.systems).toHaveLength(dataset.triage.length);
+    expect(a.systems.every((s) => !s.includes("Go down this list"))).toBe(true);
+
+    const b = capturing();
+    const resumedV2 = await runEval(options(b.m, { resume: true, config: v2config }));
+    expect(resumedV2.run.id).toBe(v2.run.id);
+    expect(b.systems).toHaveLength(dataset.triage.length);
+    expect(b.systems.every((s) => s.includes("Go down this list and use the first rule"))).toBe(true);
+    expect([resumedV1.run.status, resumedV2.run.status]).toEqual(["completed", "completed"]);
+  });
+
+  it("refuses an unknown triage prompt before starting a run", async () => {
+    const before = (await db().select().from(evalRun)).length;
+    await expect(
+      runEval(options(metered(), { config: { ...config, promptVersions: { triage: "triage.v9" } } })),
+    ).rejects.toThrow('Unknown triage prompt "triage.v9".');
+    expect(await db().select().from(evalRun)).toHaveLength(before);
+  });
 });

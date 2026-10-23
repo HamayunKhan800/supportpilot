@@ -7,7 +7,11 @@ import { DEFAULT_CHUNK_OPTIONS } from "../../src/server/modules/kb/chunker";
 import type { Embedder } from "../../src/server/modules/kb/embedder";
 import { DEFAULT_RETRIEVAL_MIN_SCORE, RETRIEVAL_TOP_K } from "../../src/server/modules/kb/retrieval";
 import { hybridSearch } from "../../src/server/modules/kb/service";
-import { TRIAGE_PROMPT_VERSION } from "../../src/server/modules/triage/prompt";
+import {
+  TRIAGE_PROMPT_VERSION,
+  TRIAGE_PROMPT_VERSIONS,
+  type TriagePromptVersion,
+} from "../../src/server/modules/triage/prompt";
 import { createDefaultWorkspaceSettings } from "../../src/server/platform/auth/workspace-settings";
 import { getDb } from "../../src/server/platform/db/client";
 import { scoreRanking } from "../../src/server/modules/eval/retrieval-metrics";
@@ -86,10 +90,12 @@ export function runConfig(options: {
   provider: EvalProvider;
   models: { triage: string; draft: string; draftFallback: string | null };
   embedder: Embedder;
+  /** The triage prompt to measure (`--triage-prompt`); the app's own by default. */
+  triagePrompt?: TriagePromptVersion;
 }): Record<string, unknown> {
   return {
     provider: options.provider,
-    promptVersions: { triage: TRIAGE_PROMPT_VERSION, draft: DRAFT_PROMPT_VERSION },
+    promptVersions: { triage: options.triagePrompt ?? TRIAGE_PROMPT_VERSION, draft: DRAFT_PROMPT_VERSION },
     models: options.models,
     embeddingModel: options.embedder.modelId,
     chunk: DEFAULT_CHUNK_OPTIONS,
@@ -97,6 +103,19 @@ export function runConfig(options: {
     // The draft pipeline's refusal threshold: the embedder's own floor, or the workspace default.
     retrievalMinScore: options.embedder.similarityFloor ?? DEFAULT_RETRIEVAL_MIN_SCORE,
   };
+}
+
+/**
+ * The triage prompt a run measures, read from its settings: the one place it is recorded, and the
+ * one that is hashed, so the stored label and the prompt actually used cannot differ.
+ */
+export function triagePromptOf(config: Record<string, unknown>): TriagePromptVersion {
+  const value = (config.promptVersions as { triage?: unknown } | undefined)?.triage;
+  if (value === undefined) return TRIAGE_PROMPT_VERSION;
+  if (!TRIAGE_PROMPT_VERSIONS.includes(value as TriagePromptVersion)) {
+    throw new Error(`Unknown triage prompt ${JSON.stringify(value)}.`);
+  }
+  return value as TriagePromptVersion;
 }
 
 export interface RunEvalOptions {
@@ -154,10 +173,13 @@ async function openRun(options: RunEvalOptions, hashes: { datasetHash: string; c
     });
     return { run, resumed: false };
   }
+  // Without an id: the newest unfinished run with these settings, so a v1 and a v2 run can be
+  // continued side by side; failing that, the newest unfinished run, to explain what changed.
   const run =
     typeof options.resume === "string"
       ? await evalRepo.findRun(db, options.resume)
-      : await evalRepo.findLatestUnfinishedRun(db, options.provider);
+      : ((await evalRepo.findLatestUnfinishedRun(db, options.provider, hashes.configHash)) ??
+        (await evalRepo.findLatestUnfinishedRun(db, options.provider)));
   if (!run) throw new Error(`There is no unfinished ${options.provider} run to resume.`);
   if (run.status === "completed") throw new Error(`Run ${run.id} has already completed.`);
   if (run.provider !== options.provider) {
@@ -185,6 +207,7 @@ export async function runEval(options: RunEvalOptions): Promise<RunEvalResult> {
   const { metered, embedder, dataset, log } = options;
   const redact = options.redact ?? ((s: string) => s);
   const { db } = getDb();
+  const triagePrompt = triagePromptOf(options.config); // before opening a run: fail fast
   const hashes = { datasetHash: datasetHash(dataset), configHash: stableHash(options.config) };
   const { run, resumed } = await openRun(options, hashes);
   const done = new Set((await evalRepo.listItems(db, run.id)).map((r) => itemId(r.suite, r.itemKey)));
@@ -226,6 +249,7 @@ export async function runEval(options: RunEvalOptions): Promise<RunEvalResult> {
         metered,
         embedder,
         titleOf: new Map(dataset.corpus.map((a) => [a.file, a.title])),
+        triagePrompt,
       };
 
       // 1. Retrieval: the app's own search, scored against the passages that hold each answer.

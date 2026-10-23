@@ -116,6 +116,9 @@ test("a document that fails shows why, and can be retried", async ({ page }) => 
   await page.getByLabel("Workspace name").fill("Failure Co");
   await page.getByLabel("Workspace address").fill(`kb-fail-${Date.now().toString(36)}`);
   await page.getByRole("button", { name: "Create workspace" }).click();
+  // Wait until the workspace exists and is active: navigating away sooner raced its creation and
+  // landed on onboarding (finding #112).
+  await expect(page.getByRole("heading", { level: 1, name: "Failure Co" })).toBeVisible();
   await page.goto("/app/knowledge");
 
   const main = page.getByRole("main");

@@ -554,3 +554,41 @@ describe("queueing and the worker (D4)", () => {
     expect((await ticketOf(ticket.id)).category).toBe("bug");
   }, 30_000);
 });
+
+describe("choosing the prompt (M6 D6: evaluation only)", () => {
+  it("sends the chosen version's instructions and records the version, also on a skipped run", async () => {
+    const systems: string[] = [];
+    const capture: MockResponder = (request) => {
+      systems.push(request.system);
+      return mockTriageResponder(request);
+    };
+    const withVersion = (ticketId: string, promptVersion?: "triage.v1" | "triage.v2") =>
+      runTriageJob(
+        { workspaceId: acmeId, ticketId },
+        { isFinalAttempt: true },
+        { gateway: gatewayWith(capture), logger: quietJobLog, promptVersion },
+      );
+
+    const v2 = await newTicket(...CHARGED_TWICE);
+    expect((await withVersion(v2.id, "triage.v2")).status).toBe("succeeded");
+    expect(await triageOf(v2.id)).toMatchObject({ status: "succeeded", promptVersion: "triage.v2" });
+
+    const app = await newTicket(...CHARGED_TWICE);
+    expect((await withVersion(app.id)).status).toBe("succeeded");
+    expect(await triageOf(app.id)).toMatchObject({ status: "succeeded", promptVersion: "triage.v1" });
+
+    expect(systems).toHaveLength(2);
+    expect(systems[0]).toContain("Go down this list and use the first rule");
+    expect(systems[1]).not.toContain("Go down this list");
+
+    // Skipped runs are tagged with the version too, so a comparison never mixes them up.
+    await db()
+      .update(workspaceSettings)
+      .set({ aiEnabled: false })
+      .where(eq(workspaceSettings.workspaceId, acmeId));
+    const off = await newTicket(...CHARGED_TWICE);
+    expect(await withVersion(off.id, "triage.v2")).toEqual({ status: "skipped", errorCode: "ai_disabled" });
+    expect(await triageOf(off.id)).toMatchObject({ status: "skipped", promptVersion: "triage.v2" });
+    expect(systems).toHaveLength(2);
+  });
+});

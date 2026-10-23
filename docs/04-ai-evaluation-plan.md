@@ -8,6 +8,7 @@
 - Prefer **deterministic checks** (exact label match, citation IDs, canary leakage) over LLM-as-judge.
 - Where LLM-as-judge is used, validate it against **human labels** on a sample and report the agreement rate.
 - Evals are versioned with prompts (`prompt_version`) so changes can be compared over time.
+- **Comparing two prompt versions** (for example `triage.v1` and `triage.v2`): both run on the same items, so the comparison is paired and uses the exact McNemar test on the items where they disagree, not two separate intervals. A new version replaces the old one only if it is better at p < 0.025 on a main metric and not worse on the others. The rule is set before the measurement, and a prompt is never edited after being scored on a test set: a change is a new version, measured on items it hasn't seen.
 
 ## 2. Golden dataset (synthetic, for the fictional "Nimbus Cloud Storage")
 
