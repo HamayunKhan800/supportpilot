@@ -75,6 +75,15 @@ export default defineConfig({
         // Triage job and its SQL (locks, idempotency, overrides, audit-based "human set");
         // 26 tests in tests/integration/triage-job.test.ts, 16 deliberate breaks all caught.
         "src/server/modules/triage/{job,repository}.ts",
+        // Draft engine and actions over the DB (retrieval, refusal gate, streaming, row and ticket
+        // locks, audit); 34 tests in tests/integration/drafts.test.ts plus the generated API suite,
+        // mutation-checked. The pure parts (prompt, citations, mock responder, serializer) are
+        // unit-tested and stay included.
+        "src/server/modules/drafts/{service,actions,repository}.ts",
+        // AI settings over the DB (version-checked update, per-field audit, usage sums); 32 tests
+        // in tests/integration/settings.test.ts, 6 deliberate breaks all caught. Limits and the
+        // request schema are unit-tested and stay included.
+        "src/server/modules/settings/{service,repository}.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
