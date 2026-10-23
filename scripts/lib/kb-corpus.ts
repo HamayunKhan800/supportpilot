@@ -16,7 +16,7 @@ import { z } from "zod";
 
 import { detectFile } from "../../src/server/modules/kb/file-type";
 import type { KbMimeType } from "../../src/server/modules/kb/repository";
-import { buildPdf } from "../../tests/support/pdf";
+import { buildPdf } from "./pdf";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const CORPUS_DIR = path.join(ROOT, "eval/corpus/nimbus");
