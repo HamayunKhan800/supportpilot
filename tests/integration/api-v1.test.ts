@@ -6,11 +6,13 @@ import { buildOpenApiDocument } from "@/server/api/openapi";
 import { operations, type Operation } from "@/server/api/operations";
 import { MAX_BODY_BYTES } from "@/server/api/route";
 import { Problem } from "@/server/api/schemas";
+import * as draftRepo from "@/server/modules/drafts/repository";
 import * as kbRepo from "@/server/modules/kb/repository";
 import { insertTriageRun } from "@/server/modules/triage/repository";
 import { getAuth } from "@/server/platform/auth";
 import { getSessionContext } from "@/server/platform/auth/context";
 import { can, ROLES } from "@/server/platform/auth/permissions";
+import { getDb } from "@/server/platform/db/client";
 import { transaction } from "@/server/platform/db/tx";
 import { resetEnvCache } from "@/server/platform/env";
 import { stopWebBoss } from "@/server/platform/jobs/boss";
@@ -48,11 +50,13 @@ const sampleBody: Partial<Record<OpId, () => unknown>> = {
   addTicketMessage: () => ({ body: "Looking into it now.", internal: true }),
   uploadKbDocument: () => sampleUpload(),
   searchKb: () => ({ query: "How long do refunds take?" }),
+  sendDraft: () => ({ body: "Refunds take 5 to 10 business days [1]." }),
+  rateDraft: () => ({ rating: "up" }),
 };
 
 let owner: TestClient, admin: TestClient, agent: TestClient, globexOwner: TestClient, newcomer: TestClient;
 let ticketId: string, token: string, currentVersion: number;
-let acmeId: string, kbDocId: string;
+let acmeId: string, kbDocId: string, draftId: string, ownerId: string;
 let ipCounter = 0;
 const nextIp = () => ({ "x-forwarded-for": `203.0.113.${++ipCounter}` });
 
@@ -76,8 +80,24 @@ async function newKbDocument(status: "pending" | "failed" = "pending"): Promise<
   });
 }
 
+/** A finished draft inserted directly (no model call), ready to send or discard. */
+async function newReadyDraft(): Promise<string> {
+  const db = getDb().db;
+  const id = await draftRepo.insertDraft(db, acmeId, {
+    ticketId,
+    requestedBy: ownerId,
+    promptVersion: "draft.v1",
+  });
+  await draftRepo.finishDraft(db, acmeId, id, {
+    status: "ready",
+    body: "Refunds take 5 to 10 business days [1].",
+  });
+  return id;
+}
+
 /** An existing resource of the Acme workspace that the operation's {id} can point at. */
-const existingIdFor = (id: OpId) => (operations[id].tag === "Knowledge" ? kbDocId : ticketId);
+const existingIdFor = (id: OpId) =>
+  operations[id].tag === "Knowledge" ? kbDocId : operations[id].tag === "Drafts" ? draftId : ticketId;
 
 /**
  * Path params for a call that is expected to succeed. Operations that use up their
@@ -87,6 +107,7 @@ async function paramsFor(id: OpId): Promise<Record<string, string>> {
   if (!operations[id].path.includes("{id}")) return {};
   if (id === "deleteKbDocument") return { id: await newKbDocument() };
   if (id === "retryKbDocument") return { id: await newKbDocument("failed") };
+  if (id === "sendDraft" || id === "discardDraft") return { id: await newReadyDraft() };
   return { id: existingIdFor(id) };
 }
 
@@ -141,6 +162,8 @@ beforeAll(async () => {
     }),
   );
   kbDocId = await newKbDocument();
+  ownerId = (await getSessionContext(owner.headers))!.user.id;
+  draftId = await newReadyDraft();
 });
 
 afterAll(async () => {
@@ -195,6 +218,9 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
       "updateTicket",
       "acceptTriageSuggestion",
       "generateDraft",
+      "sendDraft",
+      "discardDraft",
+      "rateDraft",
       "addTicketMessage",
       "uploadKbDocument",
       "listKbDocuments",
@@ -318,16 +344,24 @@ describe("tenant isolation (NFR-SEC1): other workspaces' resources are 404", () 
       "acceptTriageSuggestion",
       "addTicketMessage",
       "deleteKbDocument",
+      "discardDraft",
       "generateDraft",
       "getKbDocument",
       "getTicket",
+      "rateDraft",
       "retryKbDocument",
+      "sendDraft",
       "updateTicket",
     ]);
   });
 
   it.each(idOps)("%s → 404 for a member of another workspace", async (id) => {
-    const target = id === "retryKbDocument" ? await newKbDocument("failed") : existingIdFor(id);
+    const target =
+      id === "retryKbDocument"
+        ? await newKbDocument("failed")
+        : operations[id].tag === "Drafts"
+          ? await newReadyDraft()
+          : existingIdFor(id);
     const res = await call(id, { as: globexOwner, params: { id: target }, body: sampleBody[id]?.() });
     expect(res.status).toBe(404);
     Problem.parse(res.json);
@@ -336,6 +370,10 @@ describe("tenant isolation (NFR-SEC1): other workspaces' resources are 404", () 
       expect((await kbRepo.findDocument(acmeId, target))?.status).toBe(
         id === "retryKbDocument" ? "failed" : "pending",
       );
+    }
+    if (operations[id].tag === "Drafts") {
+      const row = (await draftRepo.findDraft(getDb().db, acmeId, target))!.draft;
+      expect(row).toMatchObject({ status: "ready", feedback: null, sentMessageId: null });
     }
   });
 

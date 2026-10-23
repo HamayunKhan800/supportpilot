@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   AI_DRAFT_STATUSES,
+  DRAFT_FEEDBACK,
+  DRAFT_FEEDBACK_REASONS,
   KB_DOCUMENT_STATUSES,
   KB_MIME_TYPES,
   MESSAGE_AUTHOR_TYPES,
@@ -293,6 +295,20 @@ export const AiDraft = z
         .nonnegative()
         .describe("Estimated cost in millionths of a US dollar (paid-tier prices)."),
     }),
+    sentMessageId: z.uuid().nullable().describe("The reply this draft became after an agent approved it."),
+    editRatio: z
+      .number()
+      .min(0)
+      .max(1)
+      .nullable()
+      .describe("How much the agent changed it before sending: 0 = unchanged, 1 = rewritten."),
+    feedback: z
+      .strictObject({
+        rating: z.enum(DRAFT_FEEDBACK),
+        reason: z.enum(DRAFT_FEEDBACK_REASONS).nullable(),
+        note: z.string().nullable(),
+      })
+      .nullable(),
     ttftMs: z.int().nonnegative().nullable().describe("Request to first streamed word, retrieval included."),
     latencyMs: z.int().nonnegative().nullable().describe("Request to finished draft, retrieval included."),
     createdAt: dateTime,
@@ -325,3 +341,4 @@ export const TokenParams = z.object({
 });
 export const TicketIdParams = z.object({ id: z.uuid() });
 export const KbDocumentIdParams = z.object({ id: z.uuid() });
+export const DraftIdParams = z.object({ id: z.uuid() });

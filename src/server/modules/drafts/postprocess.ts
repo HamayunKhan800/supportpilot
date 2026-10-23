@@ -1,6 +1,9 @@
 import { stripHiddenCharacters } from "@/server/modules/ai/untrusted";
 
+import { validateCitations } from "./citations";
 import { INSUFFICIENT_KNOWLEDGE } from "./prompt";
+
+export { validateCitations, type CitationCheck } from "./citations";
 
 /**
  * Checks on a generated draft, done by code rather than trusted to the model (M5 D7–D10).
@@ -20,41 +23,6 @@ export const DRAFT_WARNINGS = [
   "truncated",
 ] as const;
 export type DraftWarning = (typeof DRAFT_WARNINGS)[number];
-
-/** `[1]`, `[ 2 ]`, `[1, 3]`, `[1,2,3]`. Ranges like `[1-3]` are left as plain text. */
-const MARKER = /( ?)\[(\s*\d{1,3}\s*(?:,\s*\d{1,3}\s*)*)\]/g;
-
-export interface CitationCheck {
-  text: string;
-  /** Valid passage numbers cited, ascending, without repeats. */
-  cited: number[];
-  /** Numbers that pointed at no passage and were removed. */
-  invalidCount: number;
-}
-
-/**
- * Keeps markers that point at one of `passageCount` passages and removes the rest (D8). A list
- * like `[1, 9]` becomes `[1]`; a removed marker takes its leading space with it when it sat
- * before punctuation or the end, so "days [9]." becomes "days.".
- */
-export function validateCitations(text: string, passageCount: number): CitationCheck {
-  const cited = new Set<number>();
-  let invalidCount = 0;
-  const out = text.replace(MARKER, (match, space: string, list: string, offset: number, whole: string) => {
-    const valid: number[] = [];
-    for (const raw of list.split(",")) {
-      const n = Number(raw.trim());
-      if (Number.isInteger(n) && n >= 1 && n <= passageCount) {
-        if (!valid.includes(n)) valid.push(n);
-      } else invalidCount++;
-    }
-    for (const n of valid) cited.add(n);
-    if (valid.length > 0) return space + valid.map((n) => `[${n}]`).join("");
-    const next = whole[offset + match.length];
-    return next === undefined || /[\s.,;:!?)]/.test(next) ? "" : space;
-  });
-  return { text: out, cited: [...cited].sort((a, b) => a - b), invalidCount };
-}
 
 /** The model said the passages don't answer the question (D7). Tolerates case and a space. */
 export function saysInsufficientKnowledge(text: string): boolean {

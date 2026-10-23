@@ -28,6 +28,7 @@ const LABELS: Record<AuditAction, string> = {
   "ticket.priority_changed": "Changed priority",
   "ticket.category_changed": "Changed category",
   "ticket.assigned": "Changed assignee",
+  "ticket.ai_reply_sent": "Sent an AI-drafted reply",
   "kb.document_uploaded": "Uploaded a knowledge document",
   "kb.document_deleted": "Deleted a knowledge document",
   "kb.document_retried": "Retried a knowledge document",

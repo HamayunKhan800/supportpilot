@@ -76,6 +76,11 @@ test("customer portal and tracking pages have no serious accessibility violation
   await page.getByLabel("Internal note", { exact: true }).fill("Checked with axe.");
   await page.getByRole("button", { name: "Add internal note" }).click();
   await expect(page.getByText("Internal note added.")).toBeVisible();
+  // Finding #91: the refresh after posting removes the <title> for a moment and streams it back
+  // (Next.js streaming metadata). Audit the settled page: wait for the refreshed thread, then
+  // the title. A title that never came back would still fail here.
+  await expect(page.getByRole("region", { name: "Conversation" })).toContainText("Checked with axe.");
+  await expect(page).toHaveTitle(/^#1 /);
   await audit(page, "/app/tickets/{number}");
 });
 

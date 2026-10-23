@@ -179,6 +179,11 @@ export function buildOpenApiDocument() {
         name: "Knowledge",
         description: "Knowledge base for AI answers. Everyone can read; admins and owners manage it.",
       },
+      {
+        name: "Drafts",
+        description:
+          "AI reply drafts (generated from a ticket). Sending needs an agent's explicit request; nothing is sent automatically.",
+      },
       { name: "Meta" },
     ],
     paths,

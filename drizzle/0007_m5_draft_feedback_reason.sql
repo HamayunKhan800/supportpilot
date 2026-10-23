@@ -1,0 +1,2 @@
+ALTER TABLE "ai_draft" ADD COLUMN "feedback_reason" text;--> statement-breakpoint
+ALTER TABLE "ai_draft" ADD CONSTRAINT "ai_draft_feedback_reason_ck" CHECK (feedback_reason IS NULL OR (feedback = 'down' AND feedback_reason IN ('incorrect', 'incomplete', 'wrong_sources', 'tone', 'other')));

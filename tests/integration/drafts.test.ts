@@ -7,7 +7,8 @@ import { createAiGateway, createPostgresLedger, type AiGatewayOptions } from "@/
 import type { MockRequest, MockResponder } from "@/server/modules/ai/mock-model";
 import { createMockModels } from "@/server/modules/ai/models";
 import { mockDraftResponder } from "@/server/modules/drafts/mock-responder";
-import { findDraft } from "@/server/modules/drafts/repository";
+import { getOpenDraft } from "@/server/modules/drafts/actions";
+import { findDraft, insertDraft } from "@/server/modules/drafts/repository";
 import type { ApiDraft } from "@/server/modules/drafts/serialize";
 import {
   DRAFT_RATE_LIMITS,
@@ -24,7 +25,14 @@ import { insertTriageRun } from "@/server/modules/triage/repository";
 import { getAuth } from "@/server/platform/auth";
 import { getWorkspaceContext } from "@/server/platform/auth/context";
 import { getDb } from "@/server/platform/db/client";
-import { aiDraft, aiUsage, appRateLimit, ticket, workspaceSettings } from "@/server/platform/db/schema";
+import {
+  aiDraft,
+  aiUsage,
+  appRateLimit,
+  auditLog,
+  ticket,
+  workspaceSettings,
+} from "@/server/platform/db/schema";
 import { transaction } from "@/server/platform/db/tx";
 import { stopWebBoss } from "@/server/platform/jobs/boss";
 import { consumeRateLimit } from "@/server/platform/rate-limit";
@@ -590,5 +598,163 @@ describe("cancelling (D13)", () => {
     const draftId = parseNdjson(new TextDecoder().decode((await reader.read()).value))[0]!.draftId as string;
     await reader.cancel();
     expect(await waitForStatus(draftId, "aborted")).toMatchObject({ status: "aborted" });
+  });
+});
+
+describe("approving, discarding and rating (FR-AI5, FR-AI6)", () => {
+  async function readyDraft() {
+    const t = await newTicket(acmeId, ...REFUND_QUESTION);
+    const { draft } = await generate(t.id);
+    expect(draft!.status).toBe("ready");
+    return { ticketId: t.id, draft: draft as unknown as ApiDraft };
+  }
+
+  const messagesOf = (ticketId: string) =>
+    ticketRepo.listMessages(acmeId, ticketId, { includeInternal: true });
+
+  it("Approve & send posts the edited text as the agent's public reply, without markers, and audits it", async () => {
+    const { ticketId, draft } = await readyDraft();
+    const edited = `${draft.body}\n\nBest wishes from the Acme team.`;
+    const res = await call("sendDraft", { as: agent, params: { id: draft.id }, body: { body: edited } });
+
+    expect(res.status, JSON.stringify(res.json)).toBe(200);
+    expect(res.json).toMatchObject({ id: draft.id, status: "sent", sentMessageId: expect.any(String) });
+    expect(res.json.editRatio).toBeGreaterThan(0);
+    expect(res.json.editRatio).toBeLessThan(0.5);
+
+    const messages = await messagesOf(ticketId);
+    const reply = messages.find((m) => m.id === res.json.sentMessageId)!;
+    const agentUser = (await getAuth().api.getSession({ headers: agent.headers }))!.user;
+    expect(reply).toMatchObject({ authorType: "agent", authorUserId: agentUser.id, isInternal: false });
+    expect(reply.body).not.toMatch(/\[\d+\]/);
+    expect(reply.body).toContain("Annual plans can be refunded within 30 days");
+    expect(reply.body).toContain("Best wishes from the Acme team.");
+
+    const [entry] = await db()
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.targetId, ticketId), eq(auditLog.action, "ticket.ai_reply_sent")));
+    expect(entry).toMatchObject({
+      actorUserId: agentUser.id,
+      metadata: { draftId: draft.id, messageId: reply.id, editRatio: res.json.editRatio },
+    });
+    expect(JSON.stringify(entry!.metadata)).not.toContain("Annual plans"); // no message text in the audit log
+  });
+
+  it("an unchanged draft has edit ratio 0, and a draft can be sent only once", async () => {
+    const { ticketId, draft } = await readyDraft();
+    const first = await call("sendDraft", {
+      as: owner,
+      params: { id: draft.id },
+      body: { body: draft.body },
+    });
+    expect(first.json.editRatio).toBe(0);
+    const again = await call("sendDraft", {
+      as: owner,
+      params: { id: draft.id },
+      body: { body: draft.body },
+    });
+    expect(again.status).toBe(409);
+    expect(again.json.detail).toBe("This draft was already sent.");
+    expect((await messagesOf(ticketId)).filter((m) => m.authorType === "agent")).toHaveLength(1);
+  });
+
+  it("two agents sending at the same moment post one reply", async () => {
+    const { ticketId, draft } = await readyDraft();
+    const results = await Promise.all(
+      [owner, agent].map((as) =>
+        call("sendDraft", { as, params: { id: draft.id }, body: { body: draft.body } }),
+      ),
+    );
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect((await messagesOf(ticketId)).filter((m) => m.authorType === "agent")).toHaveLength(1);
+  });
+
+  it("refuses an empty reply (only markers) and a closed ticket, leaving the draft ready", async () => {
+    const { ticketId, draft } = await readyDraft();
+    const empty = await call("sendDraft", {
+      as: owner,
+      params: { id: draft.id },
+      body: { body: " [1] [2] " },
+    });
+    expect(empty.status).toBe(400);
+    expect(empty.json.errors.body).toBeDefined();
+
+    await db().update(ticket).set({ status: "closed" }).where(eq(ticket.id, ticketId));
+    const closed = await call("sendDraft", {
+      as: owner,
+      params: { id: draft.id },
+      body: { body: draft.body },
+    });
+    expect(closed.status).toBe(409);
+    expect(closed.json.type).toMatch(/ticket_closed$/);
+    expect((await rowOf(draft.id)).status).toBe("ready");
+    expect((await messagesOf(ticketId)).filter((m) => m.authorType === "agent")).toHaveLength(0);
+  });
+
+  it("discarding closes the draft for sending", async () => {
+    const { draft } = await readyDraft();
+    const res = await call("discardDraft", { as: agent, params: { id: draft.id } });
+    expect(res.status).toBe(200);
+    expect(res.json.status).toBe("discarded");
+    expect((await call("discardDraft", { as: agent, params: { id: draft.id } })).status).toBe(409);
+    const send = await call("sendDraft", { as: agent, params: { id: draft.id }, body: { body: draft.body } });
+    expect(send.status).toBe(409);
+    expect(send.json.detail).toMatch(/discarded/);
+  });
+
+  it("stores 👍/👎 with a reason; a new rating replaces the old one", async () => {
+    const { draft } = await readyDraft();
+    const down = await call("rateDraft", {
+      as: agent,
+      params: { id: draft.id },
+      body: { rating: "down", reason: "incomplete", note: "  Missed the monthly plan part.  " },
+    });
+    expect(down.status).toBe(200);
+    expect(down.json.feedback).toEqual({
+      rating: "down",
+      reason: "incomplete",
+      note: "Missed the monthly plan part.",
+    });
+
+    const up = await call("rateDraft", {
+      as: agent,
+      params: { id: draft.id },
+      body: { rating: "up", reason: "tone" },
+    });
+    expect(up.json.feedback).toEqual({ rating: "up", reason: null, note: null }); // a reason only goes with 👎
+    const row = await rowOf(draft.id);
+    const agentUser = (await getAuth().api.getSession({ headers: agent.headers }))!.user;
+    expect(row).toMatchObject({ feedbackBy: agentUser.id, feedbackAt: expect.any(Date) });
+
+    const bad = await call("rateDraft", { as: agent, params: { id: draft.id }, body: { rating: "meh" } });
+    expect(bad.status).toBe(400);
+  });
+
+  it("a refused draft can be rated (e.g. it should have answered), but not one still being written", async () => {
+    const t = await newTicket(acmeId, ...REFUND_QUESTION);
+    const { draft } = await generate(t.id, { respond: scripted("INSUFFICIENT_KNOWLEDGE") });
+    const res = await call("rateDraft", {
+      as: owner,
+      params: { id: draft!.id as string },
+      body: { rating: "down", reason: "incorrect" },
+    });
+    expect(res.status).toBe(200);
+
+    const generatingId = await insertDraft(db(), acmeId, {
+      ticketId: t.id,
+      requestedBy: (await getAuth().api.getSession({ headers: owner.headers }))!.user.id,
+      promptVersion: "draft.v1",
+    });
+    expect(
+      (await call("rateDraft", { as: owner, params: { id: generatingId }, body: { rating: "up" } })).status,
+    ).toBe(409);
+  });
+
+  it("the ticket page gets back the newest unsent draft after a reload", async () => {
+    const { ticketId, draft } = await readyDraft();
+    expect((await getOpenDraft(owner.headers, ticketId))?.id).toBe(draft.id);
+    await call("sendDraft", { as: owner, params: { id: draft.id }, body: { body: draft.body } });
+    expect(await getOpenDraft(owner.headers, ticketId)).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { KB_MAX_UPLOAD_BYTES } from "@/server/modules/kb/limits";
+import { draftFeedbackInput, draftSendInput } from "@/server/modules/drafts/schemas";
 import { kbSearchInput } from "@/server/modules/kb/schemas";
 import type { Permission } from "@/server/platform/auth/permissions";
 import {
@@ -26,6 +27,8 @@ import {
   KbDocumentList,
   KbSearchResults,
   DraftStreamEvent,
+  AiDraft,
+  DraftIdParams,
 } from "./schemas";
 
 /**
@@ -44,7 +47,7 @@ export interface Operation<
   path: string;
   summary: string;
   description?: string;
-  tag: "Portal" | "Tickets" | "Knowledge" | "Meta";
+  tag: "Portal" | "Tickets" | "Drafts" | "Knowledge" | "Meta";
   /** public: no credentials · session: signed-in workspace member · tracking-token: secret path token. */
   auth: "public" | "session" | "tracking-token";
   /**
@@ -197,6 +200,51 @@ export const operations = {
       contentType: "application/x-ndjson",
     },
     errors: [401, 403, 404, 409, 429],
+  }),
+  sendDraft: define({
+    id: "sendDraft",
+    method: "POST",
+    path: "/api/v1/drafts/{id}/send",
+    summary: "Approve & send: post the (edited) draft as your reply",
+    description:
+      "Posts `body` as the signed-in agent's public reply, with [n] citation markers removed, and marks the " +
+      "draft sent with how much it was edited. Only a `ready` draft on an open ticket can be sent; otherwise 409.",
+    tag: "Drafts",
+    auth: "session",
+    permission: { draft: ["approve"], ticket: ["update"] },
+    params: DraftIdParams,
+    body: draftSendInput,
+    success: { status: 200, description: "The sent draft.", schema: AiDraft },
+    errors: [400, 401, 403, 404, 409, 413, 415],
+  }),
+  discardDraft: define({
+    id: "discardDraft",
+    method: "POST",
+    path: "/api/v1/drafts/{id}/discard",
+    summary: "Discard a draft",
+    description: "Only a `ready` draft can be discarded; otherwise 409.",
+    tag: "Drafts",
+    auth: "session",
+    permission: { draft: ["generate"] },
+    params: DraftIdParams,
+    success: { status: 200, description: "The discarded draft.", schema: AiDraft },
+    errors: [401, 403, 404, 409],
+  }),
+  rateDraft: define({
+    id: "rateDraft",
+    method: "POST",
+    path: "/api/v1/drafts/{id}/feedback",
+    summary: "Rate a draft 👍/👎",
+    description:
+      "Sets the draft's rating, with an optional reason (thumbs-down only) and note. Rating again replaces " +
+      "it. Any finished draft can be rated, including refused ones; 409 while it is still being written.",
+    tag: "Drafts",
+    auth: "session",
+    permission: { draft: ["generate"] },
+    params: DraftIdParams,
+    body: draftFeedbackInput,
+    success: { status: 200, description: "The rated draft.", schema: AiDraft },
+    errors: [400, 401, 403, 404, 409, 413, 415],
   }),
   addTicketMessage: define({
     id: "addTicketMessage",

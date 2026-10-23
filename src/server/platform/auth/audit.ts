@@ -23,6 +23,7 @@ export type AuditAction =
   | "ticket.priority_changed"
   | "ticket.category_changed"
   | "ticket.assigned"
+  | "ticket.ai_reply_sent"
   | "kb.document_uploaded"
   | "kb.document_deleted"
   | "kb.document_retried";

@@ -8,6 +8,9 @@ import * as ticketRoute from "@/app/api/v1/tickets/[id]/route";
 import * as ticketMessagesRoute from "@/app/api/v1/tickets/[id]/messages/route";
 import * as triageAcceptRoute from "@/app/api/v1/tickets/[id]/triage/accept/route";
 import * as draftsRoute from "@/app/api/v1/tickets/[id]/drafts/route";
+import * as draftSendRoute from "@/app/api/v1/drafts/[id]/send/route";
+import * as draftDiscardRoute from "@/app/api/v1/drafts/[id]/discard/route";
+import * as draftFeedbackRoute from "@/app/api/v1/drafts/[id]/feedback/route";
 import * as kbDocumentsRoute from "@/app/api/v1/kb/documents/route";
 import * as kbDocumentRoute from "@/app/api/v1/kb/documents/[id]/route";
 import * as kbRetryRoute from "@/app/api/v1/kb/documents/[id]/retry/route";
@@ -30,6 +33,9 @@ export const handlers: Record<OpId, RouteHandler> = {
   updateTicket: ticketRoute.PATCH,
   acceptTriageSuggestion: triageAcceptRoute.POST,
   generateDraft: draftsRoute.POST,
+  sendDraft: draftSendRoute.POST,
+  discardDraft: draftDiscardRoute.POST,
+  rateDraft: draftFeedbackRoute.POST,
   addTicketMessage: ticketMessagesRoute.POST,
   listKbDocuments: kbDocumentsRoute.GET,
   uploadKbDocument: kbDocumentsRoute.POST,

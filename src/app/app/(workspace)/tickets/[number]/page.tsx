@@ -6,11 +6,13 @@ import { cache } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getOpenDraft } from "@/server/modules/drafts/actions";
 import { getTicketByNumberForAgent } from "@/server/modules/tickets/service";
 import { AppError } from "@/server/platform/errors";
 import { requireAppWorkspace } from "../../workspace-context";
 import { dateFormat, PRIORITY_CLASS, PRIORITY_LABEL, STATUS_LABEL } from "../labels";
 import { Composer } from "./composer";
+import { DraftPanel } from "./draft-panel";
 import { TicketProperties } from "./properties";
 import { TriageCard } from "./triage-card";
 
@@ -18,8 +20,11 @@ import { TriageCard } from "./triage-card";
 const load = cache(async (number: string) => {
   await requireAppWorkspace();
   try {
-    const d = await getTicketByNumberForAgent(await headers(), number);
-    return { ...d, loadedAt: Date.now() };
+    const h = await headers();
+    const d = await getTicketByNumberForAgent(h, number);
+    // A ready, unsent draft survives a reload. Closed tickets get no draft panel.
+    const openDraft = d.ticket.status === "closed" ? null : await getOpenDraft(h, d.ticket.id);
+    return { ...d, openDraft, loadedAt: Date.now() };
   } catch (err) {
     if (err instanceof AppError && err.status === 404) return null;
     throw err;
@@ -110,6 +115,9 @@ export default async function TicketPage({ params }: PageProps<"/app/tickets/[nu
               })}
             </ol>
           </section>
+          {t.status !== "closed" && (
+            <DraftPanel key={t.id} ticketId={t.id} customerName={t.customerName} initialDraft={d.openDraft} />
+          )}
           <Composer ticketId={t.id} closed={t.status === "closed"} customerName={t.customerName} />
         </div>
         <div className="flex flex-col gap-6">

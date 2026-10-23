@@ -505,6 +505,8 @@ export const AI_DRAFT_STATUSES = [
   "discarded",
 ] as const;
 export const DRAFT_FEEDBACK = ["up", "down"] as const;
+/** Why a draft got 👎 (FR-AI6), for the M6 evaluation. */
+export const DRAFT_FEEDBACK_REASONS = ["incorrect", "incomplete", "wrong_sources", "tone", "other"] as const;
 
 export const aiDraft = pgTable(
   "ai_draft",
@@ -542,6 +544,7 @@ export const aiDraft = pgTable(
     /** How much the agent changed before sending: 0 = unchanged, 1 = rewritten. */
     editRatio: real("edit_ratio"),
     feedback: text("feedback", { enum: DRAFT_FEEDBACK }),
+    feedbackReason: text("feedback_reason", { enum: DRAFT_FEEDBACK_REASONS }),
     feedbackNote: text("feedback_note"),
     feedbackBy: text("feedback_by").references(() => user.id, { onDelete: "set null" }),
     feedbackAt: timestamp("feedback_at", { withTimezone: true }),
@@ -562,6 +565,13 @@ export const aiDraft = pgTable(
     check(
       "ai_draft_feedback_ck",
       sql.raw(`feedback IS NULL OR feedback IN (${DRAFT_FEEDBACK.map((v) => `'${v}'`).join(", ")})`),
+    ),
+    // A reason only goes with a thumbs-down.
+    check(
+      "ai_draft_feedback_reason_ck",
+      sql.raw(
+        `feedback_reason IS NULL OR (feedback = 'down' AND feedback_reason IN (${DRAFT_FEEDBACK_REASONS.map((v) => `'${v}'`).join(", ")}))`,
+      ),
     ),
     check(
       "ai_draft_failed_has_reason_ck",

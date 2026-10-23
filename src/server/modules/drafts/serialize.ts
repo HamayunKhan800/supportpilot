@@ -27,6 +27,11 @@ export interface ApiDraft {
     sourceRemoved: boolean;
   }[];
   usage: { inputTokens: number; outputTokens: number; estCostMicros: number };
+  /** The reply this draft became, once an agent approved and sent it. */
+  sentMessageId: string | null;
+  /** 0 = sent as written, 1 = rewritten. */
+  editRatio: number | null;
+  feedback: { rating: "up" | "down"; reason: string | null; note: string | null } | null;
   ttftMs: number | null;
   latencyMs: number | null;
   createdAt: string;
@@ -59,6 +64,11 @@ export function apiDraft(draft: DraftRow, citations: readonly CitationRow[]): Ap
       outputTokens: draft.outputTokens,
       estCostMicros: draft.estCostMicros,
     },
+    sentMessageId: draft.sentMessageId,
+    editRatio: draft.editRatio,
+    feedback: draft.feedback
+      ? { rating: draft.feedback, reason: draft.feedbackReason, note: draft.feedbackNote }
+      : null,
     ttftMs: draft.ttftMs,
     latencyMs: draft.latencyMs,
     createdAt: draft.createdAt.toISOString(),

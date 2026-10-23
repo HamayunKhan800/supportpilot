@@ -44,14 +44,14 @@
 
 ## 3. Steps (each one committed with CI green)
 
-1. **Foundations:**
+1. ✅ **Foundations:**
    - Threat model remapped to the **OWASP LLM Top 10 2026** (published 2026-08-04; [official repository](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10)), which replaced the 2025 list our docs cite. ADR-0015 (ADR-0014 is reserved for the M4 search-fusion decision) (models, thinking, prompt versioning, streaming protocol).
    - Migration `0004`: `ticket_triage` (one row per run, plus applied/override fields), `ai_draft`, `ai_draft_citation` (snapshots), new `ai_usage` columns (outcome, latency, time to first token, ticket id).
    - The AI module: interface, mock and Gemini providers, budget check, daily cap, circuit breaker, timeouts, usage recording.
    - Unit tests, including fault injection with `MockLanguageModelV4`: 429, 500, timeout, stalled stream, malformed JSON, schema-invalid output, abort.
-2. **Triage:** prompt v1 and schema; the `ai.triage` job and dead-letter queue; enqueue in both ticket-creation paths; D5 rules; override recording; triage card and "Needs review" filter in the UI. Integration, mutation and E2E tests.
-3. **Draft engine:** retrieval → refusal gate → prompt v1 → stream → citation validation → canary/link checks → save; the streaming REST endpoint in OpenAPI; rate limits. Integration tests with the mock provider and every fault path.
-4. **Draft UI:** draft panel with streaming text (screen readers hear "Draft ready", not every word), citation buttons with passage view and "source removed", edit, customer preview, **Approve & send**, discard, 👍/👎. E2E on desktop and mobile, plus axe accessibility checks.
+2. ✅ **Triage:** prompt v1 and schema; the `ai.triage` job and dead-letter queue; enqueue in both ticket-creation paths; D5 rules; override recording; triage card and "Needs review" filter in the UI. Integration, mutation and E2E tests.
+3. ✅ **Draft engine:** retrieval → refusal gate → prompt v1 → stream → citation validation → canary/link checks → save; the streaming REST endpoint in OpenAPI; rate limits. Integration tests with the mock provider and every fault path.
+4. ✅ **Draft UI:** draft panel with streaming text (screen readers hear "Draft ready", not every word), citation buttons with passage view and "source removed", edit, customer preview, **Approve & send**, discard, 👍/👎. E2E on desktop and mobile, plus axe accessibility checks.
 5. **AI settings page** (admin+): AI on/off, budget and this month's usage, threshold, categories. E2E covering budget exhaustion.
 6. **Evaluation and security:**
    - **Injection test set (~20 cases):** 12 direct (in tickets) and 8 indirect (in knowledge-base passages, including the poisoned article kept since M4). Run in CI with the mock provider to check the pipeline defences: canary blocking, link warnings, hidden characters, no internal notes in prompts.

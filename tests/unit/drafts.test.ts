@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { customerCopy, editRatio, splitCitations } from "@/server/modules/drafts/citations";
 import { mockDraftResponder } from "@/server/modules/drafts/mock-responder";
 import {
   checkDraft,
@@ -164,6 +165,11 @@ describe("citation check (D8)", () => {
     expect(validateCitations(text, 2)).toEqual({ text, cited: [], invalidCount: 0 });
   });
 
+  it("tidies the space before a run of removed markers, and only there", () => {
+    expect(validateCitations("days [7][9]. Ok [9] [1].", 1).text).toBe("days. Ok [1].");
+    expect(validateCitations("Merci ! Voir [9] ici [1] ?", 1).text).toBe("Merci ! Voir ici [1] ?");
+  });
+
   it("keeps the gap between words when a marker in the middle is removed", () => {
     expect(validateCitations("the plan [5] renews", 1).text).toBe("the plan renews");
   });
@@ -320,5 +326,55 @@ describe("mock draft model", () => {
 
   it("is deterministic", () => {
     expect(ask()).toBe(ask());
+  });
+});
+
+describe("customer copy (D9)", () => {
+  it("removes every marker and the space before punctuation", () => {
+    expect(customerCopy("Refunds take 5 days [1]. Plans renew yearly [2][3], or monthly [1, 2].")).toBe(
+      "Refunds take 5 days. Plans renew yearly, or monthly.",
+    );
+  });
+
+  it("keeps the gap between words, line breaks and other brackets", () => {
+    expect(customerCopy("Hi,\n\nthe plan [1] renews. Press [Save] [2]\nThanks")).toBe(
+      "Hi,\n\nthe plan renews. Press [Save]\nThanks",
+    );
+  });
+
+  it("keeps the model's own spacing elsewhere (French punctuation)", () => {
+    expect(customerCopy("Merci [1] ! Les remboursements [1][2] : 5 jours [2].")).toBe(
+      "Merci ! Les remboursements : 5 jours.",
+    );
+  });
+
+  it("is empty when only markers are left", () => {
+    expect(customerCopy(" [1] [2] ")).toBe("");
+  });
+});
+
+describe("splitting a draft for citation buttons", () => {
+  it("separates text and single-number citations, keeping all text", () => {
+    expect(splitCitations("A [1]. B [2, 3]")).toEqual([
+      { type: "text", text: "A " },
+      { type: "citation", marker: 1 },
+      { type: "text", text: ". B " },
+      { type: "citation", marker: 2 },
+      { type: "citation", marker: 3 },
+    ]);
+    expect(splitCitations("no markers")).toEqual([{ type: "text", text: "no markers" }]);
+  });
+});
+
+describe("edit ratio", () => {
+  it("is 0 when sent as written (markers don't count) and 1 when fully rewritten", () => {
+    expect(editRatio("Refunds take 5 days [1].", "Refunds take 5 days.")).toBe(0);
+    expect(editRatio("Refunds take 5 days [1].", "Completely different words here")).toBe(1);
+  });
+
+  it("measures changed words against the longer text", () => {
+    expect(editRatio("one two three four", "one two three five")).toBe(0.25);
+    expect(editRatio("one two", "one two three four")).toBe(0.5);
+    expect(editRatio("", "")).toBe(0);
   });
 });
