@@ -1,0 +1,1678 @@
+{
+  "rubric": "docs/eval/triage-rubric.md (version 1)",
+  "about": "Synthetic triage test tickets for the fictional Nimbus Cloud Storage, written with AI assistance and labelled by the rubric. Every person and address is invented; emails use .test (RFC 2606).",
+  "tickets": [
+    {
+      "key": "tri-001",
+      "subject": "Charged 3 times this morning??",
+      "message": "I upgraded to Personal yearly and my bank app shows THREE payments of $99 within two minutes. I clicked the button once. Please refund the extra two, this is my rent money.",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H2",
+      "tags": ["angry"]
+    },
+    {
+      "key": "tri-002",
+      "subject": "still billed after cancel",
+      "message": "cancelled my family plan on the 3rd, got the confirmation email, and today 14th i see $14.99 taken again. why",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H2",
+      "tags": ["terse", "typo"]
+    },
+    {
+      "key": "tri-003",
+      "subject": "Cobro duplicado en mi tarjeta",
+      "message": "Hola, este mes Nimbus me cobró dos veces la suscripción Personal (9,99 USD cada una) el mismo día. Solo tengo una cuenta. ¿Pueden devolverme uno de los cargos?",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "es"
+      },
+      "rule": "H2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-004",
+      "subject": "Unknown charge from NIMBUS*CLOUD",
+      "message": "There's a $119.88 charge on my credit card statement labelled NIMBUS*CLOUD. I've only ever used the free plan. Is this you? I didn't authorise anything.",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H2",
+      "tags": ["vague"]
+    },
+    {
+      "key": "tri-005",
+      "subject": "Charged the yearly price instead of monthly",
+      "message": "I picked the monthly Personal plan at checkout, but I was charged $99 instead of $9.99. Can you switch me to monthly and refund the difference?",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H2",
+      "tags": []
+    },
+    {
+      "key": "tri-006",
+      "subject": "Business plan: billed for 12 users, we have 8",
+      "message": "Hello, I look after IT for a small architecture practice, so apologies if I get the terms wrong. Back in September two of our interns finished their placements and two contractors left, so I removed all four of them from the Business admin console on the 12th. The console has shown 8 members ever since, and I double-checked that none of the four are pending or suspended. However, our October invoice still charges for 12 Business licences, the same as August and September. Our finance manager spotted it during the month-end review and asked me to sort it out. Could you correct the invoice and credit us for the four licences we no longer use? Happy to send screenshots of the console if that helps.",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H2",
+      "tags": ["long"]
+    },
+    {
+      "key": "tri-007",
+      "subject": "Doppelte Abbuchung per SEPA",
+      "message": "Guten Tag, für unser Business-Konto wurde der Monatsbetrag diese Woche zweimal per SEPA-Lastschrift eingezogen. Bitte erstatten Sie eine der beiden Abbuchungen. Rechnungsnummer liegt vor.",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "de"
+      },
+      "rule": "H2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-008",
+      "subject": "student discount not applied",
+      "message": "Two things. First, a small idea: it would be nice to see the discount on the pricing page. Second, and more important: I verified my university email and got the 'student discount active' message, but I was charged full price, $9.99 not the discounted one. Can you refund the difference?",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H2",
+      "tags": ["multi-issue"],
+      "note": "M2/T2: a feature idea (low) and a wrong charge (H2). The highest priority wins, and its category is used."
+    },
+    {
+      "key": "tri-009",
+      "subject": "Seriously, again?",
+      "message": "Third month in a row you've charged me AFTER I downgraded to Free. Every time I write in, someone says it's fixed. It's not fixed. Refund all three and stop charging me.",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H2",
+      "tags": ["angry", "sarcastic"]
+    },
+    {
+      "key": "tri-010",
+      "subject": "How do I get a receipt for my company?",
+      "message": "Hi! I pay for Personal myself but my employer reimburses it. Where can I download a proper receipt with the amount and date? Thanks so much, love the app.",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["positive", "polite"]
+    },
+    {
+      "key": "tri-011",
+      "subject": "Change card on file",
+      "message": "My old card expires next month. How do I add the new one so the renewal doesn't fail?",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["terse"]
+    },
+    {
+      "key": "tri-012",
+      "subject": "Upgrade from Personal to Family mid-year",
+      "message": "We're really happy with Nimbus and want to add my parents! If I switch from Personal yearly to Family now, do I lose the months I've already paid for, or is it prorated?",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-013",
+      "subject": "Invoice address wrong",
+      "message": "Bonjour! Our company moved. The invoices still show the old address in Lyon. Can future invoices use the new address? It's for our auditors. Merci beaucoup.",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["mixed-language"],
+      "note": "A French greeting and sign-off, but the message is English (en)."
+    },
+    {
+      "key": "tri-014",
+      "subject": "Paiement par virement possible ?",
+      "message": "Bonjour, notre entreprise (15 personnes) voudrait passer au plan Business annuel. Est-il possible de payer par virement bancaire plutôt que par carte ? Merci d'avance.",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "fr"
+      },
+      "rule": "N2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-015",
+      "subject": "Refund for annual plan I bought by mistake 3 days ago",
+      "message": "Bought the yearly Personal plan on Sunday, meant to buy monthly. It's only been 3 days. Can I get a refund and switch to monthly?",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "A refund request within the 30-day window, not a wrong charge: the customer chose the plan (N2, not H2)."
+    },
+    {
+      "key": "tri-016",
+      "subject": "bhai invoice pe GST number chahiye",
+      "message": "Assalam o alaikum, mujhe apni company ke liye invoice chahiye jis pe hamara tax number likha ho. Settings mein option nahi mil raha. Kaise karein?",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "ur"
+      },
+      "rule": "N2",
+      "tags": ["roman-urdu", "non-english"]
+    },
+    {
+      "key": "tri-017",
+      "subject": "Why did my price go up?",
+      "message": "My Family plan renewal was $149 last year and this year the email says a different amount. Did prices change, or is it tax? Just want to understand before it renews.",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-018",
+      "subject": "Paid on iPhone, want refund",
+      "message": "I subscribed through the iPhone app last week by accident and want a refund. Can you do that from your side?",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "Bought in the App Store: the help article says Apple handles the refund, so this is a billing question (N2), not a wrong charge."
+    },
+    {
+      "key": "tri-019",
+      "subject": "Cancel but keep files?",
+      "message": "If I cancel Personal and go back to Free, what happens to my 400 GB? Will you delete it? Not urgent, my renewal is in March.",
+      "expected": {
+        "category": "billing",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L2",
+      "tags": ["claims-no-rush"]
+    },
+    {
+      "key": "tri-020",
+      "subject": "Pergunta sobre preço para ONG",
+      "message": "Olá! Somos uma pequena ONG no Brasil. Vocês têm desconto para organizações sem fins lucrativos? Estamos só pesquisando opções para o próximo ano, sem pressa.",
+      "expected": {
+        "category": "billing",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "pt"
+      },
+      "rule": "L2",
+      "tags": ["non-english", "positive"]
+    },
+    {
+      "key": "tri-021",
+      "subject": "URGENT!!! billing question",
+      "message": "URGENT PLEASE ANSWER ASAP!!! What's the difference between paying monthly and yearly for Personal? Is yearly cheaper?",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["claims-urgent"],
+      "note": "M1: the urgency words don't change a pricing question (N2)."
+    },
+    {
+      "key": "tri-022",
+      "subject": "Files vanishing from my synced folder",
+      "message": "Right now files are disappearing from my Documents folder one by one. The desktop app says 'deleted' for things I never touched. I paused sync but I'm scared to unpause. What is happening??",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U2",
+      "tags": ["angry"]
+    },
+    {
+      "key": "tri-023",
+      "subject": "Sync overwrote my thesis with an old version",
+      "message": "Hi, sorry, this will be long but I'm panicking a bit. I've used Nimbus all through my master's and never had a problem. Last night I worked on my thesis until 2am on my laptop, saved, closed the lid. This morning I opened it on my desktop at the library and the file was the version from two weeks ago. I thought maybe the library PC hadn't synced, so I went home, and my laptop now ALSO has the two-week-old version, and so does the web app. I rewrote the conclusion again this afternoon and saved, and twenty minutes later it flipped back to the old version again while I was watching. It keeps doing it every time I save. My deadline is Friday. What is going on and how do I stop it?",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U2",
+      "tags": ["long"]
+    },
+    {
+      "key": "tri-024",
+      "subject": "Photos corrupted after upload",
+      "message": "Every photo the Android app uploaded since yesterday opens as a grey box in the web app and on my PC. The originals on my phone are already deleted by the 'free up space' option. Please help.",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U2",
+      "tags": [],
+      "note": "Corruption happening now, with the originals already removed from the phone."
+    },
+    {
+      "key": "tri-025",
+      "subject": "Nobody in our office can sign in",
+      "message": "Since 9:00 none of our 20 staff can sign in to the web app, it just loops back to the sign-in page. Phones work. We're a law firm and can't open client files.",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U3",
+      "tags": []
+    },
+    {
+      "key": "tri-026",
+      "subject": "الملفات لا تتزامن عند كل الفريق",
+      "message": "مرحباً، منذ صباح اليوم لا تتم مزامنة أي ملفات لدى جميع أعضاء فريقنا (٧ أشخاص) على تطبيق سطح المكتب. تظهر رسالة خطأ في الاتصال. هل هناك عطل؟",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "neutral",
+        "language": "ar"
+      },
+      "rule": "U3",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-027",
+      "subject": "Shared folder empty for the whole family",
+      "message": "Our family shared folder shows 0 files for me, my wife and both kids since this morning. The storage bar still says 600 GB used. Where did everything go?",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U3",
+      "tags": [],
+      "note": "Several people cannot see their files (U3); no sign that files are being deleted, so not U2."
+    },
+    {
+      "key": "tri-028",
+      "subject": "API returning 500 for all our users",
+      "message": "Our app's integration with Nimbus has been getting HTTP 500 on every upload call for all of our customers for the past hour. Nothing changed on our side. Status page says all green.",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "U3",
+      "tags": []
+    },
+    {
+      "key": "tri-029",
+      "subject": "Desktop app crashes on start",
+      "message": "Since this morning the Mac app crashes the second I open it. Reinstalled twice. I can't get to any of my work files offline and the web app is too slow for 4K video.",
+      "expected": {
+        "category": "bug",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": []
+    },
+    {
+      "key": "tri-030",
+      "subject": "ڈیسک ٹاپ ایپ میں سنک بند ہے",
+      "message": "السلام علیکم، کل سے میرے لیپ ٹاپ پر کوئی بھی فائل سنک نہیں ہو رہی۔ ایپ کہتی ہے 'سنک ہو رہا ہے' لیکن کچھ نہیں ہوتا۔ میرا سارا کام اسی فولڈر میں ہے۔",
+      "expected": {
+        "category": "bug",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "ur"
+      },
+      "rule": "H1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-031",
+      "subject": "cant open any pdf in web app",
+      "message": "every pdf i click in the web app just shows spinner forever. word files open fine. i need the pdfs for a meeting in 1 hour",
+      "expected": {
+        "category": "bug",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": ["typo", "terse"]
+    },
+    {
+      "key": "tri-032",
+      "subject": "Two-step code accepted but then error 500",
+      "message": "I enter my 2FA code, it says correct, then I get 'Something went wrong (500)'. Tried 3 browsers. I'm stuck outside my account.",
+      "expected": {
+        "category": "bug",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": ["ambiguous"],
+      "note": "Sign-in fails because of a server error after a valid code, so the product is broken: bug, not account (T1)."
+    },
+    {
+      "key": "tri-033",
+      "subject": "La app de escritorio no sube nada",
+      "message": "Desde la actualización de ayer, la app de Windows marca todos los archivos con un reloj y no sube ninguno. Tengo espacio de sobra. Trabajo desde casa y mis compañeros no reciben mis archivos.",
+      "expected": {
+        "category": "bug",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "es"
+      },
+      "rule": "H1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-034",
+      "subject": "Upload stuck at 0% on every file",
+      "message": "Web app: any file I upload, even a 10 KB text file, stays at 0% forever. Cleared cache, tried Firefox and Chrome. Can't hand in my assignments.",
+      "expected": {
+        "category": "bug",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": []
+    },
+    {
+      "key": "tri-035",
+      "subject": "Synchronisation bloquée après mise à jour",
+      "message": "Bonjour, depuis la version 4.3 mon Mac affiche « Synchronisation en pause » et ne reprend pas, même après redémarrage. Je suis seul sur ce compte. Pouvez-vous m'aider ?",
+      "expected": {
+        "category": "bug",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "fr"
+      },
+      "rule": "H1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-036",
+      "subject": "Thumbnails wrong in web app",
+      "message": "In grid view, the thumbnails show the wrong pictures, like my holiday photos have thumbnails of my receipts. Opening the file shows the right image. Just confusing.",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N1",
+      "tags": []
+    },
+    {
+      "key": "tri-037",
+      "subject": "Sync is slow since last week",
+      "message": "Syncing used to take seconds, now a 5 MB file takes about 3 minutes to appear on my other laptop. It does get there eventually.",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N1",
+      "tags": []
+    },
+    {
+      "key": "tri-038",
+      "subject": "Search doesn't find files by name",
+      "message": "When I search for 'invoice' in the web app it finds nothing, but I have 30 files with invoice in the name. Browsing the folder works.",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N1",
+      "tags": []
+    },
+    {
+      "key": "tri-039",
+      "subject": "Dark mode text unreadable on Android",
+      "message": "On Android with system dark mode, folder names in the app are dark grey on black, nearly invisible. Not a big deal but annoying.",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "N1",
+      "tags": [],
+      "note": "A display error, not a request for a new feature (rubric: bug)."
+    },
+    {
+      "key": "tri-040",
+      "subject": "Is this a bug? Mobile app logs me out daily",
+      "message": "The iPhone app asks me to sign in again every single morning. Is that a security feature or a bug? Face ID is on.",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "N1",
+      "tags": ["misleading-keyword"],
+      "note": "The help articles don't describe a daily sign-out, so it behaves differently from documented: bug (T1)."
+    },
+    {
+      "key": "tri-041",
+      "subject": "Falsche Uhrzeit beim Änderungsdatum",
+      "message": "Hallo, in der Dateiübersicht stehen bei allen Dateien Änderungszeiten, die genau eine Stunde falsch sind (Zeitzone Berlin). Sonst funktioniert alles.",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "de"
+      },
+      "rule": "N1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-042",
+      "subject": "one file always says conflict",
+      "message": "one excel file keeps making 'conflicted copy' every time i save even if only i open it. other files fine. bit annoying",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "N1",
+      "tags": ["typo"]
+    },
+    {
+      "key": "tri-043",
+      "subject": "Love Nimbus, but the share button disappeared",
+      "message": "Big fan of Nimbus for years! Since the update the Share button is gone from the right-click menu on Windows. I can still share from the web app, so no rush.",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N1",
+      "tags": ["positive"],
+      "note": "N1 comes before L2 in the list (first match wins), so a malfunction with a workaround stays normal even when the customer says there is no rush."
+    },
+    {
+      "key": "tri-044",
+      "subject": "Someone logged into my account from Russia",
+      "message": "Got an email 'new sign-in from Moscow' 10 minutes ago. That wasn't me, I'm in Manchester. I changed my password but I'm worried they downloaded my passport scans. What do I do?",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": []
+    },
+    {
+      "key": "tri-045",
+      "subject": "My files are being shared without me",
+      "message": "I just got notifications that 40 of my folders were shared with an address I don't know (x9k2@mailbox.test). I didn't do this. Is my account hacked?",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": []
+    },
+    {
+      "key": "tri-046",
+      "subject": "password changed, not by me",
+      "message": "got email my password was changed. i didnt change it. now cant log in. pls help fast",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": ["terse", "typo"],
+      "note": "Someone else changed the password: a possible takeover (U1), not just a lockout (H1). U1 comes first."
+    },
+    {
+      "key": "tri-047",
+      "subject": "Alguien cambió el correo de mi cuenta",
+      "message": "Recibí un aviso de que el correo de mi cuenta Nimbus se cambió a otra dirección. ¡Yo no lo pedí! Ahora no puedo entrar. Tengo documentos del trabajo ahí.",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "es"
+      },
+      "rule": "U1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-048",
+      "subject": "Ex-employee still has access",
+      "message": "An employee left our company yesterday on bad terms. I removed him from the Business console but he still seems to be editing files in our shared folder. How do I cut him off right now?",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": ["ambiguous"],
+      "note": "Someone who should no longer have access is still using files: a possibly compromised account (account, U1), not routine member management (how-to)."
+    },
+    {
+      "key": "tri-049",
+      "subject": "Recovery request I didn't make",
+      "message": "I received an email saying an account recovery request was started for my account and access will be restored in 72 hours. I never asked for this. How do I stop it?",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": [],
+      "note": "The help article says to click 'This wasn't me'; the ticket is still a possible takeover attempt (U1)."
+    },
+    {
+      "key": "tri-050",
+      "subject": "Phishing email used your logo, I entered my password",
+      "message": "I got an email from 'nimbus-support@nimbus-secure.test' saying my storage was full and I signed in through the link. Then I realised it's not your domain. Did I just give my password away?",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": []
+    },
+    {
+      "key": "tri-051",
+      "subject": "Alguém entrou na minha conta",
+      "message": "Olá, vejo em Dispositivos um Windows PC que não é meu, conectado há duas horas. Eu só uso Mac e iPhone. Removi o dispositivo mas estou preocupada.",
+      "expected": {
+        "category": "account",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "pt"
+      },
+      "rule": "U1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-052",
+      "subject": "Lost my phone, can't do 2FA",
+      "message": "My phone was stolen yesterday and the authenticator app was on it. I don't have the backup codes. I can't sign in and all my work is in Nimbus. Also, unrelated: once I'm back in, how do I add my wife to our Family plan?",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": ["multi-issue"],
+      "note": "M2/T2: locked out (H1, account) plus a how-to question (N2). Lost device, no sign that anyone else is using the account, so H1, not U1 (M3)."
+    },
+    {
+      "key": "tri-053",
+      "subject": "Password reset email never arrives",
+      "message": "I've clicked 'Forgot password' 5 times in the last hour. No email, not in spam either. I can't get into my account to finish a client delivery.",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": []
+    },
+    {
+      "key": "tri-054",
+      "subject": "72 hours is too long!!",
+      "message": "I started account recovery because I lost my 2FA phone. Now it says wait 72 hours. I have a job interview tomorrow and my portfolio is in Nimbus. Can you speed it up?",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": ["angry"],
+      "note": "Locked out with no workaround (H1). The waiting period is documented, but the request is about getting access."
+    },
+    {
+      "key": "tri-055",
+      "subject": "Konto gesperrt nach zu vielen Versuchen",
+      "message": "Hallo, mein Konto ist nach mehreren falschen Passwörtern gesperrt. Ich brauche die Dateien heute für meine Steuererklärung. Wie komme ich wieder hinein?",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "de"
+      },
+      "rule": "H1",
+      "tags": ["non-english", "ambiguous"],
+      "note": "The help articles say sign-in unlocks after 15 minutes. The label follows what the customer reports (blocked from the files they need today, M3); a model choosing normal is defensible, so this ticket is tagged ambiguous."
+    },
+    {
+      "key": "tri-056",
+      "subject": "Can't sign in with Google anymore",
+      "message": "I always used 'Continue with Google' but now it says no account found for my Gmail. My files are still there, right? I can't reach them.",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": []
+    },
+    {
+      "key": "tri-057",
+      "subject": "SSO broke, whole team? no just me",
+      "message": "Our company switched Nimbus to required SSO. Everyone else got in fine but I get 'user not assigned' from Okta. I can't open anything.",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": [],
+      "note": "Only this person is blocked, so H1 not U3 (M3)."
+    },
+    {
+      "key": "tri-058",
+      "subject": "new phone, codes not working",
+      "message": "switched to new phone, moved authenticator, now the 6 digit codes always say invalid. tried the backup codes too, they also fail??",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": ["typo"]
+    },
+    {
+      "key": "tri-059",
+      "subject": "No email access anymore",
+      "message": "My account email is my old university address, which got shut down. I can't reset my password because the email goes there. I can't sign in at all.",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": []
+    },
+    {
+      "key": "tri-060",
+      "subject": "email badalna hai",
+      "message": "Mera account purani email pe hai jo ab main use nahi karta. Nayi email kaise lagaun? Password mujhe yaad hai, login ho raha hai.",
+      "expected": {
+        "category": "account",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "ur"
+      },
+      "rule": "N2",
+      "tags": ["roman-urdu", "non-english"]
+    },
+    {
+      "key": "tri-061",
+      "subject": "Delete my account and all data please",
+      "message": "I'm moving to another service. Please delete my account and everything in it. I've already downloaded what I need. Thanks for the years of service.",
+      "expected": {
+        "category": "account",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-062",
+      "subject": "Turn on two-step verification",
+      "message": "Really happy with Nimbus so far, thank you. Where do I turn on two-step verification? My IT person told me I should. Can I use an SMS instead of an app?",
+      "expected": {
+        "category": "account",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["positive"],
+      "note": "Changing an account security setting; documented, but the rubric puts two-step verification under account."
+    },
+    {
+      "key": "tri-063",
+      "subject": "Sign out of my old laptop",
+      "message": "I sold my laptop and forgot to sign out of Nimbus. Nobody has used it as far as I know. How do I make sure it's signed out?",
+      "expected": {
+        "category": "account",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "No sign of misuse, so a precaution rather than U1 (M3)."
+    },
+    {
+      "key": "tri-064",
+      "subject": "Merge two accounts",
+      "message": "I have two Nimbus accounts, a personal one and one I made with my work email by mistake. Can I merge them into one? Thanks!",
+      "expected": {
+        "category": "account",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-065",
+      "subject": "Deleted folder 25 days ago, free plan",
+      "message": "I deleted my 'Wedding' folder by mistake about 25 days ago. I'm on the free plan. Is it still recoverable? I just realised the photos aren't backed up anywhere else.",
+      "expected": {
+        "category": "how-to",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U2",
+      "tags": [],
+      "note": "Free-plan trash keeps files 30 days, so they'll be gone for good in about 5 days (U2: within 7 days)."
+    },
+    {
+      "key": "tri-066",
+      "subject": "I emptied the trash, are my files gone?",
+      "message": "Yesterday I deleted some project files and then emptied the trash without thinking. I'm on Personal. Is there any way to get them back?",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["ambiguous"],
+      "note": "H3 covers files still in the trash period. Emptied files can't be recovered, even by support (deleted-files article), so this is a question with a hard answer (N2), not a time-sensitive recovery."
+    },
+    {
+      "key": "tri-067",
+      "subject": "Restore deleted files from last week",
+      "message": "My son deleted a bunch of school files from our family account last week. How do I restore them?",
+      "expected": {
+        "category": "how-to",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H3",
+      "tags": []
+    },
+    {
+      "key": "tri-068",
+      "subject": "Recuperar archivos borrados",
+      "message": "Hola, borré sin querer una carpeta con facturas hace unos días. ¿Cómo la recupero? Tengo el plan Personal.",
+      "expected": {
+        "category": "how-to",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "es"
+      },
+      "rule": "H3",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-069",
+      "subject": "Overwrote a spreadsheet, need yesterday's version",
+      "message": "I saved over our budget spreadsheet with the wrong numbers this morning. Can I go back to yesterday's version? Please, it's for a board meeting.",
+      "expected": {
+        "category": "how-to",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H3",
+      "tags": ["ambiguous"],
+      "note": "Not deleted, but an overwritten file is recovered the same time-sensitive way (version history, kept 30 to 365 days). Closest rule: H3."
+    },
+    {
+      "key": "tri-070",
+      "subject": "Error NC-507, nothing uploads",
+      "message": "Desktop app shows NC-507 and nothing has uploaded for two days. I need my work files on my other computer. What does it mean? And honestly, you should email people before their storage fills up, I had no idea.",
+      "expected": {
+        "category": "how-to",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": ["misleading-keyword", "multi-issue"],
+      "note": "NC-507 is the documented 'storage full' error, so how-to; uploads stopped (H1). The feature suggestion is lower (M2)."
+    },
+    {
+      "key": "tri-071",
+      "subject": "Speicher voll – Kamera-Upload stoppt",
+      "message": "Mein Handy lädt keine Fotos mehr hoch, die App sagt, der Speicher ist voll. Ich bin im Urlaub und brauche den Platz auf dem Handy. Was kann ich tun?",
+      "expected": {
+        "category": "how-to",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "de"
+      },
+      "rule": "H1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-072",
+      "subject": "storage full cant upload anything",
+      "message": "storage full hai, cant upload anything for work. what do i delete or how do i get more space? jaldi batao pls",
+      "expected": {
+        "category": "how-to",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1",
+      "tags": ["terse", "typo", "mixed-language"],
+      "note": "Mostly English with a few Roman Urdu words, so en (language rule)."
+    },
+    {
+      "key": "tri-073",
+      "subject": "Is this a bug? 'File too large NC-204'",
+      "message": "Trying to sync a 60 GB video project file and the desktop app shows NC-204. Is this a bug? My plan has 2 TB free.",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["misleading-keyword"],
+      "note": "T1: NC-204 is the documented 50 GB desktop limit, so how-to, even though the customer asks if it's a bug."
+    },
+    {
+      "key": "tri-074",
+      "subject": "Files with : in the name won't sync to my PC",
+      "message": "Files I create on my Mac with names like 'Notes 10:30' show an error NC-101 on my Windows PC. The Mac is fine. Why?",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "NC-101 is documented (Windows file names)."
+    },
+    {
+      "key": "tri-075",
+      "subject": "API keeps returning 429",
+      "message": "Our script that backs up files through the Nimbus API gets 429 Too Many Requests after a few minutes. Is there a limit? How should we handle it?",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "Documented limit: 600 requests per minute per user, with Retry-After."
+    },
+    {
+      "key": "tri-076",
+      "subject": "Add password to a shared link",
+      "message": "Loving Business so far, it's made client handovers so much easier! Quick one: how do I put a password on a link I'm sending to a client?",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-077",
+      "subject": "Comment voir qui a ouvert mon lien ?",
+      "message": "Bonjour, j'ai partagé un dossier par lien avec un client. Est-il possible de savoir combien de fois il a été ouvert ? Merci.",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "fr"
+      },
+      "rule": "N2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-078",
+      "subject": "Free up space on my laptop",
+      "message": "My laptop's disk is almost full because of Nimbus. Can I keep files in Nimbus but not on this laptop? I still want to see them in the folder.",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-079",
+      "subject": "Collect homework from students",
+      "message": "I'm a teacher. Can my students upload files to a folder without needing their own Nimbus account? Thank you so much, Nimbus has been a lifesaver this term!",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["positive"],
+      "note": "T4: file requests are documented, so how-to."
+    },
+    {
+      "key": "tri-080",
+      "subject": "Remove someone from our Family plan",
+      "message": "My sister moved out and wants her own account. How do I take her off our Family plan without deleting her files?",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "Managing family members is how-to (rubric)."
+    },
+    {
+      "key": "tri-081",
+      "subject": "Export everything before I leave",
+      "message": "I want a full copy of all my files on an external drive. What's the best way to download everything at once?",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "Exporting data is how-to (rubric)."
+    },
+    {
+      "key": "tri-082",
+      "subject": "کیمرہ اپ لوڈ کیسے بند کریں",
+      "message": "السلام علیکم، میں موبائل ایپ میں خودکار تصویر اپ لوڈ بند کرنا چاہتا ہوں کیونکہ میرا موبائل ڈیٹا ختم ہو جاتا ہے۔ یہ کہاں سے بند ہوگا؟",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "ur"
+      },
+      "rule": "N2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-083",
+      "subject": "you call this easy to use?",
+      "message": "Spent 20 minutes looking for how to move a folder into a shared folder. Where is it? Your menus are a maze.",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["angry", "sarcastic"],
+      "note": "A complaint, but it asks how to do something (T1): how-to, not feedback."
+    },
+    {
+      "key": "tri-084",
+      "subject": "Planning to switch to Business next year",
+      "message": "Hi there. We're a small team of six designers, and at the moment each of us has our own Personal plan, which we expense separately. It works, but it's messy: shared folders are owned by whoever created them, and when someone went on parental leave last year we had a scare about access to a client folder. Our accountant suggested we look at Business when our budgets reset next year, probably around March. Nothing is broken today and there's no rush at all. I'd just like to understand the process before we commit: how would we move everyone's existing files and shared folders into one company account without breaking links we've sent to clients?",
+      "expected": {
+        "category": "how-to",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L2",
+      "tags": ["long", "claims-no-rush"],
+      "note": "L2: about something they plan to do next year (L2 is checked before N2)."
+    },
+    {
+      "key": "tri-085",
+      "subject": "Linux selective sync, whenever you get a chance",
+      "message": "No rush at all, but when you have a minute: on Linux, how do I stop one big folder from syncing to my laptop? Thanks!",
+      "expected": {
+        "category": "how-to",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "L2",
+      "tags": ["claims-no-rush", "positive"]
+    },
+    {
+      "key": "tri-086",
+      "subject": "Como funciona o histórico de versões?",
+      "message": "Oi! Só por curiosidade, por quanto tempo vocês guardam versões antigas dos arquivos no plano Family? Não tenho nenhum problema agora.",
+      "expected": {
+        "category": "how-to",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "pt"
+      },
+      "rule": "L2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-087",
+      "subject": "Show photos on my TV",
+      "message": "Would love a way to show a photo album as a slideshow on our TV with Chromecast, for family evenings. Thanks for a great product!",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-088",
+      "subject": "Back up WhatsApp chats?",
+      "message": "Can Nimbus back up my WhatsApp chats and voice notes on Android automatically? If not, please add it.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": [],
+      "note": "T4: WhatsApp backup isn't in the help articles."
+    },
+    {
+      "key": "tri-089",
+      "subject": "Why is there no Linux online-only files??",
+      "message": "Seriously, it's 2026 and Linux users still can't have online-only files? Windows and Mac have it. We pay too. Fix it.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["angry"],
+      "note": "T3: complaining that something is missing. The help articles say Linux uses selective sync, so it isn't a bug."
+    },
+    {
+      "key": "tri-090",
+      "subject": "URGENT: need two-way Google Drive sync",
+      "message": "URGENT!! Our agency needs Nimbus to sync automatically with Google Drive both ways. When will you have this?",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["claims-urgent"],
+      "note": "M1: urgency words don't raise a feature request."
+    },
+    {
+      "key": "tri-091",
+      "subject": "Bug: can't edit text files in browser",
+      "message": "Bug report: when I open a .txt or .md file in the web app I can only view it, not edit it. Please fix it so I can make quick edits without downloading.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["misleading-keyword"],
+      "note": "T1/T3: called a bug, but the web app only previews text files (Office files open in Microsoft 365 or Google), so it asks for something Nimbus doesn't offer."
+    },
+    {
+      "key": "tri-092",
+      "subject": "Shared family photo album",
+      "message": "On the Family plan, could you add one shared photo album that everyone's camera uploads go into automatically? Right now each of us backs up separately and we email photos around.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": [],
+      "note": "Family members' camera uploads go to their own storage; an automatic shared album isn't in the help articles."
+    },
+    {
+      "key": "tri-093",
+      "subject": "Suggestion: scheduled uploads at night",
+      "message": "It would be great if the desktop app could only upload between midnight and 6am, when my internet is unlimited. Just an idea!",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-094",
+      "subject": "Exportar enlaces compartidos a CSV",
+      "message": "Sería muy útil poder exportar la lista de enlaces compartidos a un archivo CSV para auditorías. ¿Lo tienen en sus planes?",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "es"
+      },
+      "rule": "L1",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-095",
+      "subject": "Bulk rename",
+      "message": "pls add bulk rename in web app. renaming 300 photos one by one is painful",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["terse", "typo"]
+    },
+    {
+      "key": "tri-096",
+      "subject": "Ajouter l'authentification par clé de sécurité",
+      "message": "Bonjour, serait-il possible d'ajouter les clés de sécurité physiques (FIDO2/YubiKey) pour la vérification en deux étapes ? Ce serait un vrai plus pour notre équipe.",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "fr"
+      },
+      "rule": "N2",
+      "tags": ["non-english", "misleading-keyword"],
+      "note": "T1/T4: the customer asks Nimbus to add security keys, but the two-step verification article already supports them (YubiKey, passkeys). The goal is to use something documented, so how-to (N2), not a feature request."
+    },
+    {
+      "key": "tri-097",
+      "subject": "Tags for files",
+      "message": "Folders aren't enough for me. Could you add tags/labels so one file can be in several 'collections'?",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": []
+    },
+    {
+      "key": "tri-098",
+      "subject": "Roman Urdu / Urdu interface",
+      "message": "Assalam o alaikum! App bohat achi hai, shukriya. Kya aap Urdu zuban ka option add kar sakte hain? Meri ammi ko English mein mushkil hoti hai.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "ur"
+      },
+      "rule": "L1",
+      "tags": ["roman-urdu", "non-english", "positive"]
+    },
+    {
+      "key": "tri-099",
+      "subject": "Longer trash on free plan",
+      "message": "30 days of trash on the free plan is too short. I only noticed a missing file after 6 weeks and it was gone. Please make it 90 days for everyone.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": [],
+      "note": "The file is already gone after the documented 30 days, so there's nothing to recover; it asks for a change (L1)."
+    },
+    {
+      "key": "tri-100",
+      "subject": "Slack notifications for file requests",
+      "message": "When someone uploads to my file request, I'd like a Slack message instead of email. Is that something you'd consider?",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": []
+    },
+    {
+      "key": "tri-101",
+      "subject": "Home screen widget for Android",
+      "message": "Could you make an Android home screen widget that shows my recent files? Opening the app and digging through folders takes a while.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": [],
+      "note": "Not described in the help articles."
+    },
+    {
+      "key": "tri-102",
+      "subject": "Make shared link previews show the filename",
+      "message": "Suggestion: when I paste a Nimbus link into WhatsApp, the preview just says 'Nimbus'. Showing the file name would look more professional.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": []
+    },
+    {
+      "key": "tri-103",
+      "subject": "Multiple accounts in the desktop app",
+      "message": "I have a personal and a work Nimbus account. Please let the desktop app sign in to both at once. Signing out and in again every time is tedious.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": []
+    },
+    {
+      "key": "tri-104",
+      "subject": "A small idea from a happy customer",
+      "message": "Five years on Nimbus and never lost a file, thank you! One wish: a yearly 'memories' email showing photos from this day in past years.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-105",
+      "subject": "Two things: calendar view + search by place",
+      "message": "Hi, two requests: 1) a calendar view for photos by month, 2) searching photos by the place they were taken. Both would make my day.",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["multi-issue", "positive"]
+    },
+    {
+      "key": "tri-106",
+      "subject": "Your customer's link exposes patient records",
+      "message": "I'm not a Nimbus customer. A public Nimbus link posted on a forum opens a folder of what look like medical records with names and dates of birth. Link: nimbus.example/s/8fK2. Please take it down.",
+      "expected": {
+        "category": "other",
+        "priority": "urgent",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": [],
+      "note": "A third party reporting exposed sensitive files (U1). Not the reporter's account, so other."
+    },
+    {
+      "key": "tri-107",
+      "subject": "Malware in a shared folder",
+      "message": "Someone sent me a Nimbus link to an 'invoice.zip'. My antivirus says it contains a trojan. The folder has hundreds of downloads. You should block it.",
+      "expected": {
+        "category": "other",
+        "priority": "urgent",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "U1",
+      "tags": []
+    },
+    {
+      "key": "tri-108",
+      "subject": "Security questionnaire for vendor review",
+      "message": "Hello, we are evaluating Nimbus Business for 200 staff. Our security team needs a completed vendor questionnaire and your SOC 2 report. Who can we send it to?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-109",
+      "subject": "Data processing agreement (GDPR)",
+      "message": "We need a signed Data Processing Agreement before we can store customer data in Nimbus. Can you provide one?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-110",
+      "subject": "Partnership proposal",
+      "message": "Hi! I run a photography school with 3,000 students. We'd love to talk about a partnership or reseller discount. Who's the right person?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-111",
+      "subject": "Press enquiry",
+      "message": "I'm a journalist at a tech publication writing about cloud storage prices in 2026. Could someone from Nimbus answer three questions by Thursday?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-112",
+      "subject": "Law enforcement request",
+      "message": "This is Detective Sgt. R. Lewis. We need information about a Nimbus account linked to an ongoing investigation. What is your process for law enforcement requests?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-113",
+      "subject": "hello?",
+      "message": "hello? anyone there",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["terse", "vague"],
+      "note": "No clear request (other). M3: don't assume, so normal."
+    },
+    {
+      "key": "tri-114",
+      "subject": "Question",
+      "message": "I have a question about my account and the thing from before. Can someone call me?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": ["vague"],
+      "note": "Too vague to classify (other); nothing in the text suggests a problem (M3)."
+    },
+    {
+      "key": "tri-115",
+      "subject": "Data residency form for our compliance file",
+      "message": "Our compliance officer needs your company to fill in our two-page data residency and subprocessor form for our vendor file. Can you complete and sign it if I send it over?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "A compliance form to complete, not a question the help articles answer (rubric: other)."
+    },
+    {
+      "key": "tri-116",
+      "subject": "Job application",
+      "message": "Hi, I saw you're hiring support engineers. Can I send my CV through this form? Sorry if this is the wrong place.",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-117",
+      "subject": "Accessibility statement",
+      "message": "Do you have a VPAT or accessibility conformance report for the web app? Our university requires one for procurement.",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": []
+    },
+    {
+      "key": "tri-118",
+      "subject": "¿Tienen oficina en México?",
+      "message": "Hola, ¿Nimbus tiene oficina o representante en México? Necesitamos facturación local para una empresa. Gracias.",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "es"
+      },
+      "rule": "N2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-119",
+      "subject": "تعاون مع شركتنا",
+      "message": "السلام عليكم، نحن شركة برمجيات في دبي ونرغب في دمج خدماتكم في منتجنا للعملاء في الخليج. من المسؤول عن الشراكات؟",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "ar"
+      },
+      "rule": "N2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-120",
+      "subject": "آپ کی کمپنی کے بارے میں سوال",
+      "message": "السلام علیکم، کیا Nimbus پاکستان میں کام کرتی ہے؟ ہم ایک اسکول ہیں اور جاننا چاہتے ہیں کہ کیا کوئی مقامی نمائندہ ہے۔",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "ur"
+      },
+      "rule": "N2",
+      "tags": ["non-english"]
+    },
+    {
+      "key": "tri-121",
+      "subject": "Copyright complaint",
+      "message": "Someone is sharing my e-book through a public Nimbus link without permission. How do I file a copyright takedown?",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "N2",
+      "tags": [],
+      "note": "Copyright, not exposed personal data or malware, so not U1."
+    },
+    {
+      "key": "tri-122",
+      "subject": "Just wanted to say thanks",
+      "message": "Your support person Leila helped me recover my late father's photos last month. I just wanted to say thank you. No reply needed.",
+      "expected": {
+        "category": "other",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-123",
+      "subject": "Great update!",
+      "message": "The new upload screen is so much faster. Well done to the team!",
+      "expected": {
+        "category": "other",
+        "priority": "low",
+        "sentiment": "positive",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["positive"]
+    },
+    {
+      "key": "tri-124",
+      "subject": "Your new logo is ugly",
+      "message": "Not asking for anything, just saying the new logo looks cheap. The old one was better.",
+      "expected": {
+        "category": "other",
+        "priority": "low",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": [],
+      "note": "A complaint that doesn't ask for anything (L1)."
+    },
+    {
+      "key": "tri-125",
+      "subject": "random thoughts",
+      "message": "been using nimbus for a while, its fine i guess. dropbox was better at some stuff but whatever. ok bye",
+      "expected": {
+        "category": "other",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1",
+      "tags": ["vague", "typo"]
+    }
+  ]
+}

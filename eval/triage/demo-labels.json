@@ -1,0 +1,269 @@
+{
+  "rubric": "docs/eval/triage-rubric.md (version 1)",
+  "status": "Proposed 2026-10-23; changes wait for the project owner's approval on the Review page.",
+  "dataIssues": [
+    "nim-01, nim-11 and nim-16 mention 'Pro' and 'Team' plans, which don't exist in the help articles (Free, Personal, Family, Business). `proposedMessage` rewords them to real plans without changing what is asked; nim-16 also says the plan renewed, so the label doesn't depend on the billing date."
+  ],
+  "labels": [
+    {
+      "key": "nim-01",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H2",
+      "proposedMessage": "Hi, my card was charged twice for the Personal annual plan on the same day. I only have one account. Could you refund the duplicate charge?"
+    },
+    {
+      "key": "nim-02",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "U3"
+    },
+    {
+      "key": "nim-03",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H1"
+    },
+    {
+      "key": "nim-04",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-05",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1"
+    },
+    {
+      "key": "nim-06",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-07",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N1",
+      "change": "priority high → normal: the desktop app uploads files up to 50 GB, so there is a workaround (N1)."
+    },
+    {
+      "key": "nim-08",
+      "expected": {
+        "category": "account",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "change": "priority high → normal: a deletion request is an account change; nothing is blocked (N2)."
+    },
+    {
+      "key": "nim-09",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-10",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N1"
+    },
+    {
+      "key": "nim-11",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "change": "priority low → normal: a pre-sales question with no \"no rush\" (N2, not L2).",
+      "proposedMessage": "We're a small charity with eight volunteers. Is there a nonprofit discount for the Business plan?"
+    },
+    {
+      "key": "nim-12",
+      "expected": {
+        "category": "how-to",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H3"
+    },
+    {
+      "key": "nim-13",
+      "expected": {
+        "category": "account",
+        "priority": "high",
+        "sentiment": "negative",
+        "language": "en"
+      },
+      "rule": "H1"
+    },
+    {
+      "key": "nim-14",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-15",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "change": "priority low → normal: under the injection text the request is a how-to question (N2)."
+    },
+    {
+      "key": "nim-16",
+      "expected": {
+        "category": "billing",
+        "priority": "high",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "H2",
+      "change": "priority normal → high: charged the old price after the downgrade took effect (H2). The original text is ambiguous, because downgrades take effect at the end of the billing period; the proposed wording says the plan already renewed.",
+      "proposedSubject": "Plan downgrade didn't lower my bill",
+      "proposedMessage": "I downgraded from Family to Personal two weeks ago. My plan renewed yesterday, but I was still charged the Family price."
+    },
+    {
+      "key": "nim-17",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2",
+      "change": "category account → how-to: inviting team members is using a feature (rubric: how-to)."
+    },
+    {
+      "key": "nim-18",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N1"
+    },
+    {
+      "key": "nim-19",
+      "expected": {
+        "category": "billing",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-20",
+      "expected": {
+        "category": "feature-request",
+        "priority": "low",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "L1"
+    },
+    {
+      "key": "nim-21",
+      "expected": {
+        "category": "account",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-22",
+      "expected": {
+        "category": "bug",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N1"
+    },
+    {
+      "key": "nim-23",
+      "expected": {
+        "category": "other",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-24",
+      "expected": {
+        "category": "how-to",
+        "priority": "normal",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "N2"
+    },
+    {
+      "key": "nim-25",
+      "expected": {
+        "category": "bug",
+        "priority": "urgent",
+        "sentiment": "neutral",
+        "language": "en"
+      },
+      "rule": "U3"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+# M6 · AI evaluation and observability: implementation plan
+
+> Status: **Approved 2026-10-23** ("Start step 1") · Drafted 2026-10-23
+> Implements the [AI evaluation plan](../04-ai-evaluation-plan.md) (docs/04), **FR-AN1** (dashboard), **NFR-OBS1–2** (logs, errors, traces) and NFR-AI2.
+> Roadmap row (docs/00): "Golden set, eval runner (manual/nightly in CI to control cost), OTel traces, Sentry, analytics page". Done when: an eval report with accuracy, recall, latency and cost numbers.
+> Builds on M5's smoke run, which was a budgeted check that things work, not a measurement. M6 measures.
+
+## 1. Why M6 matters
+
+M5's numbers came from small samples. With 20 tickets, "90% category accuracy" really means **somewhere between 70% and 97%** (a 95% Wilson interval, the method the [NIST handbook](https://www.itl.nist.gov/div898/handbook/prc/section2/prc241.htm) describes for proportions). M6 builds a larger, reviewed test set, one runner that measures everything the same way each time, a dashboard that shows both test results and real usage, and the monitoring a production service needs.
+
+## 2. What you can do when M6 is done
+
+**Owner / admin**, on a new **Evaluation** page:
+
+1. Sees the latest **test results** with their uncertainty, e.g. "Category accuracy 88% (82–92%), 150 tickets, prompt triage.v2". Covered: triage accuracy and macro-F1, priority (exact and within one level), retrieval recall@5 and MRR, citation validity, refusals (correct and wrong), groundedness, prompt-injection resistance, latency and cost.
+2. Sees **trends across runs**, so a prompt or model change that makes things worse is visible.
+3. Sees **live usage** (FR-AN1): tickets by status and category, draft acceptance rate, average edit ratio, triage override rate, 👍/👎, AI latency p50/p95, error, timeout and fallback rates, and tokens and cost per day.
+
+**You (project owner)**, on a **Review** page that works on a phone: tap ✅/❌ on a sample of test labels, and rate a sample of AI drafts as grounded or not. This is the human check the evaluation plan promised, and it is what the automatic grader is measured against.
+
+**Operator:** every request and AI call carries a trace ID (in logs and traces), and server errors can be sent to Sentry.
+
+## 3. Design decisions
+
+| #   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Why                                                                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | **Larger test sets.** Triage: 25 → **150** tickets (varied writing, typos, some non-English, angry and vague tickets), each with category, priority, sentiment and language. A written **priority rubric** (what makes a ticket urgent, high, normal or low) comes first, because priority was the weakest result (65%). Retrieval keeps its 110 answerable and 30 unanswerable questions; each answerable question gets a short reference answer. The injection set stays at 20.                                                                                                                                   | Narrower uncertainty; labels that follow a rule instead of a feeling.                                                                                                          |
+| D2  | **Honest labels.** The sets are written with AI assistance (disclosed, as in docs/04). You check a mechanically chosen 20% on the Review page (about 30 tickets plus the 22 retrieval questions already waiting since M4). Every ❌ is fixed and logged, and the agreement rate is reported.                                                                                                                                                                                                                                                                                                                        | The same kind of model writes and answers the tests, so a human check is the main guard against bias.                                                                          |
+| D3  | **One runner: `pnpm eval`.** It runs retrieval, triage, drafts, refusals and injection through the real code paths and writes a JSON result plus a Markdown summary to `eval/results/`, and to new `eval_run` / `eval_item` tables for the dashboard. Every rate gets a **95% Wilson interval**; every result is tagged with prompt versions, models and the dataset hash.                                                                                                                                                                                                                                          | One way of measuring, comparable over time.                                                                                                                                    |
+| D4  | **Two modes.** **Mock** runs in CI on every push: deterministic, free, and guards the code (it fails the build if a metric drops below a set floor). **Gemini** runs only on demand: locally, or as a GitHub Actions job behind a protected **environment** that waits for your approval before it can read the API key ([GitHub docs](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments): required reviewers and environment secrets are available for public repositories on the free plan). Hard request cap, pacing, and stops at the first 429, as in M5. | Nobody else can spend your quota; CI stays free and deterministic.                                                                                                             |
+| D5  | **Deterministic checks first.** Label match, citation validity, refusal, canary and attack signs are checked by code. **Groundedness** (is every claim supported by the cited passages?) needs judgement, so a separate AI grader prompt scores it, but **only after** checking it against your ratings of 30 drafts. If agreement is below 80%, the grader is not used and only the human-rated sample is reported.                                                                                                                                                                                                | AI graders can reach about 80% agreement with people, but have known biases such as favouring longer answers ([Zheng et al., NeurIPS 2023](https://arxiv.org/abs/2306.05685)). |
+| D6  | **Calibration with evidence.** (a) Triage prompt **v2** with the priority rubric, compared with v1 on the same 150 tickets; adopted only if it is better, with the intervals shown. (b) `retrieval_min_score` chosen from the score distributions measured with Gemini embeddings, with the trade-off (refusing questions it could answer vs answering ones it can't) documented.                                                                                                                                                                                                                                   | Changes justified by measurements, not guesses.                                                                                                                                |
+| D7  | **Traces with OpenTelemetry**, through the Next.js `instrumentation.ts` hook ([Next.js guide](https://nextjs.org/docs/app/guides/open-telemetry)), in the web app and the worker. Spans for requests, jobs, retrieval and AI calls; the trace ID is added to every log line. **Off unless an OTLP endpoint is configured.**                                                                                                                                                                                                                                                                                         | Vendor-neutral; Next.js recommends it and already instruments itself.                                                                                                          |
+| D8  | **No customer text in telemetry.** The AI SDK records full prompts and answers **by default** once telemetry is on ([AI SDK telemetry](https://ai-sdk.dev/docs/ai-sdk-core/telemetry)). Every call sets `recordInputs: false` and `recordOutputs: false`, and only safe metadata is sent (feature, model, tokens, outcome, no workspace names). A test inspects the exported spans and fails if any ticket or article text appears.                                                                                                                                                                                 | Keeps the M5 rule that prompts and answers are never logged (OWASP LLM02).                                                                                                     |
+| D9  | **Sentry for server errors only**, optional (`SENTRY_DSN`; off when unset). No Session Replay (it would record customer conversations), no default PII, request bodies scrubbed. The free Developer plan covers one user and 5,000 errors a month ([Sentry pricing](https://sentry.io/pricing/)). Browser error reporting goes through the app's own server, so the strict CSP doesn't need a new origin.                                                                                                                                                                                                           | NFR-OBS2, without sending customer data to a third party.                                                                                                                      |
+| D10 | **Dashboard built like the rest of the app:** server-rendered, charts as inline SVG drawn from data with a table alternative for screen readers, no chart library and no inline styles (CSP). Owners and admins see it; agents don't (`analytics:read` is reviewed in step 5). Live metrics come from the existing `ai_usage`, draft and triage tables; no new tracking.                                                                                                                                                                                                                                            | Accessible, fast, and nothing new to secure.                                                                                                                                   |
+
+## 4. Cost of a full Gemini run
+
+About **420 requests**: 150 triage, 140 drafts, about 110 grader calls and 20 injection cases, plus query embeddings. At paid-tier prices that is about **$0.30 (about Rs 85 at Rs 277/USD)**; on the free tier it costs nothing, but daily request limits apply per model and project. They are shown at aistudio.google.com/rate-limit; M5 hit one after about 25 requests to 3.8 Flash in a day. So a free-tier run is **spread over several days** in resumable batches (the runner saves after every item and continues where it stopped). See question 1.
+
+## 5. Steps (each committed locally, pushed when you send a token)
+
+1. **Datasets and review page:** priority rubric; 150 triage tickets; reference answers; the Review page (owner only) and the export of results into the dataset files. You do the spot-check after this step.
+2. **Eval runner (mock):** `pnpm eval` with every metric from docs/04 and Wilson intervals, `eval_run` / `eval_item` tables (migration), regression floors in CI, resumable runs.
+3. **Grader and calibration:** groundedness grader prompt, agreement with your 30 ratings, triage prompt v2, the `retrieval_min_score` analysis.
+4. **Observability:** OpenTelemetry in the web app and worker, trace IDs in logs, the no-customer-text test, optional Sentry, docs on how to view traces locally.
+5. **Evaluation dashboard:** test results with intervals and trends, live usage (FR-AN1), accessible charts, E2E and axe on desktop and mobile.
+6. **The Gemini run and report:** the protected GitHub workflow, the full run (over several days if on the free tier), `docs/eval/m6-baseline.md` with every number and its limits, ADRs, README, screenshots, milestone log.
+
+## 6. Done when
+
+- [ ] Triage set of 150 and the priority rubric exist; your 20% spot-check is done and its agreement rate reported.
+- [ ] `pnpm eval` reports every docs/04 metric with intervals; the mock run guards CI.
+- [ ] A full Gemini baseline is recorded in `docs/eval/`, including results that miss their targets.
+- [ ] Groundedness is reported with the grader's agreement against human ratings, or human-only if the grader fails.
+- [ ] Triage v1 vs v2 and the refusal threshold are decided from measurements and documented.
+- [ ] Traces and trace IDs work; a test proves no ticket or article text reaches telemetry.
+- [ ] The dashboard shows FR-AN1 and test results; E2E and axe pass on desktop and mobile.
+- [ ] CI green.
+
+## 7. Out of scope
+
+- **Hosting a tracing backend** (Grafana, Jaeger and similar): M8 picks one with the deployment. In M6, traces are verified locally and in tests.
+- **Fixing the injection gaps** found in M5 (D09, the sensitive-request warning, HTML comments at ingest): M7, the security review.
+- **Email alerts and uptime monitoring**: M8.
+- **Fine-tuning models**, or comparing other AI providers.
+
+## 8. Your decisions (2026-10-23)
+
+1. **Gemini run:** free tier, spread over several days in resumable batches after the daily reset (12:00 PKT until 1 November, then 13:00 PKT).
+2. **Human review:** you do the full check: the ✅/❌ label spot-check and ratings of 30 drafts.
+3. **Sentry:** you create a free account in step 4, and error reporting is verified with it.
+4. **Gemini evaluation on GitHub:** manual only, each run waiting for your approval.

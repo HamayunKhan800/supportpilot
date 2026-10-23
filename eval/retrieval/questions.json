@@ -1,336 +1,391 @@
 {
   "version": 1,
-  "description": "Retrieval eval questions for the synthetic Nimbus help centre (eval/corpus/nimbus). The gold passage is the chunk of `article` that contains `evidence` (case, whitespace and Markdown emphasis ignored). `alsoAccept` lists other passages that answer the question equally well.",
+  "description": "Retrieval eval questions for the synthetic Nimbus help centre (eval/corpus/nimbus). The gold passage is the chunk of `article` that contains `evidence` (case, whitespace and Markdown emphasis ignored). `alsoAccept` lists other passages that answer the question equally well. `reference` is a short correct answer written from the gold passage (M6), used to judge draft correctness.",
   "questions": [
     {
       "id": "q001",
       "question": "Do I need a credit card to sign up?",
       "article": "getting-started.md",
-      "evidence": "No payment card is needed to sign up"
+      "evidence": "No payment card is needed to sign up",
+      "reference": "No. Every new account starts on the Free plan with 15 GB, and no payment card is needed to sign up."
     },
     {
       "id": "q002",
       "question": "I signed up yesterday but the share button doesn't work, why?",
       "article": "getting-started.md",
-      "evidence": "Until you verify, you can upload files but you cannot share them"
+      "evidence": "Until you verify, you can upload files but you cannot share them",
+      "reference": "You probably haven't verified your email address yet. Until you click the link in the confirmation email, you can upload files but can't share them."
     },
     {
       "id": "q003",
       "question": "The password reset link says it has expired",
       "article": "reset-password.md",
-      "evidence": "The link works once and expires after 60 minutes"
+      "evidence": "The link works once and expires after 60 minutes",
+      "reference": "Reset links work once and expire after 60 minutes. Request a new one with Forgot password? and use it straight away."
     },
     {
       "id": "q004",
       "question": "Our company logs in through Okta. How do I reset my Nimbus password?",
       "article": "reset-password.md",
-      "evidence": "The reset link won't work for these accounts. Contact your IT team instead."
+      "evidence": "The reset link won't work for these accounts. Contact your IT team instead.",
+      "reference": "You can't reset it through Nimbus: with single sign-on your password is managed by your company, so contact your IT team."
     },
     {
       "id": "q005",
       "question": "How long does a new password have to be?",
       "article": "reset-password.md",
-      "evidence": "It must be at least 12 characters long"
+      "evidence": "It must be at least 12 characters long",
+      "reference": "At least 12 characters."
     },
     {
       "id": "q006",
       "question": "Can I get my two-factor codes by text message?",
       "article": "two-step-verification.md",
-      "evidence": "We don't offer codes by text message (SMS)"
+      "evidence": "We don't offer codes by text message (SMS)",
+      "reference": "No. Nimbus doesn't send codes by SMS because SMS can be intercepted through SIM swapping; use an authenticator app or a security key."
     },
     {
       "id": "q007",
       "question": "How many backup codes do I get for 2FA?",
       "article": "two-step-verification.md",
-      "evidence": "You get 10 one-time codes"
+      "evidence": "You get 10 one-time codes",
+      "reference": "You get 10 one-time backup codes."
     },
     {
       "id": "q008",
       "question": "I got a new phone and my authenticator app is empty. How do I log in?",
       "article": "two-step-verification.md",
-      "evidence": "Sign in with one of your backup codes instead of the 6-digit code"
+      "evidence": "Sign in with one of your backup codes instead of the 6-digit code",
+      "reference": "Sign in with one of your backup codes instead of the 6-digit code, then set up two-step verification again on the new phone and generate new backup codes."
     },
     {
       "id": "q009",
       "question": "Why do I have to wait three days to get back into my account?",
       "article": "account-recovery.md",
-      "evidence": "72-hour waiting period"
+      "evidence": "72-hour waiting period",
+      "reference": "Every account recovery request has a 72-hour waiting period to protect you from someone pretending to be you. During that time every address and device on the account is notified, so a fake request can be cancelled."
     },
     {
       "id": "q010",
       "question": "It's urgent, can support speed up my account recovery?",
       "article": "account-recovery.md",
-      "evidence": "cannot skip or shorten"
+      "evidence": "cannot skip or shorten",
+      "reference": "No. Support can't skip or shorten the 72-hour waiting period, even if you contact them; it's what keeps attackers out."
     },
     {
       "id": "q011",
       "question": "I lost my phone and my backup codes. What can I do?",
       "article": "account-recovery.md",
-      "evidence": "you lost your two-step verification device and your backup codes"
+      "evidence": "you lost your two-step verification device and your backup codes",
+      "reference": "Use account recovery: it's meant for when you've lost your two-step verification device and your backup codes. Access is restored after a 72-hour waiting period."
     },
     {
       "id": "q012",
       "question": "How do I update the email address I log in with?",
       "article": "change-email.md",
-      "evidence": "Settings > Account > Email address"
+      "evidence": "Settings > Account > Email address",
+      "reference": "Go to Settings > Account > Email address, click Change, enter the new address and your password, then click the confirmation link sent to the new address within 24 hours."
     },
     {
       "id": "q013",
       "question": "I changed my email but haven't clicked the confirmation link yet. Which address do I sign in with?",
       "article": "change-email.md",
-      "evidence": "Until you confirm, you keep signing in with your old address"
+      "evidence": "Until you confirm, you keep signing in with your old address",
+      "reference": "Your old address. You keep signing in with it until you click the confirmation link."
     },
     {
       "id": "q014",
       "question": "If I delete my account, can I undo it?",
       "article": "delete-account.md",
-      "evidence": "For 30 days you can still change your mind"
+      "evidence": "For 30 days you can still change your mind",
+      "reference": "Yes, for 30 days: sign in and click Restore my account, and everything comes back as it was."
     },
     {
       "id": "q015",
       "question": "I deleted my Nimbus account but the App Store keeps charging me",
       "article": "delete-account.md",
-      "evidence": "deleting your account does not stop the store from charging you"
+      "evidence": "deleting your account does not stop the store from charging you",
+      "reference": "Deleting your Nimbus account doesn't stop App Store charges. Cancel the subscription in your phone's subscription settings."
     },
     {
       "id": "q016",
       "question": "How can I download all my data under GDPR?",
       "article": "data-export.md",
-      "evidence": "Settings > Privacy > Export my data"
+      "evidence": "Settings > Privacy > Export my data",
+      "reference": "Go to Settings > Privacy > Export my data, choose files, account information or both, and click Request export. We email you a download link when it's ready."
     },
     {
       "id": "q017",
       "question": "The link to download my data export doesn't work any more",
       "article": "data-export.md",
-      "evidence": "expires after 7 days"
+      "evidence": "expires after 7 days",
+      "reference": "Export download links expire after 7 days for security. Request a new export under Settings > Privacy > Export my data."
     },
     {
       "id": "q018",
       "question": "How long does it take to prepare my data export?",
       "article": "data-export.md",
-      "evidence": "ready within 48 hours"
+      "evidence": "ready within 48 hours",
+      "reference": "Exports are ready within 48 hours, usually much sooner, and you get an email when yours is ready."
     },
     {
       "id": "q019",
       "question": "Does Nimbus support SAML login with Microsoft Entra ID?",
       "article": "single-sign-on.md",
-      "evidence": "Microsoft Entra ID (formerly Azure AD)"
+      "evidence": "Microsoft Entra ID (formerly Azure AD)",
+      "reference": "Yes. Nimbus supports any SAML 2.0 identity provider, including Microsoft Entra ID (formerly Azure AD)."
     },
     {
       "id": "q020",
       "question": "How do we automatically remove Nimbus accounts when people leave the company?",
       "article": "single-sign-on.md",
-      "evidence": "With SCIM, accounts are created, updated and removed automatically"
+      "evidence": "With SCIM, accounts are created, updated and removed automatically",
+      "reference": "Use SCIM provisioning: generate a SCIM token under Security > Provisioning. When you remove someone in your identity provider, their Nimbus account is suspended and their files stay available to transfer."
     },
     {
       "id": "q021",
       "question": "If SSO is required, can our admins still sign in when our identity provider is down?",
       "article": "single-sign-on.md",
-      "evidence": "Administrators keep a password as a break-glass login"
+      "evidence": "Administrators keep a password as a break-glass login",
+      "reference": "Yes. Administrators keep a password as a break-glass login for when the identity provider has an outage."
     },
     {
       "id": "q022",
       "question": "Are my files encrypted when they're stored on your servers?",
       "article": "security-and-encryption.md",
-      "evidence": "each block is encrypted with AES-256 before it is written to disk"
+      "evidence": "each block is encrypted with AES-256 before it is written to disk",
+      "reference": "Yes. Files are split into blocks and each block is encrypted with AES-256 before it's written to disk, with keys stored separately in a hardware security module."
     },
     {
       "id": "q023",
       "question": "Where are your data centers?",
       "article": "security-and-encryption.md",
-      "evidence": "the European Union (Frankfurt, Germany) and the United States (Virginia)"
+      "evidence": "the European Union (Frankfurt, Germany) and the United States (Virginia)",
+      "reference": "In two regions: the European Union (Frankfurt, Germany) and the United States (Virginia)."
     },
     {
       "id": "q024",
       "question": "Can Nimbus employees look at my files?",
       "article": "security-and-encryption.md",
-      "evidence": "Nimbus staff cannot browse your files"
+      "evidence": "Nimbus staff cannot browse your files",
+      "reference": "No, staff can't browse your files. A few engineers can access stored data only during a documented investigation you've approved, and every access is logged."
     },
     {
       "id": "q025",
       "question": "Do you offer end-to-end encryption?",
       "article": "security-and-encryption.md",
-      "evidence": "Files in the Vault are encrypted on your device with a key that only you hold"
+      "evidence": "Files in the Vault are encrypted on your device with a key that only you hold",
+      "reference": "Yes, with Nimbus Vault on Personal, Family and Business plans: files are encrypted on your device with a key only you hold. Nimbus can't recover Vault files if you forget the passphrase."
     },
     {
       "id": "q026",
       "question": "Can we get a copy of your SOC 2 report?",
       "article": "security-and-encryption.md",
-      "evidence": "ISO 27001 and SOC 2 Type II"
+      "evidence": "ISO 27001 and SOC 2 Type II",
+      "reference": "Yes. Nimbus is audited every year against ISO 27001 and SOC 2 Type II, and Business customers can request the reports in the admin console."
     },
     {
       "id": "q027",
       "question": "Our team is stored in the US region. Can we move it to the EU?",
       "article": "security-and-encryption.md",
-      "evidence": "The region cannot be changed later"
+      "evidence": "The region cannot be changed later",
+      "reference": "No. A Business team's region is chosen when the team is created and can't be changed later."
     },
     {
       "id": "q028",
       "question": "How much does the Personal plan cost per year?",
       "article": "plans-and-pricing.md",
-      "evidence": "$9.99 per month, or $99 per year"
+      "evidence": "$9.99 per month, or $99 per year",
+      "reference": "$99 per year (or $9.99 per month)."
     },
     {
       "id": "q029",
       "question": "What is the minimum number of users for a Business plan?",
       "article": "plans-and-pricing.md",
-      "evidence": "Minimum of 3 users"
+      "evidence": "Minimum of 3 users",
+      "reference": "3 users."
     },
     {
       "id": "q030",
       "question": "How much storage does each Business user get?",
       "article": "plans-and-pricing.md",
-      "evidence": "5 TB of storage per user"
+      "evidence": "5 TB of storage per user",
+      "reference": "5 TB per user, pooled across the team."
     },
     {
       "id": "q031",
       "question": "Do you have a discount for charities?",
       "article": "plans-and-pricing.md",
-      "evidence": "Registered non-profit organisations get 30% off Business"
+      "evidence": "Registered non-profit organisations get 30% off Business",
+      "reference": "Yes. Registered non-profit organisations get 30% off the Business plan."
     },
     {
       "id": "q032",
       "question": "Which day of the month will I be charged?",
       "article": "billing-cycle-and-invoices.md",
-      "evidence": "Your billing date is the day you first subscribed"
+      "evidence": "Your billing date is the day you first subscribed",
+      "reference": "On your billing date, the day you first subscribed. If that date doesn't exist in a month (such as the 31st), you're charged on the last day of the month."
     },
     {
       "id": "q033",
       "question": "I need my company's VAT number on my invoices",
       "article": "billing-cycle-and-invoices.md",
-      "evidence": "Settings > Billing > Billing details"
+      "evidence": "Settings > Billing > Billing details",
+      "reference": "Add your company details and VAT number under Settings > Billing > Billing details before your next payment."
     },
     {
       "id": "q034",
       "question": "There's a mistake on my invoice. Can you edit it?",
       "article": "billing-cycle-and-invoices.md",
-      "evidence": "we'll issue a credit note and a corrected invoice"
+      "evidence": "we'll issue a credit note and a corrected invoice",
+      "reference": "Issued invoices can't be edited, because tax law requires them to stay unchanged. Contact support and they'll issue a credit note and a corrected invoice."
     },
     {
       "id": "q035",
       "question": "Will you remind me before my yearly plan renews?",
       "article": "billing-cycle-and-invoices.md",
-      "evidence": "We email a reminder 7 days before every yearly renewal"
+      "evidence": "We email a reminder 7 days before every yearly renewal",
+      "reference": "Yes. Nimbus emails a reminder 7 days before every yearly renewal."
     },
     {
       "id": "q036",
       "question": "I bought the yearly plan last week and want my money back",
       "article": "refunds.md",
-      "evidence": "Annual plans can be refunded in full within 30 days of purchase"
+      "evidence": "Annual plans can be refunded in full within 30 days of purchase",
+      "reference": "Annual plans can be refunded in full within 30 days of purchase, so a plan bought last week qualifies."
     },
     {
       "id": "q037",
       "question": "I was charged twice this month",
       "article": "refunds.md",
-      "evidence": "We refund duplicate or mistaken charges in full"
+      "evidence": "We refund duplicate or mistaken charges in full",
+      "reference": "Contact support with the date and amount. Duplicate charges are refunded in full on any plan."
     },
     {
       "id": "q038",
       "question": "My refund was approved but the money isn't in my bank account yet",
       "article": "refunds.md",
-      "evidence": "5 to 10 business days"
+      "evidence": "5 to 10 business days",
+      "reference": "Refunds are sent the day they're approved, but banks can take 5 to 10 business days to show them (PayPal usually within 3 days)."
     },
     {
       "id": "q039",
       "question": "I subscribed in the iPhone app. How do I get a refund?",
       "article": "refunds.md",
-      "evidence": "Apple or Google handled the payment, so we can't refund it ourselves"
+      "evidence": "Apple or Google handled the payment, so we can't refund it ourselves",
+      "reference": "Apple handled the payment, so Nimbus can't refund it. Request the refund from Apple at reportaproblem.apple.com."
     },
     {
       "id": "q040",
       "question": "I use 500 GB. What happens to my files if I cancel my paid plan?",
       "article": "cancel-subscription.md",
-      "evidence": "syncing and new uploads stop until you either delete files to get under 15 GB"
+      "evidence": "syncing and new uploads stop until you either delete files to get under 15 GB",
+      "reference": "Nothing is deleted: you can still view, share and download your files. But you'll be over the Free plan's 15 GB, so syncing and uploads stop until you get under 15 GB or choose a paid plan again."
     },
     {
       "id": "q041",
       "question": "If I cancel today, do I lose my Personal features straight away?",
       "article": "cancel-subscription.md",
-      "evidence": "Your plan stays active until the end of the period you've paid for"
+      "evidence": "Your plan stays active until the end of the period you've paid for",
+      "reference": "No. Your plan stays active until the end of the period you've paid for, then moves to the Free plan."
     },
     {
       "id": "q042",
       "question": "I cancelled by accident. Can I undo it?",
       "article": "cancel-subscription.md",
-      "evidence": "click Keep my plan"
+      "evidence": "click Keep my plan",
+      "reference": "Yes. Before your paid period ends, click Keep my plan under Settings > Billing."
     },
     {
       "id": "q043",
       "question": "Can I pay with PayPal?",
       "article": "payment-methods.md",
-      "evidence": "We accept Visa, Mastercard, American Express and PayPal"
+      "evidence": "We accept Visa, Mastercard, American Express and PayPal",
+      "reference": "Yes. Nimbus accepts Visa, Mastercard, American Express and PayPal."
     },
     {
       "id": "q044",
       "question": "My card was declined. Will you close my account?",
       "article": "payment-methods.md",
-      "evidence": "We retry the payment automatically 3 times over 7 days"
+      "evidence": "We retry the payment automatically 3 times over 7 days",
+      "reference": "No. Nimbus retries the payment 3 times over 7 days; if all retries fail, the account moves to the Free plan and your files are kept, though syncing stops if you use more than 15 GB."
     },
     {
       "id": "q045",
       "question": "Can our company pay by bank transfer instead of by card?",
       "article": "payment-methods.md",
-      "evidence": "can pay by invoice with a bank transfer"
+      "evidence": "can pay by invoice with a bank transfer",
+      "reference": "Yes, if you're a Business team with 10 or more users on a yearly plan. Contact sales to switch to invoicing."
     },
     {
       "id": "q046",
       "question": "If I upgrade in the middle of the month, do I pay the full price?",
       "article": "change-plan.md",
-      "evidence": "You pay only the difference for the rest of your current billing period"
+      "evidence": "You pay only the difference for the rest of your current billing period",
+      "reference": "No. Upgrades take effect immediately and you only pay the prorated difference for the rest of your billing period."
     },
     {
       "id": "q047",
       "question": "When does a downgrade take effect?",
       "article": "change-plan.md",
-      "evidence": "Downgrades take effect at the end of your current billing period"
+      "evidence": "Downgrades take effect at the end of your current billing period",
+      "reference": "At the end of your current billing period, so you keep what you paid for."
     },
     {
       "id": "q048",
       "question": "Can the person who pays for our family plan see my files?",
       "article": "family-plan.md",
-      "evidence": "cannot see members' files"
+      "evidence": "cannot see members' files",
+      "reference": "No. The organizer pays and manages members but can't see members' files; each member has their own private space."
     },
     {
       "id": "q049",
       "question": "How many people can share a family plan?",
       "article": "family-plan.md",
-      "evidence": "up to 6 people (the organizer plus 5 members)"
+      "evidence": "up to 6 people (the organizer plus 5 members)",
+      "reference": "Up to 6 people: the organizer plus 5 members."
     },
     {
       "id": "q050",
       "question": "My dad removed me from our family plan. What happens to my photos?",
       "article": "family-plan.md",
-      "evidence": "When a member leaves or is removed, their files stay with them"
+      "evidence": "When a member leaves or is removed, their files stay with them",
+      "reference": "Your files stay with you. You move to the Free plan with 15 GB and have 30 days to delete files or upgrade before syncing stops if you use more than that."
     },
     {
       "id": "q051",
       "question": "Can I limit how much space my son uses on our family plan?",
       "article": "family-plan.md",
-      "evidence": "set a storage limit per member"
+      "evidence": "set a storage limit per member",
+      "reference": "Yes. The organizer can set a storage limit for each member under Settings > Family."
     },
     {
       "id": "q052",
       "question": "Is there a discount for university students?",
       "article": "student-discount.md",
-      "evidence": "50% off the Personal plan"
+      "evidence": "50% off the Personal plan",
+      "reference": "Yes. Students get 50% off the Personal plan on yearly billing: $49.50 a year instead of $99."
     },
     {
       "id": "q053",
       "question": "Do I have to prove I'm still a student every year?",
       "article": "student-discount.md",
-      "evidence": "every 12 months"
+      "evidence": "every 12 months",
+      "reference": "Yes. You verify again every 12 months, before your renewal."
     },
     {
       "id": "q054",
       "question": "I'm in high school. Can I get the student price?",
       "article": "student-discount.md",
-      "evidence": "High-school students aren't eligible"
+      "evidence": "High-school students aren't eligible",
+      "reference": "No. The discount is for students at a university, college or other higher-education school, but high-school students can use a parent's Family plan."
     },
     {
       "id": "q055",
       "question": "I deleted lots of files but my storage is still full",
       "article": "storage-quota.md",
-      "evidence": "Deleted files keep using space until they're permanently removed"
+      "evidence": "Deleted files keep using space until they're permanently removed",
+      "reference": "Deleted files keep using space while they're in the trash. Empty the trash to free up the space right away."
     },
     {
       "id": "q056",
@@ -342,85 +397,99 @@
           "article": "version-history.md",
           "evidence": "Older versions don't count toward your storage"
         }
-      ]
+      ],
+      "reference": "No. Version history is free and older versions don't count toward your storage."
     },
     {
       "id": "q057",
       "question": "How do I find out what is taking up all my space?",
       "article": "storage-quota.md",
-      "evidence": "Largest files"
+      "evidence": "Largest files",
+      "reference": "Go to Settings > Storage and use the Largest files view."
     },
     {
       "id": "q058",
       "question": "Does the desktop app run on Linux?",
       "article": "desktop-app.md",
-      "evidence": "Ubuntu 22.04 or later, Debian 12, and Fedora 39 or later"
+      "evidence": "Ubuntu 22.04 or later, Debian 12, and Fedora 39 or later",
+      "reference": "Yes: Ubuntu 22.04 or later, Debian 12 and Fedora 39 or later, with .deb and .rpm packages."
     },
     {
       "id": "q059",
       "question": "I installed Nimbus on my Mac but my files don't show up in Finder",
       "article": "desktop-app.md",
-      "evidence": "System Settings > Privacy & Security > Files and Folders"
+      "evidence": "System Settings > Privacy & Security > Files and Folders",
+      "reference": "Allow Nimbus to show files in Finder under System Settings > Privacy & Security > Files and Folders."
     },
     {
       "id": "q060",
       "question": "If I uninstall Nimbus, will my files be deleted?",
       "article": "desktop-app.md",
-      "evidence": "Uninstalling the app doesn't delete your files from Nimbus"
+      "evidence": "Uninstalling the app doesn't delete your files from Nimbus",
+      "reference": "No. Uninstalling the app doesn't delete your files from Nimbus; files on the computer stay in the folder as normal files."
     },
     {
       "id": "q061",
       "question": "What does error NC-403 mean?",
       "article": "sync-troubleshooting.md",
-      "evidence": "NC-403: permission denied"
+      "evidence": "NC-403: permission denied",
+      "reference": "Permission denied: you have view-only access to a shared folder, so ask the owner for edit access or save your copy elsewhere. It can also mean the file is open in another program."
     },
     {
       "id": "q062",
       "question": "The desktop app shows NC-610 next to some files",
       "article": "sync-troubleshooting.md",
-      "evidence": "NC-610: path too long"
+      "evidence": "NC-610: path too long",
+      "reference": "Path too long: the file's full path is over 260 characters on Windows. Move it nearer the top or shorten folder names."
     },
     {
       "id": "q063",
       "question": "The Nimbus icon in my taskbar has a red cross on it",
       "article": "sync-troubleshooting.md",
-      "evidence": "Red cross: something needs your attention"
+      "evidence": "Red cross: something needs your attention",
+      "reference": "Something needs your attention. Click the icon to see which files have a problem and why."
     },
     {
       "id": "q064",
       "question": "Syncing is really slow and my antivirus seems to scan every file",
       "article": "sync-troubleshooting.md",
-      "evidence": "add your Nimbus folder to the antivirus exclusions"
+      "evidence": "add your Nimbus folder to the antivirus exclusions",
+      "reference": "Add your Nimbus folder to your antivirus exclusions; scanning every file Nimbus writes slows syncing a lot."
     },
     {
       "id": "q065",
       "question": "How do I rebuild the sync cache?",
       "article": "sync-troubleshooting.md",
-      "evidence": "Preferences > Advanced > Rebuild sync cache"
+      "evidence": "Preferences > Advanced > Rebuild sync cache",
+      "reference": "Go to Preferences > Advanced > Rebuild sync cache. Your files aren't deleted, but it can take an hour or more for large folders."
     },
     {
       "id": "q066",
       "question": "Which port does Nimbus need open on our firewall?",
       "article": "sync-troubleshooting.md",
-      "evidence": "on port 443"
+      "evidence": "on port 443",
+      "reference": "Port 443, to *.nimbus.example."
     },
     {
       "id": "q067",
       "question": "My laptop disk is almost full. Can I keep files only in the cloud?",
       "article": "selective-sync.md",
-      "evidence": "only takes up space when you open it"
+      "evidence": "only takes up space when you open it",
+      "reference": "Yes. Make files online-only: they still appear on your computer but only take up space when you open them."
     },
     {
       "id": "q068",
       "question": "How do I make sure a file is on my laptop for a flight?",
       "article": "selective-sync.md",
-      "evidence": "Always keep on this device"
+      "evidence": "Always keep on this device",
+      "reference": "Right-click the file and choose Always keep on this device. It shows a solid green circle."
     },
     {
       "id": "q069",
       "question": "What does the little cloud icon next to my files mean?",
       "article": "selective-sync.md",
-      "evidence": "A cloud icon means the file is online-only"
+      "evidence": "A cloud icon means the file is online-only",
+      "reference": "The file is online-only: it's stored in the cloud and downloads when you open it."
     },
     {
       "id": "q070",
@@ -432,145 +501,169 @@
           "article": "web-app.md",
           "evidence": "Uploads through the browser are limited to 5 GB per file"
         }
-      ]
+      ],
+      "reference": "5 GB per file in the web app. Use the desktop app for bigger files (up to 50 GB)."
     },
     {
       "id": "q071",
       "question": "How long can a file name be?",
       "article": "file-size-limits.md",
-      "evidence": "up to 255 characters long"
+      "evidence": "up to 255 characters long",
+      "reference": "Up to 255 characters."
     },
     {
       "id": "q072",
       "question": "Can I have Report.docx and report.docx in the same folder?",
       "article": "file-size-limits.md",
-      "evidence": "Names are not case-sensitive"
+      "evidence": "Names are not case-sensitive",
+      "reference": "No. Names aren't case-sensitive, so the two can't be in the same folder."
     },
     {
       "id": "q073",
       "question": "I saved over my document by mistake. Can I get the old one back?",
       "article": "version-history.md",
-      "evidence": "Every time a file changes, Nimbus keeps the previous version"
+      "evidence": "Every time a file changes, Nimbus keeps the previous version",
+      "reference": "Yes. Nimbus keeps previous versions: right-click the file, choose Version history, pick a version and click Restore."
     },
     {
       "id": "q074",
       "question": "How long are old versions kept on the Business plan?",
       "article": "version-history.md",
-      "evidence": "Business: 365 days"
+      "evidence": "Business: 365 days",
+      "reference": "365 days."
     },
     {
       "id": "q075",
       "question": "Ransomware encrypted my files and they synced to Nimbus",
       "article": "version-history.md",
-      "evidence": "Use Rewind under Settings > Files > Rewind"
+      "evidence": "Use Rewind under Settings > Files > Rewind",
+      "reference": "Use Rewind under Settings > Files > Rewind to restore a folder or your whole Nimbus space to a moment before the attack. It's available on Personal, Family and Business plans."
     },
     {
       "id": "q076",
       "question": "How long do deleted files stay in the trash on a paid plan?",
       "article": "deleted-files.md",
-      "evidence": "Paid plans: 90 days in the trash"
+      "evidence": "Paid plans: 90 days in the trash",
+      "reference": "90 days."
     },
     {
       "id": "q077",
       "question": "I emptied my trash. Can support recover the files?",
       "article": "deleted-files.md",
-      "evidence": "support can't recover files after the trash is emptied"
+      "evidence": "support can't recover files after the trash is emptied",
+      "reference": "No. Emptying the trash permanently deletes the files, and support can't recover them."
     },
     {
       "id": "q078",
       "question": "A colleague deleted files from our shared folder. How do I get them back?",
       "article": "deleted-files.md",
-      "evidence": "it goes to their trash and yours"
+      "evidence": "it goes to their trash and yours",
+      "reference": "A file deleted from a shared folder goes to their trash and yours, so restore it from your trash. Business administrators can also restore a member's deleted files for up to 90 days."
     },
     {
       "id": "q079",
       "question": "Which Android version does the app need?",
       "article": "mobile-app.md",
-      "evidence": "Android 10 or later"
+      "evidence": "Android 10 or later",
+      "reference": "Android 10 or later."
     },
     {
       "id": "q080",
       "question": "Can I lock the Nimbus app with Face ID?",
       "article": "mobile-app.md",
-      "evidence": "Settings > Passcode"
+      "evidence": "Settings > Passcode",
+      "reference": "Yes. Turn on Settings > Passcode in the app to require Face ID."
     },
     {
       "id": "q081",
       "question": "My phone was stolen. How do I sign it out of Nimbus?",
       "article": "mobile-app.md",
-      "evidence": "Sign out the lost device remotely"
+      "evidence": "Sign out the lost device remotely",
+      "reference": "Sign it out remotely in the web app under Settings > Security > Devices. Offline files on it are removed the next time it connects."
     },
     {
       "id": "q082",
       "question": "My photos only back up on Wi-Fi. Can I use mobile data?",
       "article": "camera-uploads.md",
-      "evidence": "turn on Use cellular data"
+      "evidence": "turn on Use cellular data",
+      "reference": "Yes. Turn on Use cellular data in camera uploads; videos still wait for Wi-Fi unless you also turn on Upload videos over cellular."
     },
     {
       "id": "q083",
       "question": "Photo backup stops when I close the app on my iPhone",
       "article": "camera-uploads.md",
-      "evidence": "iOS limits background activity"
+      "evidence": "iOS limits background activity",
+      "reference": "iOS limits background activity, so uploads may pause until you open Nimbus. Turning on Background App Refresh and Location access helps them run more often."
     },
     {
       "id": "q084",
       "question": "Can Nimbus save my iPhone pictures as JPG instead of HEIC?",
       "article": "camera-uploads.md",
-      "evidence": "Save HEIC photos as JPG"
+      "evidence": "Save HEIC photos as JPG",
+      "reference": "Yes. Turn on Save HEIC photos as JPG."
     },
     {
       "id": "q085",
       "question": "Which browsers do you support?",
       "article": "web-app.md",
-      "evidence": "latest two versions of Google Chrome, Mozilla Firefox, Apple Safari and Microsoft Edge"
+      "evidence": "latest two versions of Google Chrome, Mozilla Firefox, Apple Safari and Microsoft Edge",
+      "reference": "The latest two versions of Chrome, Firefox, Safari and Edge."
     },
     {
       "id": "q086",
       "question": "I used Nimbus on a library computer. How do I stay safe?",
       "article": "web-app.md",
-      "evidence": "untick Keep me signed in"
+      "evidence": "untick Keep me signed in",
+      "reference": "Untick Keep me signed in when you sign in and sign out when you're done. You can also sign out of all browsers under Settings > Security > Devices."
     },
     {
       "id": "q087",
       "question": "Why do I have a file with 'Conflicted copy' in its name?",
       "article": "sync-conflicts.md",
-      "evidence": "the same file is changed in two places before Nimbus can sync"
+      "evidence": "the same file is changed in two places before Nimbus can sync",
+      "reference": "The same file was changed in two places before Nimbus could sync the changes, so both versions were kept."
     },
     {
       "id": "q088",
       "question": "How do we stop getting conflicted copies when several of us edit a Word document?",
       "article": "sync-conflicts.md",
-      "evidence": "Several people can edit at the same time without conflicts"
+      "evidence": "Several people can edit at the same time without conflicts",
+      "reference": "Use Open in Microsoft 365 from the web app, so several people can edit at the same time without conflicts. Also close files on one device before editing them on another."
     },
     {
       "id": "q089",
       "question": "Can I put a password on a shared link?",
       "article": "sharing-links.md",
-      "evidence": "people must enter a password before the file opens"
+      "evidence": "people must enter a password before the file opens",
+      "reference": "Yes, on Personal, Family and Business plans, under Link settings."
     },
     {
       "id": "q090",
       "question": "How do I stop a link I sent from working?",
       "article": "sharing-links.md",
-      "evidence": "choose Delete link"
+      "evidence": "choose Delete link",
+      "reference": "Open Share, click the link and choose Delete link. It stops working immediately for everyone."
     },
     {
       "id": "q091",
       "question": "Can I stop people downloading a file I share with a link?",
       "article": "sharing-links.md",
-      "evidence": "people can preview the file but not download it"
+      "evidence": "people can preview the file but not download it",
+      "reference": "Yes, on the Business plan: turn on Disable downloads in the link settings, so people can preview but not download."
     },
     {
       "id": "q092",
       "question": "How many people have opened my shared link?",
       "article": "sharing-links.md",
-      "evidence": "how many times it was viewed and downloaded"
+      "evidence": "how many times it was viewed and downloaded",
+      "reference": "On Personal, Family and Business, click the link in Settings > Sharing > Links to see how many times it was viewed and downloaded."
     },
     {
       "id": "q093",
       "question": "What's the difference between a viewer and an editor in a shared folder?",
       "article": "shared-folders.md",
-      "evidence": "Editor: can add, change and delete files"
+      "evidence": "Editor: can add, change and delete files",
+      "reference": "Viewers can open and download files. Editors can also add, change and delete files, and invite others if you allow it."
     },
     {
       "id": "q094",
@@ -582,103 +675,120 @@
           "article": "storage-quota.md",
           "evidence": "They count toward the owner's storage, not yours"
         }
-      ]
+      ],
+      "reference": "No. A shared folder counts only toward the owner's storage."
     },
     {
       "id": "q095",
       "question": "I removed someone from a shared folder. Do they keep the files they downloaded?",
       "article": "shared-folders.md",
-      "evidence": "files they already downloaded to their computer stay there"
+      "evidence": "files they already downloaded to their computer stay there",
+      "reference": "Yes. They lose access right away, but files they already downloaded stay on their computer as normal files that no longer sync."
     },
     {
       "id": "q096",
       "question": "How can clients send me files without making an account?",
       "article": "file-requests.md",
-      "evidence": "A file request lets anyone upload files to a folder of your choice"
+      "evidence": "A file request lets anyone upload files to a folder of your choice",
+      "reference": "Create a file request: anyone can upload to a folder you choose without a Nimbus account. It's available on Personal, Family and Business plans."
     },
     {
       "id": "q097",
       "question": "Can people uploading to my file request see what others uploaded?",
       "article": "file-requests.md",
-      "evidence": "They can't see the folder or any other files in it"
+      "evidence": "They can't see the folder or any other files in it",
+      "reference": "No. Uploaders can't see the folder or any other files in it."
     },
     {
       "id": "q098",
       "question": "An employee is leaving the company. How do I keep their files?",
       "article": "business-admin-console.md",
-      "evidence": "pick Transfer files to and choose a member"
+      "evidence": "pick Transfer files to and choose a member",
+      "reference": "When you remove the user in the admin console, choose Transfer files to and pick a member, who receives all their files and shared folder ownership."
     },
     {
       "id": "q099",
       "question": "How long is the audit log kept?",
       "article": "business-admin-console.md",
-      "evidence": "Audit log events are kept for 1 year"
+      "evidence": "Audit log events are kept for 1 year",
+      "reference": "1 year."
     },
     {
       "id": "q100",
       "question": "Can an admin reset two-factor authentication for a team member?",
       "article": "business-admin-console.md",
-      "evidence": "reset two-step verification for a member who lost their phone"
+      "evidence": "reset two-step verification for a member who lost their phone",
+      "reference": "Yes. An admin can reset two-step verification for a member who lost their phone, so they can set it up again."
     },
     {
       "id": "q101",
       "question": "Do suspended users still cost us a license?",
       "article": "business-admin-console.md",
-      "evidence": "Suspended users still use a licence"
+      "evidence": "Suspended users still use a licence",
+      "reference": "Yes. Suspended users still use a licence."
     },
     {
       "id": "q102",
       "question": "What is the API rate limit?",
       "article": "integrations-and-api.md",
-      "evidence": "600 requests per minute per user"
+      "evidence": "600 requests per minute per user",
+      "reference": "600 requests per minute per user."
     },
     {
       "id": "q103",
       "question": "My integration keeps getting HTTP 429 errors",
       "article": "integrations-and-api.md",
-      "evidence": "returns HTTP 429 with a Retry-After header"
+      "evidence": "returns HTTP 429 with a Retry-After header",
+      "reference": "You're over the limit of 600 requests per minute per user. Wait for the number of seconds in the Retry-After header before retrying."
     },
     {
       "id": "q104",
       "question": "How do I get a token for my own backup script?",
       "article": "integrations-and-api.md",
-      "evidence": "create a personal access token under Settings > Developer"
+      "evidence": "create a personal access token under Settings > Developer",
+      "reference": "Create a personal access token under Settings > Developer. You can limit it to read-only access and one folder."
     },
     {
       "id": "q105",
       "question": "How quickly does support reply on the Family plan?",
       "article": "contact-support.md",
-      "evidence": "email support, with a reply within 24 hours"
+      "evidence": "email support, with a reply within 24 hours",
+      "reference": "Within 24 hours, 7 days a week, by email."
     },
     {
       "id": "q106",
       "question": "Is Nimbus down right now?",
       "article": "contact-support.md",
-      "evidence": "Check status.nimbus.example"
+      "evidence": "Check status.nimbus.example",
+      "reference": "Check status.nimbus.example for the current status and any incidents."
     },
     {
       "id": "q107",
       "question": "Can I call you on the phone?",
       "article": "contact-support.md",
-      "evidence": "24/7 live chat and phone support"
+      "evidence": "24/7 live chat and phone support",
+      "reference": "Phone support is available on the Business plan (24/7 chat and phone). Personal and Family get email support."
     },
     {
       "id": "q108",
       "question": "I got an email about a sign-in from a country I've never been to",
       "article": "suspicious-activity.md",
-      "evidence": "Click This wasn't me in the email"
+      "evidence": "Click This wasn't me in the email",
+      "reference": "Click This wasn't me in the email (or sign out the unknown device under Settings > Security > Devices), change your password and turn on two-step verification."
     },
     {
       "id": "q109",
       "question": "I got an email saying my storage is full and I must verify my account. Is it real?",
       "article": "suspicious-activity.md",
-      "evidence": "Scammers sometimes send fake emails that look like they're from Nimbus"
+      "evidence": "Scammers sometimes send fake emails that look like they're from Nimbus",
+      "reference": "Probably not. Scammers send fake emails like this. Real Nimbus emails only come from @nimbus.example and never ask for your password, so open app.nimbus.example yourself instead of clicking."
     },
     {
       "id": "q110",
       "question": "I can't sign in after typing the wrong password several times",
       "article": "suspicious-activity.md",
-      "evidence": "we lock sign-in for that account for 15 minutes"
+      "evidence": "we lock sign-in for that account for 15 minutes",
+      "reference": "After 10 wrong attempts, sign-in is locked for 15 minutes. Wait, or reset your password in the meantime."
     }
   ]
 }

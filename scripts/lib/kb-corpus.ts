@@ -47,6 +47,8 @@ const questionsSchema = z.object({
         article: z.string().min(1),
         evidence: z.string().min(3),
         alsoAccept: z.array(target).optional(),
+        /** A short correct answer written from the gold passage (M6), for judging draft correctness. */
+        reference: z.string().min(2).max(400),
       }),
     )
     .min(1),
