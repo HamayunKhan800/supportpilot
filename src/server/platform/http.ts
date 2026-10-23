@@ -1,5 +1,6 @@
 import type { Logger } from "pino";
 import { AppError, problemResponse, toProblem } from "./errors";
+import { reportError } from "./error-reporting";
 import { logger } from "./logger";
 import { REQUEST_ID_HEADER, resolveRequestId } from "./request-id";
 
@@ -43,6 +44,7 @@ export function withRoute<P = unknown>(name: string, handler: Handler<P>, option
       if (!(err instanceof AppError) && problem.status >= 500) {
         // Unexpected failure: full detail (incl. stack) for debugging/alerting.
         log.error({ err: serializeError(err) }, "unhandled error in route");
+        reportError(err, { route: name, requestId });
       } else if (problem.status >= 500) {
         // Deliberate 5xx (e.g. dependency down): expected, so no stack noise.
         log.error({ status: problem.status, type: problem.type }, "request failed");

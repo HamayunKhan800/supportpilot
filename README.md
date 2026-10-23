@@ -122,6 +122,8 @@ docker compose --profile full up --build
 | `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                                         |
 | `pnpm eval:ai`                    | AI smoke run: triage, drafts and the injection set (`--provider gemini`, budgeted and paced)                     |
 | `pnpm eval:review`                | `load` the human spot-check items into the database, `status`, or `export` the verdicts to `eval/review/*.json`  |
+| `pnpm otel:capture`               | a local trace receiver that prints each span (`--out spans.jsonl`); see [observability](docs/observability.md)   |
+| `pnpm sentry:check`               | send one test error to Sentry through the app's reporting path (needs `SENTRY_DSN`)                              |
 
 ## Configuration
 
@@ -143,6 +145,10 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `GEMINI_API_KEY`                                                  | none                               | Google AI Studio key, required when `AI_PROVIDER=gemini`. Free-tier inputs may be used by Google to improve its products: demo data only                                                                                                                       |
 | `AI_DAILY_CALL_LIMIT`                                             | `200`                              | Triage + draft calls per day for the whole deployment, counted per Pacific-time day (when Google resets free quotas). `0` turns AI generation off                                                                                                              |
 | `EVAL_REVIEWER_EMAILS`                                            | none                               | Sign-in emails (comma-separated) allowed to open the evaluation Review page, `/app/review`. Unset: off (no link; the page and its API answer 404)                                                                                                              |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`                                     | none                               | OpenTelemetry traces over OTLP/HTTP (e.g. `http://localhost:4318`). Unset: no tracing code runs. Only allowlisted metadata is exported, never customer text ([observability](docs/observability.md))                                                           |
+| `OTEL_EXPORTER_OTLP_HEADERS`                                      | none                               | Headers for a hosted tracing backend that needs a key (`name=value`)                                                                                                                                                                                           |
+| `SENTRY_DSN`                                                      | none                               | Report server errors to Sentry, with personal data collection switched off. Check it with `pnpm sentry:check`                                                                                                                                                  |
+| `SENTRY_ENVIRONMENT`                                              | `NODE_ENV`                         | Environment name shown in Sentry (letters, digits, `.` `_` `-`)                                                                                                                                                                                                |
 | `LOG_LEVEL`, `DATABASE_POOL_MAX`, `DATABASE_STATEMENT_TIMEOUT_MS` | `info`, `10`, `10000`              | Logging and database tuning                                                                                                                                                                                                                                    |
 
 ## Operational endpoints
@@ -177,22 +183,23 @@ Lint (incl. accessibility rules, zero warnings) · strict typecheck · Prettier 
 
 ## Documentation
 
-| Doc                                                       | Contents                                                             |
-| --------------------------------------------------------- | -------------------------------------------------------------------- |
-| [00 · Research & plan](docs/00-research-and-plan.md)      | Market research with sources, stack choice, roadmap                  |
-| [01 · Requirements](docs/01-requirements.md)              | Roles, functional & non-functional requirements, acceptance criteria |
-| [02 · Architecture](docs/02-architecture.md)              | System design, data model, API contract, key flows                   |
-| [03 · Threat model](docs/03-threat-model.md)              | STRIDE, OWASP Top 10:2025 and OWASP LLM Top 10 2026 mapping          |
-| [04 · AI evaluation plan](docs/04-ai-evaluation-plan.md)  | Golden dataset, metrics, targets                                     |
-| [ADRs](docs/adr/)                                         | Architecture decision records                                        |
-| [Accepted risks](docs/security/accepted-risks.md)         | Known limitations with mitigations and a revisit date                |
-| [M3 plan](docs/plans/m3-ticketing.md)                     | Ticketing design decisions D1–D10 and the "done when" list           |
-| [M4 plan](docs/plans/m4-knowledge-base.md)                | Knowledge-base decisions D1–D14 and the "done when" list             |
-| [M5 plan](docs/plans/m5-ai-features.md)                   | AI features: models, guardrails, the injection set, "done when"      |
-| [Retrieval baseline](docs/eval/retrieval-baseline.md)     | Search quality method, results and limitations                       |
-| [Gemini smoke run](docs/eval/ai-smoke-2026-10-23.md)      | Triage, draft and prompt-injection results with real models          |
-| [Milestone log](docs/milestones.md)                       | What was built and verified in each milestone                        |
-| [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Workflow, AI-assisted development policy, vulnerability reporting    |
+| Doc                                                       | Contents                                                                |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [00 · Research & plan](docs/00-research-and-plan.md)      | Market research with sources, stack choice, roadmap                     |
+| [01 · Requirements](docs/01-requirements.md)              | Roles, functional & non-functional requirements, acceptance criteria    |
+| [02 · Architecture](docs/02-architecture.md)              | System design, data model, API contract, key flows                      |
+| [03 · Threat model](docs/03-threat-model.md)              | STRIDE, OWASP Top 10:2025 and OWASP LLM Top 10 2026 mapping             |
+| [04 · AI evaluation plan](docs/04-ai-evaluation-plan.md)  | Golden dataset, metrics, targets                                        |
+| [ADRs](docs/adr/)                                         | Architecture decision records                                           |
+| [Accepted risks](docs/security/accepted-risks.md)         | Known limitations with mitigations and a revisit date                   |
+| [M3 plan](docs/plans/m3-ticketing.md)                     | Ticketing design decisions D1–D10 and the "done when" list              |
+| [M4 plan](docs/plans/m4-knowledge-base.md)                | Knowledge-base decisions D1–D14 and the "done when" list                |
+| [M5 plan](docs/plans/m5-ai-features.md)                   | AI features: models, guardrails, the injection set, "done when"         |
+| [Retrieval baseline](docs/eval/retrieval-baseline.md)     | Search quality method, results and limitations                          |
+| [Gemini smoke run](docs/eval/ai-smoke-2026-10-23.md)      | Triage, draft and prompt-injection results with real models             |
+| [Observability](docs/observability.md)                    | Logs, traces and Sentry: what is collected, what never is, how to check |
+| [Milestone log](docs/milestones.md)                       | What was built and verified in each milestone                           |
+| [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Workflow, AI-assisted development policy, vulnerability reporting       |
 
 ## License
 

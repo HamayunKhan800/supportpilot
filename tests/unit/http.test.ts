@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { setErrorReporter } from "@/server/platform/error-reporting";
 import { Errors } from "@/server/platform/errors";
 import { withRoute } from "@/server/platform/http";
 
@@ -70,5 +71,38 @@ describe("withRoute deliberate 5xx and validation errors", () => {
     const res = await handler(req());
     expect(res.status).toBe(400);
     expect((await res.json()).errors).toHaveProperty("subject");
+  });
+});
+
+describe("withRoute error reporting (plan M6 D9)", () => {
+  it("reports an unexpected error with the route name and request id, and nothing else", async () => {
+    const reports: Array<[unknown, unknown]> = [];
+    setErrorReporter((err, ctx) => void reports.push([err, ctx]));
+    try {
+      const boom = new Error("database exploded");
+      const res = await withRoute("tickets.list", async () => {
+        throw boom;
+      })(new Request("http://x/api/v1/tickets", { headers: { "x-request-id": "req-12345678" } }));
+      expect(res.status).toBe(500);
+      expect(reports).toEqual([[boom, { route: "tickets.list", requestId: "req-12345678" }]]);
+    } finally {
+      setErrorReporter(undefined);
+    }
+  });
+
+  it("does not report expected errors (4xx, deliberate 5xx)", async () => {
+    const reports: unknown[] = [];
+    setErrorReporter((err) => void reports.push(err));
+    try {
+      await withRoute("t", async () => {
+        throw Errors.notFound();
+      })(new Request("http://x/"));
+      await withRoute("t", async () => {
+        throw Errors.serviceUnavailable("db");
+      })(new Request("http://x/"));
+      expect(reports).toEqual([]);
+    } finally {
+      setErrorReporter(undefined);
+    }
   });
 });

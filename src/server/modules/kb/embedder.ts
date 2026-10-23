@@ -207,6 +207,8 @@ export function createGeminiEmbedder(options: GeminiEmbedderOptions): Embedder {
         maxRetries: options.maxRetries ?? 2,
         abortSignal: signal ? AbortSignal.any([signal, timeout]) : timeout,
         providerOptions: { google: { outputDimensionality: dimensions } },
+        // Never let the AI SDK's telemetry record the text being embedded (plan M6 D8).
+        telemetry: { isEnabled: false },
       });
       return validateEmbeddings(result.embeddings, values.length, dimensions);
     } catch (err) {

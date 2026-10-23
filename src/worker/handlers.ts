@@ -1,4 +1,4 @@
-import type { PgBoss } from "pg-boss";
+import type { Job, PgBoss } from "pg-boss";
 
 import { handleDeadLetter, runIngestJob, type IngestDeps } from "@/server/modules/kb/ingest-job";
 import { handleTriageDeadLetter, runTriageJob, type TriageDeps } from "@/server/modules/triage/job";
@@ -10,7 +10,17 @@ import {
   KB_INGEST_QUEUE,
   kbIngestPayloadSchema,
 } from "@/server/platform/jobs/queues";
+import { reportError } from "@/server/platform/error-reporting";
 import { logger } from "@/server/platform/logger";
+
+import { traced } from "./traced-job";
+
+/** Payloads that fail validation: retrying cannot fix them, so they are completed and reported. */
+function malformed(queue: string, job: Job<unknown>): { status: "malformed" } {
+  logger.error({ job: queue, jobId: job.id }, "malformed job dropped");
+  reportError(new Error(`malformed ${queue} job dropped`), { job: queue, jobId: job.id });
+  return { status: "malformed" };
+}
 
 export interface HandlerOptions {
   /** Ingest jobs processed at once by this process (each may run one PDF thread). */
@@ -32,15 +42,13 @@ export async function registerKbHandlers(
     async ([job]) => {
       if (!job) return null;
       const payload = kbIngestPayloadSchema.safeParse(job.data);
-      if (!payload.success) {
-        // Retrying cannot fix a malformed job: complete it and leave a trace.
-        logger.error({ job: KB_INGEST_QUEUE, jobId: job.id }, "malformed ingest job dropped");
-        return { status: "malformed" };
-      }
-      return runIngestJob(
-        payload.data,
-        { isFinalAttempt: job.retryCount >= job.retryLimit, signal: job.signal },
-        deps,
+      if (!payload.success) return malformed(KB_INGEST_QUEUE, job);
+      return traced(KB_INGEST_QUEUE, job, payload.data, () =>
+        runIngestJob(
+          payload.data,
+          { isFinalAttempt: job.retryCount >= job.retryLimit, signal: job.signal },
+          deps,
+        ),
       );
     },
   );
@@ -48,11 +56,10 @@ export async function registerKbHandlers(
   await boss.work(KB_INGEST_DEAD_LETTER_QUEUE, { ...polling, batchSize: 1 }, async ([job]) => {
     if (!job) return null;
     const payload = kbIngestPayloadSchema.safeParse(job.data);
-    if (!payload.success) {
-      logger.error({ job: KB_INGEST_DEAD_LETTER_QUEUE, jobId: job.id }, "malformed dead-letter job dropped");
-      return { status: "malformed" };
-    }
-    return { changed: await handleDeadLetter(payload.data, deps) };
+    if (!payload.success) return malformed(KB_INGEST_DEAD_LETTER_QUEUE, job);
+    return traced(KB_INGEST_DEAD_LETTER_QUEUE, job, payload.data, async () => ({
+      status: (await handleDeadLetter(payload.data, deps)) ? "marked_failed" : "unchanged",
+    }));
   });
 }
 
@@ -70,14 +77,13 @@ export async function registerTriageHandlers(
     async ([job]) => {
       if (!job) return null;
       const payload = aiTriagePayloadSchema.safeParse(job.data);
-      if (!payload.success) {
-        logger.error({ job: AI_TRIAGE_QUEUE, jobId: job.id }, "malformed triage job dropped");
-        return { status: "malformed" };
-      }
-      return runTriageJob(
-        payload.data,
-        { isFinalAttempt: job.retryCount >= job.retryLimit, signal: job.signal },
-        deps,
+      if (!payload.success) return malformed(AI_TRIAGE_QUEUE, job);
+      return traced(AI_TRIAGE_QUEUE, job, payload.data, () =>
+        runTriageJob(
+          payload.data,
+          { isFinalAttempt: job.retryCount >= job.retryLimit, signal: job.signal },
+          deps,
+        ),
       );
     },
   );
@@ -85,10 +91,9 @@ export async function registerTriageHandlers(
   await boss.work(AI_TRIAGE_DEAD_LETTER_QUEUE, { ...polling, batchSize: 1 }, async ([job]) => {
     if (!job) return null;
     const payload = aiTriagePayloadSchema.safeParse(job.data);
-    if (!payload.success) {
-      logger.error({ job: AI_TRIAGE_DEAD_LETTER_QUEUE, jobId: job.id }, "malformed dead-letter job dropped");
-      return { status: "malformed" };
-    }
-    return { changed: await handleTriageDeadLetter(payload.data) };
+    if (!payload.success) return malformed(AI_TRIAGE_DEAD_LETTER_QUEUE, job);
+    return traced(AI_TRIAGE_DEAD_LETTER_QUEUE, job, payload.data, async () => ({
+      status: (await handleTriageDeadLetter(payload.data)) ? "marked_failed" : "unchanged",
+    }));
   });
 }

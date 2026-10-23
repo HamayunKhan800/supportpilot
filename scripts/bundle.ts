@@ -23,9 +23,11 @@ build({
   format: "esm",
   // Optional native driver that `pg` only loads on request.
   external: ["pg-native"],
-  // Some bundled CommonJS dependencies call require(); give ESM output a real one.
+  // Some bundled CommonJS dependencies call require(); give ESM output a real one. The import
+  // is aliased because bundled ESM code (Sentry's SDK) imports createRequire at top level too,
+  // and a second top-level binding of the same name stops the file from loading (M6 step 4).
   banner: {
-    js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
+    js: "import { createRequire as __spCreateRequire } from 'node:module'; const require = __spCreateRequire(import.meta.url);",
   },
   define: { __SP_PDF_THREAD_FILE__: JSON.stringify("pdf-thread.mjs") },
   logLevel: "warning",

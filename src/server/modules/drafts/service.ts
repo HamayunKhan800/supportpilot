@@ -20,6 +20,7 @@ import { transaction } from "@/server/platform/db/tx";
 import { getEnv } from "@/server/platform/env";
 import { AppError, Errors } from "@/server/platform/errors";
 import { logger as defaultLogger } from "@/server/platform/logger";
+import { annotateActiveSpan, SPAN_ATTRIBUTES, withSpan } from "@/server/platform/telemetry/spans";
 import { consumeRateLimit, rateLimitKey, type RateLimitRule } from "@/server/platform/rate-limit";
 
 import { mockDraftResponder } from "./mock-responder";
@@ -288,7 +289,20 @@ interface RunInput {
   emit: Emit;
 }
 
-async function runDraft(input: RunInput, deps: DraftDeps): Promise<void> {
+/** One span per draft (plan M6 D7): ids, the outcome and the retrieval score, never text. */
+function runDraft(input: RunInput, deps: DraftDeps): Promise<void> {
+  return withSpan(
+    "draft.generate",
+    {
+      [SPAN_ATTRIBUTES.workspaceId]: input.workspaceId,
+      [SPAN_ATTRIBUTES.ticketId]: input.ticket.id,
+      [SPAN_ATTRIBUTES.draftId]: input.draftId,
+    },
+    () => runDraftUntraced(input, deps),
+  );
+}
+
+async function runDraftUntraced(input: RunInput, deps: DraftDeps): Promise<void> {
   const { workspaceId: ws, ticket, draftId, signal, emit } = input;
   const log = deps.logger ?? defaultLogger;
   const clock = deps.clock ?? (() => performance.now());
@@ -298,9 +312,25 @@ async function runDraft(input: RunInput, deps: DraftDeps): Promise<void> {
   const ids = { event: "draft.finished", workspaceId: ws, ticketId: ticket.id, draftId };
   let topScore: number | null = null;
 
+  /** The outcome on the draft's span: status and codes, never the text. */
+  const traceOutcome = (outcome: Pick<repo.DraftOutcome, "status" | "errorCode" | "invalidCitationCount">) =>
+    annotateActiveSpan({
+      [SPAN_ATTRIBUTES.draftOutcome]: outcome.status,
+      ...(outcome.errorCode ? { [SPAN_ATTRIBUTES.draftErrorCode]: outcome.errorCode } : {}),
+      ...(outcome.invalidCitationCount === undefined
+        ? {}
+        : { [SPAN_ATTRIBUTES.draftInvalidCitations]: outcome.invalidCitationCount }),
+      ...(topScore === null ? {} : { [SPAN_ATTRIBUTES.kbTopScore]: topScore }),
+    });
   /** False when the draft was already finished (e.g. saved, then the client left). */
-  const finish = (outcome: repo.DraftOutcome) =>
-    repo.finishDraft(db, ws, draftId, { retrievalTopScore: topScore, latencyMs: elapsed(), ...outcome });
+  const finish = (outcome: repo.DraftOutcome) => {
+    traceOutcome(outcome);
+    return repo.finishDraft(db, ws, draftId, {
+      retrievalTopScore: topScore,
+      latencyMs: elapsed(),
+      ...outcome,
+    });
+  };
   const done = async () => {
     const saved = await repo.findDraft(db, ws, draftId);
     emit({ type: "done", draft: apiDraft(saved!.draft, saved!.citations) });
@@ -397,6 +427,7 @@ async function runDraft(input: RunInput, deps: DraftDeps): Promise<void> {
       return;
     }
 
+    traceOutcome({ status: "ready", invalidCitationCount: check.invalidCitationCount });
     await transaction(async (tx) => {
       await repo.finishDraft(tx, ws, draftId, {
         status: "ready",

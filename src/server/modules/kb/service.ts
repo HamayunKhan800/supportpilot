@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { insertAuditEvent, type AuditEvent } from "@/server/platform/auth/audit";
+import { SPAN_ATTRIBUTES, withSpan } from "@/server/platform/telemetry/spans";
 import { requireWorkspace, type WorkspaceContext } from "@/server/platform/auth/context";
 import { getDb } from "@/server/platform/db/client";
 import { transaction } from "@/server/platform/db/tx";
@@ -273,7 +274,30 @@ const elapsed = (start: number) => Math.round((performance.now() - start) * 10) 
  * with no ready documents returns no results without calling the AI provider. Documents
  * embedded with another model are refused (D4).
  */
-export async function hybridSearch(
+export function hybridSearch(
+  workspaceId: string,
+  query: string,
+  embedder: Embedder,
+  options: { topK?: number; candidates?: number; embedTimeoutMs?: number } = {},
+): Promise<KbSearchResponse> {
+  // One span per search (plan M6 D7): counts and timings, never the query or the passages.
+  const topK = options.topK ?? RETRIEVAL_TOP_K;
+  return withSpan(
+    "kb.search",
+    { [SPAN_ATTRIBUTES.workspaceId]: workspaceId, [SPAN_ATTRIBUTES.kbTopK]: topK },
+    async (span) => {
+      const response = await searchOnce(workspaceId, query, embedder, { ...options, topK });
+      span.setAttributes({
+        [SPAN_ATTRIBUTES.kbResults]: response.results.length,
+        [SPAN_ATTRIBUTES.kbEmbeddingMs]: response.timingsMs.embedding,
+        [SPAN_ATTRIBUTES.kbRetrievalMs]: response.timingsMs.retrieval,
+      });
+      return response;
+    },
+  );
+}
+
+async function searchOnce(
   workspaceId: string,
   query: string,
   embedder: Embedder,
@@ -281,7 +305,7 @@ export async function hybridSearch(
     topK = RETRIEVAL_TOP_K,
     candidates = RETRIEVAL_CANDIDATES,
     embedTimeoutMs = KB_SEARCH_EMBED_TIMEOUT_MS,
-  } = {},
+  }: { topK?: number; candidates?: number; embedTimeoutMs?: number },
 ): Promise<KbSearchResponse> {
   const models = await repo.listWorkspaceEmbeddingModels(workspaceId);
   if (models.length === 0)

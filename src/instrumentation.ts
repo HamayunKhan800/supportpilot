@@ -6,8 +6,9 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
-  const { validateEnvironmentOrExit } = await import("./instrumentation-node");
-  validateEnvironmentOrExit();
+  const { startObservability, validateEnvironmentOrExit } = await import("./instrumentation-node");
+  const env = validateEnvironmentOrExit();
+  await startObservability(env);
 }
 
 /** Server-side errors not caught by route wrappers (e.g. rendering errors). */
@@ -17,7 +18,10 @@ export async function onRequestError(
   context: { routerKind: string; routePath: string; routeType: string },
 ) {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { logger } = await import("./server/platform/logger");
+  const [{ logger }, { reportError }] = await Promise.all([
+    import("./server/platform/logger"),
+    import("./server/platform/error-reporting"),
+  ]);
   const err = error as Error & { digest?: string };
   logger.error(
     {
@@ -30,4 +34,5 @@ export async function onRequestError(
     },
     "request error",
   );
+  reportError(error, { route: context.routePath });
 }

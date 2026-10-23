@@ -38,6 +38,40 @@ const aiFields = {
   AI_DAILY_CALL_LIMIT: z.coerce.number().int().min(0).max(1_000_000).default(200),
 };
 
+/** Treats `VAR=` (empty) as unset, so a template with blank optional entries still validates. */
+const emptyAsUnset = (value: unknown) => (value === "" ? undefined : value);
+
+const observabilityFields = {
+  /**
+   * OpenTelemetry tracing (plan M6 D7, ADR-0018): off unless one of these OTLP/HTTP endpoints is
+   * set, e.g. http://localhost:4318 for a local Jaeger. The exporter also reads the standard
+   * OTEL_EXPORTER_OTLP_HEADERS for a backend that needs a key.
+   */
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.preprocess(
+    emptyAsUnset,
+    z.url({ protocol: /^https?$/, error: "OTEL_EXPORTER_OTLP_ENDPOINT must be an http(s) URL" }).optional(),
+  ),
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.preprocess(
+    emptyAsUnset,
+    z
+      .url({ protocol: /^https?$/, error: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT must be an http(s) URL" })
+      .optional(),
+  ),
+  /** Sentry error reporting (plan M6 D9): off unless set. The project's DSN from sentry.io. */
+  SENTRY_DSN: z.preprocess(
+    emptyAsUnset,
+    z.url({ protocol: /^https$/, error: "SENTRY_DSN must be an https:// DSN from sentry.io" }).optional(),
+  ),
+  /** Shown on each Sentry event; defaults to NODE_ENV. */
+  SENTRY_ENVIRONMENT: z.preprocess(
+    emptyAsUnset,
+    z
+      .string()
+      .regex(/^[A-Za-z0-9_.-]{1,64}$/, "SENTRY_ENVIRONMENT may use letters, digits, . _ - (max 64)")
+      .optional(),
+  ),
+};
+
 function refineAi(
   env: { NODE_ENV: string; AI_PROVIDER?: string; GEMINI_API_KEY?: string },
   ctx: z.RefinementCtx,
@@ -67,6 +101,7 @@ const envSchema = z
   .object({
     ...commonFields,
     ...databaseFields,
+    ...observabilityFields,
 
     /** Signs/encrypts sessions and tokens. Generate with `openssl rand -base64 32`. */
     BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters"),
@@ -165,7 +200,7 @@ export type Env = z.infer<typeof envSchema>;
  * never receives the web app's auth secrets (least privilege).
  */
 const workerEnvSchema = z
-  .object({ ...commonFields, ...databaseFields, ...aiFields })
+  .object({ ...commonFields, ...databaseFields, ...aiFields, ...observabilityFields })
   .superRefine(refineAi)
   .transform(withAiDefault);
 

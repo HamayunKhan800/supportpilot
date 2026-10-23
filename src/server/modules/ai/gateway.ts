@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { AiUsageOutcome } from "@/server/platform/db/schema";
 import type { Executor } from "@/server/platform/db/tx";
 import { logger as defaultLogger } from "@/server/platform/logger";
+import { annotateActiveSpan, SPAN_ATTRIBUTES, withSpan } from "@/server/platform/telemetry/spans";
 import { CircuitBreaker, type CircuitState } from "./circuit-breaker";
 import {
   AI_FEATURES,
@@ -42,8 +43,15 @@ import {
  * (maxRetries: 0) so each provider request is counted once by the cap and seen by the breaker;
  * callers that should retry (the triage job) retry with their own back-off.
  *
- * Prompts and outputs are never logged (D11).
+ * Prompts and outputs are never logged (D11) and never traced: each attempt is one span holding
+ * metadata only (feature, model, outcome, tokens, cost, latency), and the AI SDK's own
+ * telemetry is switched off on every call (`telemetry: { isEnabled: false }`), because once any
+ * integration is registered it records full prompts and outputs by default (AI SDK telemetry
+ * docs; plan M6 D8, ADR-0018).
  */
+
+/** Per call: the AI SDK's telemetry stays off, so it can never record a prompt or an output. */
+const SDK_TELEMETRY_OFF = { isEnabled: false } as const;
 
 export interface AiCallContext {
   workspaceId: string;
@@ -201,6 +209,14 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
     else breaker.recordSuccess(); // ok, or invalid output: the provider answered
 
     const outcome: AiUsageOutcome = result.error?.outcome ?? "ok";
+    annotateActiveSpan({
+      [SPAN_ATTRIBUTES.aiOutcome]: outcome,
+      [SPAN_ATTRIBUTES.genAiInputTokens]: result.usage.inputTokens,
+      [SPAN_ATTRIBUTES.genAiOutputTokens]: result.usage.outputTokens,
+      [SPAN_ATTRIBUTES.aiCostMicros]: result.usage.estCostMicros,
+      [SPAN_ATTRIBUTES.aiLatencyMs]: Math.round(result.latencyMs),
+      ...(result.ttftMs == null ? {} : { [SPAN_ATTRIBUTES.aiTtftMs]: Math.round(result.ttftMs) }),
+    });
     if (result.error) {
       const cause = result.error.cause as { statusCode?: unknown; name?: unknown } | undefined;
       log.warn(
@@ -234,12 +250,81 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
     }
   }
 
+  /** One span per attempt (see the module comment): ids and the model, never text. */
+  function traceAttempt<T>(
+    ctx: AiCallContext,
+    feature: AiFeature,
+    modelId: string,
+    isFallback: boolean,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    return withSpan(
+      `ai ${feature}`,
+      {
+        [SPAN_ATTRIBUTES.aiFeature]: feature,
+        [SPAN_ATTRIBUTES.genAiOperation]: "generate_content",
+        [SPAN_ATTRIBUTES.genAiProvider]: models.provider,
+        [SPAN_ATTRIBUTES.genAiModel]: modelId,
+        [SPAN_ATTRIBUTES.aiFallback]: isFallback,
+        [SPAN_ATTRIBUTES.workspaceId]: ctx.workspaceId,
+        ...(ctx.ticketId ? { [SPAN_ATTRIBUTES.ticketId]: ctx.ticketId } : {}),
+      },
+      run,
+    );
+  }
+
   return {
     provider: models.provider,
 
     circuitState: (feature) => breakers[feature].state,
 
-    async generateObject<T>(ctx: AiCallContext, request: AiRequest & { schema: z.ZodType<T> }) {
+    generateObject<T>(ctx: AiCallContext, request: AiRequest & { schema: z.ZodType<T> }) {
+      return traceAttempt(ctx, request.feature, models.models[request.feature].modelId, false, () =>
+        generateObjectOnce(ctx, request),
+      );
+    },
+
+    async streamText(ctx, request) {
+      const { feature } = request;
+      const fallback = models.fallbacks?.[feature];
+      let delivered = false;
+      const tracked = {
+        ...request,
+        onDelta: (text: string) => {
+          delivered = true;
+          return request.onDelta(text);
+        },
+      };
+      const first = models.models[feature];
+      try {
+        return await traceAttempt(ctx, feature, first.modelId, false, () =>
+          streamOnce(ctx, tracked, { ...first, breaker: breakers[feature] }),
+        );
+      } catch (err) {
+        if (!fallback || delivered || !shouldFallBack(err)) throw err;
+        log.warn(
+          {
+            feature,
+            workspaceId: ctx.workspaceId,
+            code: err instanceof AiError ? err.code : undefined,
+            from: first.modelId,
+            to: fallback.modelId,
+          },
+          "ai call falling back to the second model",
+        );
+        return traceAttempt(ctx, feature, fallback.modelId, true, () =>
+          streamOnce(ctx, tracked, { ...fallback, breaker: fallbackBreakers[feature] }),
+        );
+      }
+    },
+  };
+
+  /** One structured-output call: steps 1–6. */
+  async function generateObjectOnce<T>(
+    ctx: AiCallContext,
+    request: AiRequest & { schema: z.ZodType<T> },
+  ): Promise<AiObjectResult<T>> {
+    {
       const { feature } = request;
       await admit(ctx, feature);
       const settings = settingsFor(feature);
@@ -258,6 +343,7 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
           maxRetries: 0,
           abortSignal: ctx.signal,
           timeout: { totalMs: settings.timeout.totalMs },
+          telemetry: SDK_TELEMETRY_OFF,
         });
         output = result.output as T;
         usage = fromSdkUsage(modelId, result.totalUsage);
@@ -275,37 +361,8 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
       const latencyMs = clock() - started;
       await settle(ctx, feature, modelId, { usage, latencyMs });
       return { object: output, modelId, usage, latencyMs };
-    },
-
-    async streamText(ctx, request) {
-      const { feature } = request;
-      const fallback = models.fallbacks?.[feature];
-      let delivered = false;
-      const tracked = {
-        ...request,
-        onDelta: (text: string) => {
-          delivered = true;
-          return request.onDelta(text);
-        },
-      };
-      try {
-        return await streamOnce(ctx, tracked, { ...models.models[feature], breaker: breakers[feature] });
-      } catch (err) {
-        if (!fallback || delivered || !shouldFallBack(err)) throw err;
-        log.warn(
-          {
-            feature,
-            workspaceId: ctx.workspaceId,
-            code: err instanceof AiError ? err.code : undefined,
-            from: models.models[feature].modelId,
-            to: fallback.modelId,
-          },
-          "ai call falling back to the second model",
-        );
-        return streamOnce(ctx, tracked, { ...fallback, breaker: fallbackBreakers[feature] });
-      }
-    },
-  };
+    }
+  }
 
   /** One streamed call to one model: steps 1–6. */
   async function streamOnce(
@@ -361,6 +418,7 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
         timeout: settings.timeout,
         // Errors arrive as stream parts and are handled below; this stops the SDK's console logging.
         onError: () => {},
+        telemetry: SDK_TELEMETRY_OFF,
       });
 
       try {
@@ -422,6 +480,7 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
       }
 
       const usage = fromSdkUsage(modelId, finish?.totalUsage);
+      annotateActiveSpan({ [SPAN_ATTRIBUTES.genAiFinishReasons]: [finish?.finishReason ?? "other"] });
       await settle(ctx, feature, modelId, { usage, latencyMs, ttftMs }, breaker);
       return { text, modelId, usage, latencyMs, ttftMs, finishReason: finish?.finishReason ?? "other" };
     }

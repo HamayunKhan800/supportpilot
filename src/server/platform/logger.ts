@@ -1,5 +1,7 @@
 import pino, { type DestinationStream, type Logger, type LoggerOptions } from "pino";
 
+import { activeTraceIds } from "./telemetry/spans";
+
 /**
  * Paths redacted from every log line (OWASP A09: log useful events without
  * leaking secrets or personal data). `*.x` matches one level deep.
@@ -44,6 +46,9 @@ export function createLogger(
     formatters: {
       level: (label) => ({ level: label }),
     },
+    // trace_id/span_id of the current span, so a log line can be matched to its trace (plan M6
+    // D7). Nothing is added when tracing is off. Names follow OpenTelemetry's log data model.
+    mixin: () => activeTraceIds(),
   };
   return destination ? pino(config, destination) : pino(config);
 }

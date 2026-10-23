@@ -10,9 +10,11 @@ import { createAiGatewayFromEnv } from "@/server/modules/ai/gateway";
 import { createEmbedderFromEnv } from "@/server/modules/kb/embedder";
 import { mockTriageResponder } from "@/server/modules/triage/mock-responder";
 import { getDb } from "@/server/platform/db/client";
-import { EnvValidationError, getWorkerEnv } from "@/server/platform/env";
+import { EnvValidationError, getWorkerEnv, type WorkerEnv } from "@/server/platform/env";
+import { setErrorReporter } from "@/server/platform/error-reporting";
 import { createBoss } from "@/server/platform/jobs/boss";
 import { logger } from "@/server/platform/logger";
+import { startTracing, type Tracing } from "@/server/platform/telemetry/setup";
 
 import { registerKbHandlers, registerTriageHandlers } from "./handlers";
 
@@ -26,8 +28,36 @@ const pdfThreadUrl =
 
 const SHUTDOWN_TIMEOUT_MS = 30_000;
 
+/**
+ * Tracing first, then Sentry (Sentry's guide for an existing OpenTelemetry setup); each is off
+ * unless configured (plan M6 D7, D9). Returns what shutdown must flush.
+ */
+async function startObservability(env: WorkerEnv): Promise<{ flush: () => Promise<void> }> {
+  const tracing: Tracing | null = startTracing({ serviceName: "supportpilot-worker", env: process.env });
+  let closeSentry: (() => Promise<unknown>) | undefined;
+  if (env.SENTRY_DSN) {
+    const Sentry = await import("@sentry/node");
+    const { buildSentryOptions, sentryReporter } = await import("@/server/platform/telemetry/sentry");
+    Sentry.init(
+      buildSentryOptions({ ...env, SENTRY_DSN: env.SENTRY_DSN }, () => Sentry.openTelemetryIntegration()),
+    );
+    setErrorReporter(sentryReporter((err, hint) => Sentry.captureException(err, hint)));
+    closeSentry = () => Sentry.close(2_000);
+  }
+  logger.info(
+    { tracing: tracing !== null, errorReporting: Boolean(env.SENTRY_DSN) },
+    "observability configured",
+  );
+  return {
+    flush: async () => {
+      await Promise.allSettled([tracing?.shutdown(), closeSentry?.()]);
+    },
+  };
+}
+
 async function main(): Promise<void> {
   const env = getWorkerEnv();
+  const observability = await startObservability(env);
   const embedder = createEmbedderFromEnv(env);
   const boss = createBoss(env.DATABASE_URL, "worker", 4);
   // A few attempts so the worker can start alongside a database that is still booting.
@@ -46,6 +76,7 @@ async function main(): Promise<void> {
     // Graceful: running jobs may finish; unfinished ones are retried by another worker.
     await boss.stop({ graceful: true, timeout: SHUTDOWN_TIMEOUT_MS });
     await getDb().pool.end();
+    await observability.flush(); // last spans and error reports
     logger.info("worker stopped");
     process.exit(0);
   };

@@ -247,3 +247,54 @@ describe("worker and database settings (least privilege)", () => {
     expect(issues(() => parseDatabaseEnv({ DATABASE_URL: "mysql://h/db" })).join()).toContain("DATABASE_URL");
   });
 });
+
+describe("env: observability (plan M6 D7, D9)", () => {
+  const DSN = "https://publicKey@o123.ingest.sentry.io/456";
+  const DB = { DATABASE_URL: "postgres://user:pass@localhost:5432/db" };
+  const issues = (parse: () => unknown): string[] => {
+    try {
+      parse();
+      return [];
+    } catch (e) {
+      return (e as EnvValidationError).issues;
+    }
+  };
+
+  it("is all optional, and empty values count as unset", () => {
+    const env = parseEnv({
+      ...valid,
+      OTEL_EXPORTER_OTLP_ENDPOINT: "",
+      SENTRY_DSN: "",
+      SENTRY_ENVIRONMENT: "",
+    });
+    expect(env.OTEL_EXPORTER_OTLP_ENDPOINT).toBeUndefined();
+    expect(env.SENTRY_DSN).toBeUndefined();
+    expect(env.SENTRY_ENVIRONMENT).toBeUndefined();
+  });
+
+  it("accepts an OTLP endpoint and a Sentry DSN in the web app and the worker", () => {
+    const settings = {
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:4318",
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "https://collector.example/v1/traces",
+      SENTRY_DSN: DSN,
+      SENTRY_ENVIRONMENT: "demo",
+    };
+    expect(parseEnv({ ...valid, ...settings })).toMatchObject(settings);
+    expect(parseWorkerEnv({ ...DB, ...settings })).toMatchObject(settings);
+  });
+
+  it("rejects malformed values without echoing them", () => {
+    const problems = issues(() =>
+      parseEnv({
+        ...valid,
+        OTEL_EXPORTER_OTLP_ENDPOINT: "localhost:4318",
+        SENTRY_DSN: "http://publicKey@o1.ingest.sentry.io/1",
+        SENTRY_ENVIRONMENT: "has spaces",
+      }),
+    ).join("\n");
+    expect(problems).toContain("OTEL_EXPORTER_OTLP_ENDPOINT");
+    expect(problems).toContain("SENTRY_DSN must be an https:// DSN");
+    expect(problems).toContain("SENTRY_ENVIRONMENT");
+    expect(problems).not.toContain("publicKey");
+  });
+});
