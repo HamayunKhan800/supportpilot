@@ -46,10 +46,27 @@ export function scrubText(text: string): string {
     .replace(TOKEN, (match) => (UUID.test(match) ? match : "[token]"));
 }
 
+const PATH = /(^|\s)\/\S*/g;
+
+/**
+ * Sentry names an event after the incoming request's real path (`POST /api/v1/portal/acme/...`,
+ * `GET /t/<token>`). The app reports the route instead: the handler name or Next.js route pattern
+ * (`createPortalTicket`, `/t/[token]`) or the job, and without either the path is hidden.
+ */
+function transactionName(event: ErrorEvent): string | undefined {
+  const route = event.tags?.route;
+  const job = event.tags?.job;
+  if (typeof route === "string" && route) return route;
+  if (typeof job === "string" && job) return `job ${job}`;
+  if (!event.transaction) return undefined;
+  return scrubText(event.transaction).replace(PATH, (_m, lead: string) => `${lead}/[path]`);
+}
+
 export function scrubSentryEvent(event: ErrorEvent): ErrorEvent {
   const scrubbed: ErrorEvent = { ...event, user: undefined, server_name: undefined };
   if (event.request) scrubbed.request = { method: event.request.method };
-  if (event.transaction) scrubbed.transaction = scrubText(event.transaction);
+  const transaction = transactionName(event);
+  if (transaction) scrubbed.transaction = transaction;
   if (event.message) scrubbed.message = scrubText(event.message);
   if (event.exception?.values) {
     scrubbed.exception = {

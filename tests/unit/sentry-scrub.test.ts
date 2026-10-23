@@ -32,6 +32,26 @@ describe("scrubText (M6 D9)", () => {
   });
 });
 
+describe("event names (finding #123)", () => {
+  const base: ErrorEvent = { type: undefined, transaction: "POST /api/v1/portal/kestrel-private/tickets" };
+
+  it("uses the route the app reported instead of the real path", () => {
+    expect(scrubSentryEvent({ ...base, tags: { route: "createPortalTicket" } }).transaction).toBe(
+      "createPortalTicket",
+    );
+    expect(
+      scrubSentryEvent({ ...base, transaction: `GET /t/${TOKEN}`, tags: { route: "/t/[token]" } })
+        .transaction,
+    ).toBe("/t/[token]");
+  });
+
+  it("uses the job for a job error, and hides the path when neither is known", () => {
+    expect(scrubSentryEvent({ ...base, tags: { job: "ai.triage" } }).transaction).toBe("job ai.triage");
+    expect(scrubSentryEvent(base).transaction).toBe("POST /[path]");
+    expect(scrubSentryEvent({ type: undefined }).transaction).toBeUndefined();
+  });
+});
+
 describe("scrubSentryEvent", () => {
   const event: ErrorEvent = {
     type: undefined,
@@ -71,7 +91,7 @@ describe("scrubSentryEvent", () => {
     expect(json).not.toContain("jane@");
     expect(json).not.toContain("charged twice");
     expect(json).not.toContain("customer text");
-    expect(out.transaction).toBe("GET /t/[token]");
+    expect(out.transaction).toBe("GET /[path]"); // no route tag: the path is hidden
     expect(out.exception?.values?.[0]?.value).toBe("bad token [token] from [email]");
     expect(out.breadcrumbs).toEqual([
       {
