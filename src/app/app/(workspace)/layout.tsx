@@ -15,6 +15,7 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
     { href: "/app", label: "Overview" },
     { href: "/app/tickets", label: "Tickets" },
     ...(can(ctx.role, { kb: ["read"] }) ? [{ href: "/app/knowledge", label: "Knowledge" }] : []),
+    ...(can(ctx.role, { analytics: ["read"] }) ? [{ href: "/app/analytics", label: "Analytics" }] : []),
     { href: "/app/members", label: "Members" },
     ...(can(ctx.role, { settings: ["read"] }) ? [{ href: "/app/settings", label: "AI settings" }] : []),
     ...(can(ctx.role, { audit: ["read"] }) ? [{ href: "/app/audit", label: "Audit log" }] : []),

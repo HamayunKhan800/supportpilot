@@ -81,6 +81,7 @@ The tests run the app's code, but not Next.js's production server or the bundled
 1. Sign up at [sentry.io](https://sentry.io) (the free Developer plan covers one user and 5,000 errors a month) and create a **Node.js** project.
 2. Copy the DSN (Project Settings > Client Keys (DSN)). Sentry describes DSNs as safe to make public: they can only send events, not read anything ([Sentry docs](https://docs.sentry.io/concepts/key-terms/dsn-explainer/)). It still belongs in the environment, not in code.
 3. Set `SENTRY_DSN` (and optionally `SENTRY_ENVIRONMENT`, default `NODE_ENV`) for the web app and worker.
+   Note that `pnpm dev` loads `.env.local`, so a DSN kept there also reports development errors (tagged with that file's `SENTRY_ENVIRONMENT`, and scrubbed like production). To keep local work out of Sentry, run with `SENTRY_DSN=` or keep the DSN out of `.env.local` and pass it only to `pnpm sentry:check`.
 4. Run `SENTRY_DSN=... pnpm sentry:check`. It sends one "SupportPilot Sentry check" error through the app's own reporting path and exits 1 unless Sentry answers with HTTP 2xx. (The SDK's `close()` reports success even when sending failed, so the script checks the real response.)
 
 ### What is reported

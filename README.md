@@ -2,7 +2,7 @@
 
 AI-assisted customer support with **grounded, cited answers** and a **human in the loop**.
 
-> 🚧 **Status: M0–M5 complete:** accounts, workspaces and roles, ticketing, a knowledge base, and AI triage and cited reply drafts, tested against real Gemini models. Next: M6, an evaluation dashboard and monitoring. See the [roadmap](docs/00-research-and-plan.md#5-implementation-roadmap-one-verifiable-milestone-at-a-time).
+> 🚧 **Status: M0–M5 complete:** accounts, workspaces and roles, ticketing, a knowledge base, and AI triage and cited reply drafts, tested against real Gemini models. M6 in progress: the evaluation runner, tracing and error monitoring, and an analytics dashboard are built; the full Gemini baseline report is next. See the [roadmap](docs/00-research-and-plan.md#5-implementation-roadmap-one-verifiable-milestone-at-a-time).
 
 ## Tech stack
 

@@ -90,6 +90,10 @@ export default defineConfig({
         "src/server/modules/eval-review/{repository,service}.ts",
         // Database-only: covered by tests/integration/eval-runner.test.ts (the runner's store).
         "src/server/modules/eval/repository.ts",
+        // Analytics SQL and its role check (counts, nearest-rank percentiles, UTC windows, tenant
+        // filters); 12 tests in tests/integration/analytics.test.ts, 8 deliberate breaks all caught.
+        // The pure parts (periods, summary reading, formatting, chart geometry) are unit-tested.
+        "src/server/modules/analytics/{repository,service}.ts",
       ],
       reporter: ["text", "json-summary", "html"],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },

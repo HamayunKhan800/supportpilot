@@ -56,17 +56,20 @@ About **420 requests**: 150 triage, 140 drafts, about 110 grader calls and 20 in
    - _Changed from D8:_ instead of turning off only the AI SDK's input and output recording, its telemetry is off entirely on every call; the gateway's own span records model, tokens, cost and timing. Simpler to verify, and nothing is lost.
    - _Changed from D9:_ browser error reporting is deferred (a public reporting endpoint is new attack surface; M7/M8). Sentry reports server errors only.
 5. **Evaluation dashboard:** test results with intervals and trends, live usage (FR-AN1), accessible charts, E2E and axe on desktop and mobile.
+   - _As built:_ two pages under **Analytics** in the workspace menu. **Usage** (`/app/analytics`, FR-AN1) covers the last 7, 30 or 90 days in UTC: tickets created per day, by status and by category; draft acceptance (sent out of sent plus discarded), the median and mean edit before sending (sent drafts only), and agents' 👍/👎 feedback; triage override, auto-apply and review rates; and per AI feature the calls, success rate, p50/p95 latency (nearest-rank, successful calls only), tokens and estimated cost, plus calls by model, which shows how often the Flash-Lite fallback answered. **Evaluation** (`/app/analytics/evaluation`) shows the latest run of the chosen provider with each docs/04 metric, its 95% Wilson range, the item counts and its target (met or not, judged on the measured rate), followed by a trend over the last 10 runs. Partial runs say why they stopped, mock runs carry a notice that their numbers only test the plumbing, and groundedness keeps its "AI-graded, not checked against a human" label. Charts are SVG drawn on the server, each with a one-sentence description for screen readers and a "Show as a table" alternative; no chart library and no client JavaScript. Only counts and averages are shown: no customer text, names or per-person numbers. Evaluation runs measure the shared test sets, so every workspace sees the same runs.
+   - _Changed from D10:_ agents keep `analytics:read`. The requirements' permission table (docs/01) already grants it, and the pages contain only team-level counts and the shared test results, with nothing an agent can't already see ticket by ticket. If per-person numbers are ever added, this is revisited.
+   - _Not an API:_ no `/api/v1/analytics` endpoint; the pages read the services directly. One can be added with the same service if a client needs it.
 6. **The Gemini run and report:** the protected GitHub workflow, the full run (over several days if on the free tier), `docs/eval/m6-baseline.md` with every number and its limits, ADRs, README, screenshots, milestone log.
 
 ## 6. Done when
 
 - [ ] Triage set of 150 and the priority rubric exist; your 20% spot-check is done and its agreement rate reported.
-- [ ] `pnpm eval` reports every docs/04 metric with intervals; the mock run guards CI.
+- [x] `pnpm eval` reports every docs/04 metric with intervals; the mock run guards CI.
 - [ ] A full Gemini baseline is recorded in `docs/eval/`, including results that miss their targets.
 - [ ] Groundedness is reported with the grader's agreement against human ratings, or human-only if the grader fails.
 - [ ] Triage v1 vs v2 and the refusal threshold are decided from measurements and documented.
-- [ ] Traces and trace IDs work; a test proves no ticket or article text reaches telemetry.
-- [ ] The dashboard shows FR-AN1 and test results; E2E and axe pass on desktop and mobile.
+- [x] Traces and trace IDs work; a test proves no ticket or article text reaches telemetry.
+- [x] The dashboard shows FR-AN1 and test results; E2E and axe pass on desktop and mobile.
 - [ ] CI green.
 
 ## 7. Out of scope

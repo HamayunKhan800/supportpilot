@@ -114,3 +114,52 @@ export async function endSession(
     })
     .where(eq(evalRun.id, id));
 }
+
+/** What the dashboard shows of a run: no dataset or settings hashes, no items. */
+export type EvalRunListing = Pick<
+  EvalRunRow,
+  | "id"
+  | "provider"
+  | "status"
+  | "calls"
+  | "stopReason"
+  | "summary"
+  | "config"
+  | "startedAt"
+  | "finishedAt"
+  | "updatedAt"
+>;
+
+/** The newest runs of one provider, newest first, for the dashboard (M6 step 5). */
+export async function listRecentRuns(
+  db: Executor,
+  provider: EvalProvider,
+  limit: number,
+): Promise<EvalRunListing[]> {
+  return db
+    .select({
+      id: evalRun.id,
+      provider: evalRun.provider,
+      status: evalRun.status,
+      calls: evalRun.calls,
+      stopReason: evalRun.stopReason,
+      summary: evalRun.summary,
+      config: evalRun.config,
+      startedAt: evalRun.startedAt,
+      finishedAt: evalRun.finishedAt,
+      updatedAt: evalRun.updatedAt,
+    })
+    .from(evalRun)
+    .where(eq(evalRun.provider, provider))
+    .orderBy(desc(evalRun.startedAt), desc(evalRun.id))
+    .limit(limit);
+}
+
+/** How many runs each provider has, so the dashboard can open on the one with results. */
+export async function countRunsByProvider(db: Executor): Promise<Partial<Record<EvalProvider, number>>> {
+  const rows = await db
+    .select({ provider: evalRun.provider, n: sql<string>`count(*)` })
+    .from(evalRun)
+    .groupBy(evalRun.provider);
+  return Object.fromEntries(rows.map((r) => [r.provider, Number(r.n)]));
+}
