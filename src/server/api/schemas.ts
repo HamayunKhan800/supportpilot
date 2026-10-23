@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  AI_DRAFT_STATUSES,
   KB_DOCUMENT_STATUSES,
   KB_MIME_TYPES,
   MESSAGE_AUTHOR_TYPES,
@@ -239,6 +240,83 @@ export const KbSearchResults = z
     timingsMs: z.strictObject({ embedding: z.number().nonnegative(), retrieval: z.number().nonnegative() }),
   })
   .register(apiRegistry, { id: "KbSearchResults" });
+
+// ---------------------------------------------------------------------------
+// AI reply drafts (M5 D6–D9)
+// ---------------------------------------------------------------------------
+
+export const AiDraft = z
+  .strictObject({
+    id: z.uuid(),
+    ticketId: z.uuid(),
+    status: z.enum(AI_DRAFT_STATUSES),
+    errorCode: z
+      .string()
+      .nullable()
+      .describe(
+        "Why the draft is not ready, e.g. no_passages, below_min_score, model_insufficient_knowledge (refused) or canary_leak (blocked).",
+      ),
+    body: z
+      .string()
+      .describe(
+        "Untrusted model output with [n] citation markers. Render as plain text only: never as HTML or Markdown (D9). Empty unless ready.",
+      ),
+    language: z.string().nullable().describe("ISO 639-1 code the draft was asked to use (from triage)."),
+    model: z.string().nullable().describe("Null when the draft was refused before any model call."),
+    promptVersion: z.string(),
+    retrievalTopScore: z.number().nullable().describe("Best vector similarity among the retrieved passages."),
+    invalidCitationCount: z
+      .int()
+      .nonnegative()
+      .describe("Markers that pointed at no passage and were removed."),
+    warnings: z
+      .array(z.string())
+      .describe(
+        "For the agent: hidden_characters, unknown_link, invalid_citations, no_citations, truncated.",
+      ),
+    citations: z.array(
+      z.strictObject({
+        marker: z.int().positive().describe("The n in [n]."),
+        documentId: z.uuid().nullable(),
+        documentTitle: z.string(),
+        headingPath: z.string(),
+        content: z.string().describe("The passage as it was when the draft was written."),
+        similarity: z.number().nullable(),
+        sourceRemoved: z.boolean().describe("The passage was deleted or replaced since (FR-K3)."),
+      }),
+    ),
+    usage: z.strictObject({
+      inputTokens: z.int().nonnegative(),
+      outputTokens: z.int().nonnegative(),
+      estCostMicros: z
+        .int()
+        .nonnegative()
+        .describe("Estimated cost in millionths of a US dollar (paid-tier prices)."),
+    }),
+    ttftMs: z.int().nonnegative().nullable().describe("Request to first streamed word, retrieval included."),
+    latencyMs: z.int().nonnegative().nullable().describe("Request to finished draft, retrieval included."),
+    createdAt: dateTime,
+  })
+  .register(apiRegistry, { id: "AiDraft" });
+
+export const DraftStreamEvent = z
+  .discriminatedUnion("type", [
+    z.strictObject({ type: z.literal("start"), draftId: z.uuid() }),
+    z.strictObject({ type: z.literal("delta"), text: z.string().min(1) }),
+    z.strictObject({ type: z.literal("done"), draft: AiDraft }),
+    z.strictObject({
+      type: z.literal("error"),
+      draftId: z.uuid(),
+      code: z.string(),
+      message: z.string().describe("Plain-language explanation for the agent."),
+      retryable: z.boolean(),
+      retryAfterSeconds: z.int().positive().optional(),
+    }),
+  ])
+  .describe(
+    "One event per line (NDJSON): start, then delta events while the draft is written, then exactly one done (ready, refused or blocked) or error. The draft in done is authoritative; streamed text is a preview before citation checks.",
+  )
+  .register(apiRegistry, { id: "DraftStreamEvent" });
 
 // Path parameters (documented formats; malformed values are answered with 404).
 export const SlugParams = z.object({ slug: z.string().min(1).max(100) });

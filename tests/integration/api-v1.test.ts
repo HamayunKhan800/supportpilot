@@ -194,6 +194,7 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
       "getTicket",
       "updateTicket",
       "acceptTriageSuggestion",
+      "generateDraft",
       "addTicketMessage",
       "uploadKbDocument",
       "listKbDocuments",
@@ -220,7 +221,10 @@ describe("response contract (strict schemas: unexpected fields fail)", () => {
       });
       expect(res.status, `${id}: ${JSON.stringify(res.json)}`).toBe(op.success.status);
       expect(res.headers.get("cache-control"), id).toBe("no-store");
-      if (op.success.schema) op.success.schema.parse(res.json);
+      if (op.success.contentType === "application/x-ndjson") {
+        expect(res.events.length, id).toBeGreaterThan(0);
+        for (const event of res.events) op.success.schema!.parse(event);
+      } else if (op.success.schema) op.success.schema.parse(res.json);
       if (id === "updateTicket" || id === "acceptTriageSuggestion") currentVersion = res.json.version;
     }
   });
@@ -314,6 +318,7 @@ describe("tenant isolation (NFR-SEC1): other workspaces' resources are 404", () 
       "acceptTriageSuggestion",
       "addTicketMessage",
       "deleteKbDocument",
+      "generateDraft",
       "getKbDocument",
       "getTicket",
       "retryKbDocument",

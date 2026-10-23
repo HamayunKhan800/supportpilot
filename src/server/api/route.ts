@@ -56,6 +56,14 @@ export function apiRoute<P extends z.ZodType, Q extends z.ZodType, B extends z.Z
       const result = await handler({ req, params, query, body, file, ctx } as ApiInput<P, Q, B>);
 
       const headers = new Headers({ "cache-control": "no-store" });
+      // A streaming operation hands back its own body (e.g. NDJSON drafts, D6).
+      if (result instanceof ReadableStream) {
+        headers.set("content-type", `${op.success.contentType ?? "application/octet-stream"}; charset=utf-8`);
+        // Stops proxies and compression middleware from buffering the stream (AI SDK guidance).
+        headers.set("content-encoding", "none");
+        headers.set("x-accel-buffering", "no");
+        return new Response(result as ReadableStream<Uint8Array>, { status: op.success.status, headers });
+      }
       if (op.auth === "tracking-token") headers.set("referrer-policy", "no-referrer");
       if (op.success.status === 204) return new Response(null, { status: 204, headers });
       return Response.json(result, { status: op.success.status, headers });

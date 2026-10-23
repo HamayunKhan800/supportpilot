@@ -124,7 +124,11 @@ function operation(op: Operation) {
     [op.success.status]: {
       description: op.success.description,
       ...(op.success.schema
-        ? { content: { "application/json": { schema: responseSchema(op.success.schema) } } }
+        ? {
+            content: {
+              [op.success.contentType ?? "application/json"]: { schema: responseSchema(op.success.schema) },
+            },
+          }
         : {}),
     },
   };

@@ -25,6 +25,7 @@ import {
   KbDocumentIdParams,
   KbDocumentList,
   KbSearchResults,
+  DraftStreamEvent,
 } from "./schemas";
 
 /**
@@ -57,7 +58,13 @@ export interface Operation<
   body?: B;
   /** multipart/form-data with one file in `field` (instead of a JSON body). */
   upload?: { field: string; maxFileBytes: number; description: string };
-  success: { status: 200 | 201 | 204; description: string; schema?: z.ZodType };
+  success: {
+    status: 200 | 201 | 204;
+    description: string;
+    schema?: z.ZodType;
+    /** Default application/json. application/x-ndjson: a stream of `schema` objects, one per line. */
+    contentType?: "application/json" | "application/x-ndjson";
+  };
   /** Problem statuses this operation can return (documented in OpenAPI). */
   errors: readonly number[];
 }
@@ -166,6 +173,30 @@ export const operations = {
     body: triageAcceptInput,
     success: { status: 200, description: "The updated ticket.", schema: Ticket },
     errors: [400, 401, 403, 404, 409, 413, 415],
+  }),
+  generateDraft: define({
+    id: "generateDraft",
+    method: "POST",
+    path: "/api/v1/tickets/{id}/drafts",
+    summary: "Write an AI reply draft, streamed",
+    description:
+      "Searches the knowledge base with the subject and latest customer message, then streams a draft " +
+      "with [n] citations as newline-delimited JSON (see DraftStreamEvent). If no passage scores at least the " +
+      "workspace's retrieval_min_score, the draft is refused with no model call. Internal notes, the customer's " +
+      "name and email are never sent to the model. Nothing is sent to the customer: an agent must approve the " +
+      "draft. AI failures (off, budget, daily limit, provider down, timeout) arrive as an `error` event, not an " +
+      "HTTP error. Returns 409 for a closed ticket. Rate limited per user and per workspace.",
+    tag: "Tickets",
+    auth: "session",
+    permission: { draft: ["generate"] },
+    params: TicketIdParams,
+    success: {
+      status: 200,
+      description: "A stream of DraftStreamEvent objects, one JSON object per line.",
+      schema: DraftStreamEvent,
+      contentType: "application/x-ndjson",
+    },
+    errors: [401, 403, 404, 409, 429],
   }),
   addTicketMessage: define({
     id: "addTicketMessage",

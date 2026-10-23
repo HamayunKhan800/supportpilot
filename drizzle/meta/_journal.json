@@ -43,6 +43,13 @@
       "when": 1792677180622,
       "tag": "0005_m5_triage_flags",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792721705620,
+      "tag": "0006_m5_retrieval_min_score",
+      "breakpoints": true
     }
   ]
 }

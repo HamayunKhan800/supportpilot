@@ -45,7 +45,12 @@ export const workspaceSettings = pgTable("workspace_settings", {
   aiEnabled: boolean("ai_enabled").notNull().default(true),
   monthlyTokenBudget: integer("monthly_token_budget").notNull().default(1_000_000),
   triageConfidenceThreshold: real("triage_confidence_threshold").notNull().default(0.7),
-  retrievalMinScore: real("retrieval_min_score").notNull().default(0.5),
+  /**
+   * Drafts are refused without a model call when the best passage scores below this (M5 D7).
+   * 0.65 from the Gemini eval (finding #87): a backstop for clearly off-topic tickets; the
+   * model's INSUFFICIENT_KNOWLEDGE answer is the main refusal signal.
+   */
+  retrievalMinScore: real("retrieval_min_score").notNull().default(0.65),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

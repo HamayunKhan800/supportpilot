@@ -27,6 +27,12 @@ export interface DocumentToEmbed {
 export interface Embedder {
   /** Stored on each document; mixing models in one workspace is refused (D4). */
   readonly modelId: string;
+  /**
+   * A fixed refusal floor for models whose similarity scores are on a different scale from the
+   * workspace's `retrieval_min_score`, which is calibrated for Gemini embeddings (ADR-0014).
+   * Undefined: use the workspace setting.
+   */
+  readonly similarityFloor?: number;
   embedDocuments(items: DocumentToEmbed[], signal?: AbortSignal): Promise<EmbeddingBatch>;
   embedQuery(query: string, signal?: AbortSignal): Promise<{ embedding: number[]; tokenEstimate: number }>;
 }
@@ -121,9 +127,17 @@ function hashEmbedding(text: string, dimensions: number): number[] {
   return v;
 }
 
+/**
+ * Refusal floor for the mock embedder (finding #89). Its cosine measures shared words: a
+ * passage sharing no word with the question scores 0, a clearly matching one about 0.4, so
+ * Gemini's 0.65 would refuse everything offline.
+ */
+export const MOCK_SIMILARITY_FLOOR = 0.15;
+
 export function createMockEmbedder(dimensions = EMBEDDING_DIMENSIONS): Embedder {
   return {
     modelId: `mock-hash@${dimensions}`,
+    similarityFloor: MOCK_SIMILARITY_FLOOR,
     async embedDocuments(items) {
       const texts = items.map((i) => `${i.title}\n${i.text}`);
       return {

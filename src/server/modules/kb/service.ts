@@ -267,9 +267,11 @@ function searchEmbeddingError(err: unknown): unknown {
 const elapsed = (start: number) => Math.round((performance.now() - start) * 10) / 10;
 
 /**
- * Hybrid retrieval (D10) over the workspace's ready documents: vector top 8 + keyword
- * top 8, fused with RRF, best 5. A workspace with no ready documents returns no results
- * without calling the AI provider. Documents embedded with another model are refused (D4).
+ * Retrieval over the workspace's ready documents: vector top 8 + keyword top 8, combined with
+ * RETRIEVAL_FUSION weights, best 5. Since ADR-0014 the keyword weight is 0, so results are
+ * ranked by meaning and keyword search only labels which results it also found. A workspace
+ * with no ready documents returns no results without calling the AI provider. Documents
+ * embedded with another model are refused (D4).
  */
 export async function hybridSearch(
   workspaceId: string,

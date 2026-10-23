@@ -7,6 +7,7 @@ import * as ticketsRoute from "@/app/api/v1/tickets/route";
 import * as ticketRoute from "@/app/api/v1/tickets/[id]/route";
 import * as ticketMessagesRoute from "@/app/api/v1/tickets/[id]/messages/route";
 import * as triageAcceptRoute from "@/app/api/v1/tickets/[id]/triage/accept/route";
+import * as draftsRoute from "@/app/api/v1/tickets/[id]/drafts/route";
 import * as kbDocumentsRoute from "@/app/api/v1/kb/documents/route";
 import * as kbDocumentRoute from "@/app/api/v1/kb/documents/[id]/route";
 import * as kbRetryRoute from "@/app/api/v1/kb/documents/[id]/retry/route";
@@ -28,6 +29,7 @@ export const handlers: Record<OpId, RouteHandler> = {
   getTicket: ticketRoute.GET,
   updateTicket: ticketRoute.PATCH,
   acceptTriageSuggestion: triageAcceptRoute.POST,
+  generateDraft: draftsRoute.POST,
   addTicketMessage: ticketMessagesRoute.POST,
   listKbDocuments: kbDocumentsRoute.GET,
   uploadKbDocument: kbDocumentsRoute.POST,
@@ -48,9 +50,12 @@ export interface CallOptions {
   headers?: Record<string, string>;
   /** Omit the same-origin Origin header that a browser would send. */
   noOrigin?: boolean;
+  /** Aborts the request, as a browser does when the agent leaves the page. */
+  signal?: AbortSignal;
 }
 
-export async function call(id: OpId, opts: CallOptions = {}) {
+/** Sends the request and returns the Response unread (for streaming tests). */
+export async function send(id: OpId, opts: CallOptions = {}): Promise<Response> {
   const op: Operation = operations[id];
   const params = opts.params ?? {};
   const path = op.path.replace(/\{(\w+)\}/g, (_, k: string) => encodeURIComponent(params[k] ?? ""));
@@ -69,8 +74,35 @@ export async function call(id: OpId, opts: CallOptions = {}) {
     op.method === "GET"
       ? undefined
       : (opts.raw ?? (multipart ? (opts.body as FormData) : JSON.stringify(opts.body ?? {})));
-  const req = new Request(url, { method: op.method, headers, body, duplex: "half" } as RequestInit);
-  const res = await handlers[id](req, { params: Promise.resolve(params) });
+  const req = new Request(url, {
+    method: op.method,
+    headers,
+    body,
+    duplex: "half",
+    signal: opts.signal,
+  } as RequestInit);
+  return handlers[id](req, { params: Promise.resolve(params) });
+}
+
+/**
+ * Sends the request and reads the whole body. NDJSON streams are parsed into `events`
+ * (one object per line); other bodies into `json`.
+ */
+export async function call(id: OpId, opts: CallOptions = {}) {
+  const res = await send(id, opts);
   const text = await res.text();
-  return { status: res.status, headers: res.headers, json: text ? JSON.parse(text) : undefined };
+  const ndjson = (res.headers.get("content-type") ?? "").startsWith("application/x-ndjson");
+  return {
+    status: res.status,
+    headers: res.headers,
+    json: !ndjson && text ? JSON.parse(text) : undefined,
+    events: ndjson ? parseNdjson(text) : [],
+  };
+}
+
+export function parseNdjson(text: string): Record<string, unknown>[] {
+  return text
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
 }
