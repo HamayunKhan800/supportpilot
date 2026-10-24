@@ -44,9 +44,14 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 - **One gateway for every model call.** It enforces a per-workspace budget, a deployment-wide daily cap (one atomic database update, so parallel workers can't overshoot it), timeouts and a circuit breaker per model. It switches to a fallback model when the draft model is overloaded, but never reroutes a 429, so rate limits are respected. Tokens, estimated cost and latency are recorded for every call; prompts and answers are never logged.
 - **Prompt-injection defences** (OWASP LLM Top 10 2026). Ticket text and articles are treated as untrusted data: hidden characters are stripped and flagged, and output is rendered as plain text. Unknown links and leaked prompt text are flagged. A 20-case attack set (12 in tickets, 8 in poisoned help articles) runs in CI.
 - **Multi-tenant and secure by default.** Roles (owner / admin / agent) are checked on the server for every action, and every route has cross-workspace access tests. Other defences: a per-request nonce Content Security Policy, rate limits, and conflict detection for concurrent edits.
-- **Designed, accessible and fast.** It has a small design system built on its own tokens (light and dark, following the device setting) and keyboard-first navigation with a command palette. axe finds **0 violations** on every page in both themes. The landing page scores **100** in all four Lighthouse categories on desktop (mobile: performance 89, others 100).
+- **Feels live, without a sync engine.** Ticket details save the moment they change, with Undo, and a refused change is put back and explained. Open pages check for news every 15 seconds while visible ("New ticket #26", "Casey replied"), but never while someone is typing. Drafts stream in, and losing the connection is announced. This uses plain polling and CSS only: no animation library and no extra dependencies. All motion stays under 300 ms and switches off when the device asks for reduced motion ([plan and decisions](docs/plans/feedback-and-motion.md)).
+- **Designed, accessible and fast.** It has a small design system built on its own tokens (light and dark, following the device setting) and keyboard-first navigation with a command palette. axe finds **0 violations** on every page in both themes. The landing page scores **100** in all four Lighthouse categories on desktop (mobile: performance 89–94 across runs, others 100).
 
 ## Screenshots
+
+![Opening a ticket, generating a cited AI draft that streams in, then changing the priority and undoing it from the confirmation](docs/screenshots/app/feedback-demo.gif)
+
+<sub>Recorded from the app with the offline mock AI (14 seconds, real timing). The page data was slowed by 0.7 s so the progress bar is visible, as it would be on a slow connection.</sub>
 
 | Agent inbox                                                        | Inbox, dark theme                                                     |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------- |

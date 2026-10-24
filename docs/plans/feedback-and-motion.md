@@ -1,6 +1,6 @@
 # Plan: feedback, loading states and motion (design step 8)
 
-Status: **approved 2026-10-24 (all seven steps; push after step 8).** Progress: 8.1–8.6 done; 8.7 (proof and showcase) in progress.
+Status: **approved 2026-10-24 (all seven steps; push after step 8).** Progress: all seven steps done.
 
 ## 1. Why
 
@@ -96,3 +96,10 @@ An audit of the code confirms it:
   status). Failed requests already said "You appear to be offline"; both error pages already offer Try again.
 - Route-level skeletons (`loading.tsx`) stay out: the CSP finding in docs/design/pages.md still applies, and the top
   progress bar covers page changes without loosening the policy.
+- **8.7 done.** Full E2E run: 67 passed, 4 failed. All four were test problems (an over-broad label or button
+  match, since the toast and the phone menu also contain "Priority" or "Open", plus the offline area's
+  `role="status"` clashing with a page's own status message), and all were fixed. The affected specs plus axe in
+  both themes were rerun: 29/29. Unit 1260/1260. Lighthouse on the landing page: desktop 100 in all four, mobile
+  performance 94 (89 before; single runs vary) and 100 for the rest. 19 README screenshots retaken, and
+  `docs/screenshots/app/feedback-demo.gif` (14 s, 51 frames, 1.8 MB) recorded from the app with Playwright frames
+  and assembled with Pillow, at real timing. Demo data was put back afterwards.
