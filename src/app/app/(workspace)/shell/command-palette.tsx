@@ -37,7 +37,7 @@ export function CommandPalette({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="bg-background/70 fixed inset-0 z-50 backdrop-blur-[2px] transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
-        <Dialog.Popup className="bg-popover text-popover-foreground fixed top-[12vh] left-1/2 z-50 max-h-[76vh] w-[min(36rem,calc(100vw-1.5rem))] -translate-x-1/2 scroll-pt-14 scroll-pb-11 overflow-y-auto overscroll-contain rounded-xl border shadow-2xl transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none">
+        <Dialog.Popup className="glass text-popover-foreground fixed top-[12vh] left-1/2 z-50 max-h-[76vh] w-[min(36rem,calc(100vw-1.5rem))] -translate-x-1/2 scroll-pt-14 scroll-pb-11 overflow-y-auto overscroll-contain rounded-xl border shadow-2xl transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none">
           <Dialog.Title className="sr-only">Command palette</Dialog.Title>
           <PaletteBody items={items} close={() => onOpenChange(false)} />
         </Dialog.Popup>
@@ -176,7 +176,7 @@ function PaletteBody({ items, close }: { items: NavItem[]; close: () => void }) 
     <>
       {/* The whole popup scrolls with the search box pinned on top, so the scroll area holds the
           focused text box and stays keyboard-reachable (axe scrollable-region-focusable). */}
-      <div className="bg-popover sticky top-0 z-10 flex items-center gap-2 border-b px-3">
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b px-3">
         <Search aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
         <input
           role="combobox"
@@ -249,7 +249,7 @@ function PaletteBody({ items, close }: { items: NavItem[]; close: () => void }) 
 
       <div
         aria-hidden="true"
-        className="bg-popover text-muted-foreground sticky bottom-0 hidden items-center gap-4 border-t px-3 py-2 text-xs sm:flex"
+        className="text-muted-foreground sticky bottom-0 hidden items-center gap-4 border-t px-3 py-2 text-xs sm:flex"
       >
         <span className="inline-flex items-center gap-1">
           <Kbd>↑</Kbd>

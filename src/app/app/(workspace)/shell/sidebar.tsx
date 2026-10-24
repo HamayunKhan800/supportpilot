@@ -44,7 +44,7 @@ export function MobileHeader(props: SidebarProps) {
   const [open, setOpen] = useState(false);
   const { openPalette } = useShell();
   return (
-    <header className="bg-background/95 border-border sticky top-0 z-40 flex h-14 items-center gap-2 border-b px-2 backdrop-blur lg:hidden">
+    <header className="glass-bar border-border sticky top-0 z-40 flex h-14 items-center gap-2 border-b px-2 lg:hidden">
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Trigger className={cn(ICON_BUTTON, "size-10")}>
           <MenuIcon aria-hidden="true" className="size-5" />
@@ -244,7 +244,7 @@ function SidebarLink({
       {compact && (
         <span
           aria-hidden="true"
-          className="bg-popover text-popover-foreground pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 rounded-md border px-2 py-1 text-xs font-medium whitespace-nowrap opacity-0 shadow-md transition-opacity group-focus-within/link:opacity-100 group-hover/link:opacity-100 motion-reduce:transition-none"
+          className="glass text-popover-foreground pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 rounded-md border px-2 py-1 text-xs font-medium whitespace-nowrap opacity-0 shadow-md transition-opacity group-focus-within/link:opacity-100 group-hover/link:opacity-100 motion-reduce:transition-none"
         >
           {item.label}
         </span>

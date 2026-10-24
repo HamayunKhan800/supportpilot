@@ -164,7 +164,10 @@ export default async function Home() {
   return (
     <>
       <Reveal />
-      <header data-theme="dark" className="land-band text-foreground sticky top-0 z-40 border-b">
+      <header
+        data-theme="dark"
+        className="glass-bar text-foreground sticky top-0 z-40 border-b [--glass-base:var(--band-bg)]"
+      >
         <div className={cn(container, "flex h-14 items-center justify-between gap-4")}>
           <Logo />
           <nav aria-label="Main" className="flex items-center gap-1">

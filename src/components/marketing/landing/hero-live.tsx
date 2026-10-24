@@ -716,7 +716,7 @@ function DetailsPane({ state }: { state: HeroState }) {
 function SourcesPanel({ state }: { state: HeroState }) {
   const t = DEMO_TICKETS[state.selected];
   return (
-    <div className="land-pop land-shadow-sm bg-popover text-popover-foreground absolute top-[20rem] -right-6 hidden w-72 flex-col gap-2 rounded-lg border p-3 text-left [animation-delay:600ms] 2xl:-right-10 @min-[68rem]:flex">
+    <div className="land-pop land-shadow-sm glass text-popover-foreground absolute top-[20rem] -right-6 hidden w-72 flex-col gap-2 rounded-lg border p-3 text-left [animation-delay:600ms] 2xl:-right-10 @min-[68rem]:flex">
       <span className="flex items-center gap-1.5 text-xs font-semibold">
         <BookOpen aria-hidden="true" className="text-muted-foreground size-3.5" />
         Sources the draft may cite
@@ -746,7 +746,7 @@ function NewTicketNotice({ state, onOpen }: { state: HeroState; onOpen: (id: Dem
   return (
     <div
       key={t.n}
-      className="land-pop land-shadow-sm bg-popover text-popover-foreground absolute bottom-16 -left-6 hidden w-80 items-start gap-2.5 rounded-lg border p-3 text-left 2xl:-left-10 @min-[56rem]:flex"
+      className="land-pop land-shadow-sm glass text-popover-foreground absolute bottom-16 -left-6 hidden w-80 items-start gap-2.5 rounded-lg border p-3 text-left 2xl:-left-10 @min-[56rem]:flex"
     >
       <Inbox aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0" />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -765,7 +765,7 @@ function Toast({ state }: { state: HeroState }) {
   return (
     <div
       key={state.toast.key}
-      className="land-pop land-shadow-sm bg-popover text-popover-foreground absolute right-4 bottom-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
+      className="land-pop land-shadow-sm glass text-popover-foreground absolute right-4 bottom-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
     >
       <CircleCheck aria-hidden="true" className="text-success-strong size-4" />
       {state.toast.text}

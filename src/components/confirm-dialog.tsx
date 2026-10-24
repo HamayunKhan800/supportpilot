@@ -80,7 +80,7 @@ export function ConfirmDialog({
         <AlertDialog.Popup
           initialFocus={cancelRef}
           finalFocus={() => (confirmed.current && focusAfterConfirm?.()) || true}
-          className="bg-popover text-popover-foreground fixed top-1/2 left-1/2 z-50 w-[min(26rem,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border p-5 shadow-2xl transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none"
+          className="glass text-popover-foreground fixed top-1/2 left-1/2 z-50 w-[min(26rem,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border p-5 shadow-2xl transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none"
         >
           <AlertDialog.Title className="text-base font-semibold">{title}</AlertDialog.Title>
           <AlertDialog.Description className="text-muted-foreground mt-2 text-sm">

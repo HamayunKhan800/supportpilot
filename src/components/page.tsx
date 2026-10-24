@@ -29,7 +29,7 @@ export function PageHeader({
     <>
       <div
         data-page-bar
-        className="page-bar bg-background sticky top-14 z-30 -mx-4 -mt-8 flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:-mx-6 sm:px-6 lg:top-0 lg:-mx-10 lg:px-10"
+        className="page-bar glass-bar sticky top-14 z-30 -mx-4 -mt-8 flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:-mx-6 sm:px-6 lg:top-0 lg:-mx-10 lg:px-10"
       >
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
           {breadcrumb && (

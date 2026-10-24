@@ -146,7 +146,7 @@ export function PaletteScene() {
 
   return (
     <div className="relative flex flex-col items-center gap-5">
-      <div className="bg-popover text-popover-foreground land-shadow w-full max-w-md overflow-hidden rounded-xl border text-left text-[13px]">
+      <div className="glass text-popover-foreground land-shadow w-full max-w-md overflow-hidden rounded-xl border text-left text-[13px]">
         <label className="flex items-center gap-2 border-b px-3.5">
           <Search aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
           <span className="sr-only">Try the command palette: type a page, a command or a ticket number</span>

@@ -110,7 +110,7 @@ export function ChoiceMenu({
         {trigger}
         <Menu.Portal>
           <Menu.Positioner side="bottom" align="start" sideOffset={4} className="z-[60] outline-none">
-            <Menu.Popup className="bg-popover text-popover-foreground max-h-[min(20rem,var(--available-height))] min-w-[max(var(--anchor-width),11rem)] origin-[var(--transform-origin)] overflow-y-auto rounded-lg border p-1 shadow-lg transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none">
+            <Menu.Popup className="glass text-popover-foreground max-h-[min(20rem,var(--available-height))] min-w-[max(var(--anchor-width),11rem)] origin-[var(--transform-origin)] overflow-y-auto rounded-lg border p-1 shadow-lg transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none">
               <Menu.RadioGroup value={value} onValueChange={(v) => v !== value && onChange(String(v))}>
                 <Menu.GroupLabel className="text-muted-foreground px-2 pt-1 pb-1.5 text-xs font-medium">
                   {label}

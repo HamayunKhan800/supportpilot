@@ -333,7 +333,7 @@ export function AiSettingsForm({ initial }: { initial: EditableSettings }) {
         className={cn(
           "flex flex-wrap items-center gap-3",
           dirty
-            ? "bg-popover land-shadow-sm land-pop sticky bottom-3 z-10 rounded-xl border px-4 py-3"
+            ? "glass land-shadow-sm land-pop sticky bottom-3 z-10 rounded-xl border px-4 py-3"
             : "border-t pt-5",
         )}
       >

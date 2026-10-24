@@ -29,7 +29,7 @@ function ToastList() {
       <Toast.Root
         key={toast.id}
         toast={toast}
-        className="bg-popover text-popover-foreground relative rounded-lg border shadow-lg transition-[opacity,translate] duration-200 data-[ending-style]:translate-y-2 data-[ending-style]:opacity-0 data-[limited]:hidden data-[starting-style]:translate-y-2 data-[starting-style]:opacity-0 motion-reduce:transition-none"
+        className="glass text-popover-foreground relative rounded-lg border shadow-lg transition-[opacity,translate] duration-200 data-[ending-style]:translate-y-2 data-[ending-style]:opacity-0 data-[limited]:hidden data-[starting-style]:translate-y-2 data-[starting-style]:opacity-0 motion-reduce:transition-none"
       >
         <Toast.Content className="flex items-start gap-3 py-3 pr-11 pl-3">
           <Icon

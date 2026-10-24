@@ -342,7 +342,7 @@ function CitationMarker({
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Positioner side="top" sideOffset={6} collisionPadding={12} className="z-50">
-          <Tooltip.Popup className="bg-popover text-popover-foreground w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border p-3 text-sm shadow-lg transition-[opacity,scale] duration-150 data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none">
+          <Tooltip.Popup className="glass text-popover-foreground w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border p-3 text-sm shadow-lg transition-[opacity,scale] duration-150 data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none">
             <p className="font-medium break-words">
               {c.documentTitle}
               {c.headingPath && <span className="text-muted-foreground font-normal"> › {c.headingPath}</span>}

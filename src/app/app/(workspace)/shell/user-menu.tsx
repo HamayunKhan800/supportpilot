@@ -53,7 +53,7 @@ export function UserMenu({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="top" align="start" sideOffset={6} className="z-[60] outline-none">
-          <Menu.Popup className="bg-popover text-popover-foreground w-64 origin-[var(--transform-origin)] rounded-lg border p-1 shadow-lg transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none">
+          <Menu.Popup className="glass text-popover-foreground w-64 origin-[var(--transform-origin)] rounded-lg border p-1 shadow-lg transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none">
             <Menu.Group>
               <Menu.GroupLabel className={cn(LABEL, "truncate")}>
                 Signed in as <span className="text-foreground">{user.email}</span>
