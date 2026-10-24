@@ -1,9 +1,12 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
+import { emailError } from "@/components/form-checks";
+import { PasswordField } from "@/components/password-field";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { useProgressRouter } from "@/lib/use-progress-router";
@@ -12,6 +15,7 @@ export function SignInForm({ next, registered }: { next: string; registered: boo
   const router = useProgressRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [emailProblem, setEmailProblem] = useState("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,17 +48,21 @@ export function SignInForm({ next, registered }: { next: string; registered: boo
             tone="success"
           />
           <FormAlert message={error} />
-          <FormField label="Email" name="email" type="email" autoComplete="email" required />
           <FormField
-            label="Password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
             required
+            error={emailProblem}
+            onBlur={(e) => setEmailProblem(emailError(e.currentTarget))}
+            onChange={(e) => emailProblem && setEmailProblem(emailError(e.currentTarget))}
           />
+          <PasswordField autoComplete="current-password" />
         </div>
         <div className="mt-6 flex flex-col gap-4">
           <Button type="submit" size="lg" className="h-10 w-full" disabled={pending}>
+            {pending && <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}
             {pending ? "Signing in…" : "Sign in"}
           </Button>
           <p className="text-muted-foreground text-sm">

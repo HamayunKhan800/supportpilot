@@ -79,7 +79,11 @@ function useReducedMotion() {
   return reduced;
 }
 
-export function HeroLive() {
+/**
+ * `compact` is for narrower, shorter places (the sign-in page's side panel): a lower window. The
+ * columns follow the container's width either way (container queries), not the screen's.
+ */
+export function HeroLive({ compact = false }: { compact?: boolean }) {
   const [state, dispatch] = useReducer(heroReducer, undefined, () => initialHeroState("auto"));
   const reduced = useReducedMotion();
   const [visible, setVisible] = useState(false);
@@ -147,13 +151,19 @@ export function HeroLive() {
   };
 
   return (
-    <div ref={root} className="relative">
+    <div ref={root} className="@container relative">
       <div
         role="group"
         aria-label="Interactive demo of the SupportPilot inbox, with sample data"
         className="land-in land-shadow bg-card text-card-foreground relative overflow-hidden rounded-xl border text-left"
       >
-        <div className="grid h-[38rem] grid-cols-1 md:grid-cols-[minmax(0,1fr)_14rem] lg:grid-cols-[17rem_minmax(0,1fr)_14rem] xl:grid-cols-[11rem_17.5rem_minmax(0,1fr)_14rem]">
+        <div
+          className={cn(
+            "grid grid-cols-1",
+            compact ? "h-[34rem]" : "h-[38rem]",
+            "@min-[44rem]:grid-cols-[minmax(0,1fr)_14rem] @min-[56rem]:grid-cols-[17rem_minmax(0,1fr)_14rem] @min-[68rem]:grid-cols-[11rem_17.5rem_minmax(0,1fr)_14rem]",
+          )}
+        >
           <Sidebar open={9 + state.order.length} />
           <InboxList state={state} onSelect={(id) => act({ type: "select", id })} />
           <TicketPane state={state} act={act} />
@@ -211,7 +221,7 @@ function DemoButton({
 
 function Sidebar({ open }: { open: number }) {
   return (
-    <div className="bg-muted/40 hidden flex-col gap-3 border-r p-3 xl:flex">
+    <div className="bg-muted/40 hidden flex-col gap-3 border-r p-3 @min-[68rem]:flex">
       <div className="flex items-center gap-2 px-1 pb-1">
         <LogoMark className="size-5 [&_svg]:size-4" />
         <span className="truncate text-[13px] font-semibold">Nimbus Cloud</span>
@@ -248,7 +258,7 @@ function Sidebar({ open }: { open: number }) {
 
 function InboxList({ state, onSelect }: { state: HeroState; onSelect: (id: DemoId) => void }) {
   return (
-    <div className="hidden min-w-0 flex-col border-r lg:flex">
+    <div className="hidden min-w-0 flex-col border-r @min-[56rem]:flex">
       <div className="flex items-center justify-between gap-2 border-b px-3.5 py-2.5">
         <span className="text-[13px] font-semibold">Tickets</span>
         <span className="text-muted-foreground flex gap-1 text-[11px] tabular-nums">
@@ -347,7 +357,7 @@ function TicketPane({ state, act }: { state: HeroState; act: (a: HeroAction) => 
   return (
     <div className="flex min-w-0 flex-col overflow-hidden">
       {/* Phones and tablets have no inbox column: switch tickets here. */}
-      <div className="flex gap-1.5 overflow-x-auto border-b px-4 py-2 lg:hidden">
+      <div className="flex gap-1.5 overflow-x-auto border-b px-4 py-2 @min-[56rem]:hidden">
         {state.order.map((n) => (
           <button
             key={n}
@@ -646,7 +656,7 @@ function DetailsPane({ state }: { state: HeroState }) {
   const t = DEMO_TICKETS[id];
   const s = state.tickets[id];
   return (
-    <div className="bg-muted/30 hidden flex-col gap-4 border-l p-4 text-xs md:flex">
+    <div className="bg-muted/30 hidden flex-col gap-4 border-l p-4 text-xs @min-[44rem]:flex">
       <div className="bg-card flex flex-col gap-2.5 rounded-lg border p-3">
         <span className="flex items-center justify-between">
           <span className="text-[13px] font-semibold">AI triage</span>
@@ -706,7 +716,7 @@ function DetailsPane({ state }: { state: HeroState }) {
 function SourcesPanel({ state }: { state: HeroState }) {
   const t = DEMO_TICKETS[state.selected];
   return (
-    <div className="land-pop land-shadow-sm bg-popover text-popover-foreground absolute top-[20rem] -right-6 hidden w-72 flex-col gap-2 rounded-lg border p-3 text-left [animation-delay:600ms] xl:flex 2xl:-right-10">
+    <div className="land-pop land-shadow-sm bg-popover text-popover-foreground absolute top-[20rem] -right-6 hidden w-72 flex-col gap-2 rounded-lg border p-3 text-left [animation-delay:600ms] 2xl:-right-10 @min-[68rem]:flex">
       <span className="flex items-center gap-1.5 text-xs font-semibold">
         <BookOpen aria-hidden="true" className="text-muted-foreground size-3.5" />
         Sources the draft may cite
@@ -736,7 +746,7 @@ function NewTicketNotice({ state, onOpen }: { state: HeroState; onOpen: (id: Dem
   return (
     <div
       key={t.n}
-      className="land-pop land-shadow-sm bg-popover text-popover-foreground absolute bottom-16 -left-6 hidden w-80 items-start gap-2.5 rounded-lg border p-3 text-left lg:flex 2xl:-left-10"
+      className="land-pop land-shadow-sm bg-popover text-popover-foreground absolute bottom-16 -left-6 hidden w-80 items-start gap-2.5 rounded-lg border p-3 text-left 2xl:-left-10 @min-[56rem]:flex"
     >
       <Inbox aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0" />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

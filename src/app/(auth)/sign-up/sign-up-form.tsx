@@ -1,9 +1,12 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
+import { emailError, nameError } from "@/components/form-checks";
+import { PasswordField } from "@/components/password-field";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/server/platform/auth/policy";
@@ -13,6 +16,9 @@ export function SignUpForm({ next }: { next: string }) {
   const router = useProgressRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [problems, setProblems] = useState({ name: "", email: "" });
+  const check = (field: "name" | "email", el: HTMLInputElement) =>
+    setProblems((p) => ({ ...p, [field]: field === "name" ? nameError(el) : emailError(el) }));
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,21 +50,38 @@ export function SignUpForm({ next }: { next: string }) {
       <form method="post" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <FormAlert message={error} />
-          <FormField label="Name" name="name" autoComplete="name" required minLength={1} maxLength={80} />
-          <FormField label="Email" name="email" type="email" autoComplete="email" required />
           <FormField
-            label="Password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
+            label="Name"
+            name="name"
+            autoComplete="name"
             required
+            minLength={1}
+            maxLength={80}
+            error={problems.name}
+            onBlur={(e) => check("name", e.currentTarget)}
+            onChange={(e) => problems.name && check("name", e.currentTarget)}
+          />
+          <FormField
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            error={problems.email}
+            onBlur={(e) => check("email", e.currentTarget)}
+            onChange={(e) => problems.email && check("email", e.currentTarget)}
+          />
+          <PasswordField
+            autoComplete="new-password"
             minLength={PASSWORD_MIN_LENGTH}
             maxLength={PASSWORD_MAX_LENGTH}
-            hint={`At least ${PASSWORD_MIN_LENGTH} characters. A few random words make a strong, memorable passphrase.`}
+            meter
+            hint="A few random words make a strong, memorable passphrase."
           />
         </div>
         <div className="mt-6 flex flex-col gap-4">
           <Button type="submit" size="lg" className="h-10 w-full" disabled={pending}>
+            {pending && <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}
             {pending ? "Creating account…" : "Create account"}
           </Button>
           <p className="text-muted-foreground text-sm">

@@ -1,18 +1,19 @@
 import { Logo } from "@/components/logo";
-import { ProductPreview } from "@/components/marketing/product-preview";
+import { HeroLive } from "@/components/marketing/landing/hero-live";
 import { REPO_URL } from "@/lib/landing";
 
 /**
- * Split layout for sign-in, sign-up, invitations and workspace setup (design system step 5):
- * the form on the left; on wide screens a quiet panel on the right with a small picture of
- * the product and one sentence about it (no testimonials or logos: there are none to show).
+ * Split layout for sign-in, sign-up, invitations and workspace setup (design steps 5 and 9.4):
+ * the form on the left; on wide screens the right half plays the landing page's live demo, a
+ * working picture of the product (no testimonials or logos: there are none to show).
+ * On a phone the form starts near the top, without a screen of empty space above it.
  */
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-svh flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <main id="main" className="flex min-w-0 flex-col px-6 py-6 sm:px-10">
+    <div className="grid min-h-svh flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <main id="main" className="flex min-w-0 flex-col px-5 py-5 sm:px-10 sm:py-6">
         <Logo className="self-start" />
-        <div className="flex flex-1 items-center justify-center py-10">
+        <div className="flex flex-1 justify-center pt-10 pb-8 sm:items-center sm:py-10">
           <div className="w-full max-w-sm">{children}</div>
         </div>
         <p className="text-muted-foreground text-xs">
@@ -24,19 +25,13 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       </main>
       <aside
         aria-label="About SupportPilot"
-        className="bg-muted/40 hidden min-w-0 flex-col justify-center gap-8 border-l px-12 py-16 lg:flex xl:px-20"
+        data-theme="dark"
+        className="land-band text-foreground hidden min-w-0 flex-col justify-center gap-8 border-l px-10 py-12 lg:flex xl:px-14"
       >
-        <div className="flex max-w-lg flex-col gap-3">
-          <p className="text-2xl font-semibold tracking-tight text-balance">
-            Every AI reply cites its sources and waits for a person&apos;s approval.
-          </p>
-        </div>
-        <figure className="max-w-lg">
-          <ProductPreview compact />
-          <figcaption className="text-muted-foreground mt-3 text-sm">
-            A draft from the demo workspace, with the checks an agent sees before sending.
-          </figcaption>
-        </figure>
+        <p className="max-w-lg text-2xl font-semibold tracking-tight text-balance">
+          Every AI reply cites its sources and waits for a person&apos;s approval.
+        </p>
+        <HeroLive compact />
       </aside>
     </div>
   );
