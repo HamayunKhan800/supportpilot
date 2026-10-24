@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light" data-accent="iris">
+<html lang="en" data-theme="light" data-accent="ink">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,6 +12,28 @@
         --c: 0.19;
         --l9: 0.54;
         --on9: #fff;
+      }
+      /* Ink: the brand chosen on 2026-10-24 (design step 7). Near-black in light mode, near-white
+         in dark mode; the tints are plain greys. Iris, Teal and Amber were the earlier options. */
+      [data-accent="ink"] {
+        --h: 286;
+        --c: 0.006;
+        --l9: 0.22;
+        --on9: #fff;
+      }
+      [data-accent="ink"][data-theme="light"] {
+        --a3: oklch(0.92 0.002 286);
+        --a4: oklch(0.9 0.003 286);
+        --a6: oklch(0.775 0.004 286);
+        --a11: oklch(0.22 0.006 286);
+      }
+      [data-accent="ink"][data-theme="dark"] {
+        --l9: 0.95;
+        --on9: oklch(0.2 0.006 286);
+        --a3: oklch(0.3 0.003 286);
+        --a4: oklch(0.34 0.003 286);
+        --a6: oklch(0.48 0.004 286);
+        --a11: oklch(0.95 0.006 286);
       }
       [data-accent="teal"] {
         --h: 190;
@@ -669,7 +691,8 @@
           <span class="crumb">Inbox / <b class="mono" style="font-size: 13px">#1042</b></span>
           <div class="tools">
             <div class="seg" role="group" aria-label="Accent colour">
-              <button type="button" aria-pressed="true" data-a="iris">Iris</button
+              <button type="button" aria-pressed="true" data-a="ink">Ink (chosen)</button
+              ><button type="button" aria-pressed="false" data-a="iris">Iris (earlier)</button
               ><button type="button" aria-pressed="false" data-a="teal">Teal</button
               ><button type="button" aria-pressed="false" data-a="amber">Amber</button>
             </div>
@@ -798,8 +821,10 @@
           </aside>
         </div>
         <p class="note">
-          Design direction preview, not the final app. In the app, fonts are Geist Sans and Geist Mono
-          (self-hosted); this preview falls back to your device font. Tap the
+          Design direction preview from 2026-10-23, not the final app. The brand colour chosen then was Iris;
+          on 2026-10-24 it was replaced by <b>Ink</b>, shown by default here (see docs/plans/design-system.md,
+          step 7). Iris, Teal and Amber are kept to record the options that were considered. In the app, fonts
+          are Geist Sans and Geist Mono (self-hosted); this preview falls back to your device font. Tap the
           <span class="cite" style="pointer-events: none">1</span> chips to see the exact passage the AI used.
         </p>
       </div>
