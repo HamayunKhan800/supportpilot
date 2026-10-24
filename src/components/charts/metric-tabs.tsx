@@ -109,7 +109,8 @@ export function MetricTabs({ label, metrics }: { label: string; metrics: Metric[
         role="tabpanel"
         id={`${base}-panel`}
         aria-labelledby={`${base}-tab-${current.id}`}
-        className="p-4 sm:p-6"
+        // Room above the plot for the tooltip, so it never sits on the tabs.
+        className="px-4 pt-10 pb-4 sm:px-6 sm:pt-12 sm:pb-6"
       >
         <AreaChart key={current.id} {...current.chart} className="h-56 sm:h-72" />
       </div>

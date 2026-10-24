@@ -494,7 +494,11 @@ html[data-theme="dark"] {
 @utility glass-bar {
   background-color: var(--glass-base, var(--background));
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    background-color: color-mix(in oklab, var(--glass-base, var(--background)) 72%, transparent);
+    background-color: color-mix(
+      in oklab,
+      var(--glass-base, var(--background)) var(--glass-alpha, 72%),
+      transparent
+    );
     -webkit-backdrop-filter: blur(16px) saturate(1.6);
     backdrop-filter: blur(16px) saturate(1.6);
   }

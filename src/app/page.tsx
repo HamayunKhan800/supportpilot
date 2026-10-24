@@ -186,7 +186,7 @@ export default async function Home() {
       <Spotlight />
       <header
         data-theme="dark"
-        className="glass-bar text-foreground sticky top-0 z-40 border-b [--glass-base:var(--band-bg)]"
+        className="glass-bar text-foreground sticky top-0 z-40 border-b [--glass-alpha:88%] [--glass-base:var(--band-bg)]"
       >
         <div className={cn(container, "flex h-14 items-center justify-between gap-4")}>
           <Logo />
@@ -219,7 +219,7 @@ export default async function Home() {
         <section
           data-theme="dark"
           aria-labelledby="hero-heading"
-          className="land-band text-foreground relative overflow-hidden"
+          className="land-band text-foreground relative -mt-14 overflow-hidden pt-14"
         >
           <div aria-hidden="true" className="land-grid pointer-events-none absolute inset-0" />
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
