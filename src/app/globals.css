@@ -305,3 +305,109 @@
     }
   }
 }
+
+/*
+ * Landing page (docs/design/landing.md). Plain CSS in the stylesheet, so the strict CSP holds:
+ * no inline styles, no animation library. Every movement is one-shot, under 300 ms per element,
+ * eased out, and switched off entirely when the device asks for reduced motion (delays included:
+ * the global rule above shortens durations but would keep a delayed element hidden).
+ */
+:root {
+  /* Ink bands: the dark sections. Darker than the page in dark mode, so they still read as bands. */
+  --band-bg: oklch(0.175 0.006 286);
+  --land-ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+html[data-theme="dark"] {
+  --band-bg: oklch(0.13 0.004 286);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --band-bg: oklch(0.13 0.004 286);
+  }
+}
+
+@layer components {
+  .land-band {
+    background-color: var(--band-bg);
+  }
+
+  /* A faint square grid that fades out from the top centre (decorative, behind content). */
+  .land-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 65% at 50% 0%, #000 30%, transparent 100%);
+  }
+  /* Soft white light from above: ink only, no coloured glow. */
+  .land-glow {
+    background: radial-gradient(ellipse 55% 50% at 50% -5%, oklch(1 0 0 / 0.11), transparent 70%);
+  }
+  /* Dots for the light showcase panels. */
+  .land-dots {
+    background-image: radial-gradient(
+      color-mix(in oklab, var(--foreground) 14%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 16px 16px;
+  }
+  /* The bottom of a cropped product window fades into the page instead of ending in a hard edge. */
+  .land-fade-b {
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  }
+
+  .land-shadow {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent),
+      0 1px 2px oklch(0 0 0 / 0.08),
+      0 24px 48px -16px oklch(0 0 0 / 0.35);
+  }
+  .land-shadow-sm {
+    box-shadow:
+      0 1px 2px oklch(0 0 0 / 0.06),
+      0 8px 24px -10px oklch(0 0 0 / 0.25);
+  }
+
+  /* The hero's opening: the window, then the draft line by line, then the floating panels. */
+  .land-in {
+    animation: land-in 280ms var(--land-ease) both;
+  }
+  .land-pop {
+    animation: land-pop 260ms var(--land-ease) both;
+  }
+  @keyframes land-in {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+    }
+  }
+  @keyframes land-pop {
+    from {
+      opacity: 0;
+      translate: 0 6px;
+      scale: 0.97;
+    }
+  }
+
+  /* Scroll reveals: only once the script has marked the page, so nothing is hidden without JS. */
+  html[data-reveal] [data-reveal] {
+    transition:
+      opacity 300ms var(--land-ease),
+      translate 300ms var(--land-ease);
+  }
+  html[data-reveal] [data-reveal]:not([data-revealed]) {
+    opacity: 0;
+    translate: 0 12px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .land-in,
+    .land-pop {
+      animation: none;
+    }
+    html[data-reveal] [data-reveal]:not([data-revealed]) {
+      opacity: 1;
+      translate: none;
+    }
+  }
+}

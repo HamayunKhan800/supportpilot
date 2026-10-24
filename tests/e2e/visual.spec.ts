@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { email, expect, signIn, signUp, test, waitForTriage } from "./fixtures";
+import { email, expect, settle, signIn, signUp, test, waitForTriage } from "./fixtures";
 
 /**
  * Design system step 6: visual regression baselines for the key screens (light and dark on
@@ -26,6 +26,7 @@ async function setTheme(page: Page, baseURL: string, theme: Theme) {
 }
 
 async function snap(page: Page, name: string, opts: { fullPage?: boolean } = {}) {
+  await settle(page);
   await page.mouse.move(0, 0);
   // A time's text width depends on the clock ("1:05 AM" vs "12:05 PM") and can change how a line
   // wraps, so give every time the same text first; the mask then hides it.

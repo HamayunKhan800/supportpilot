@@ -1,9 +1,16 @@
-import { PenLine, Search, Send, Tag } from "lucide-react";
+import { BookOpen, Check, History, KeyRound, RefreshCw, Settings2, Undo2, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { ProductPreview } from "@/components/marketing/product-preview";
+import { CustomerSide } from "@/components/marketing/landing/customer-side";
+import { EvalResults } from "@/components/marketing/landing/eval-results";
+import { Guardrails } from "@/components/marketing/landing/guardrails";
+import { HeroDemo } from "@/components/marketing/landing/hero-demo";
+import { Reveal } from "@/components/marketing/landing/reveal";
+import { PaletteScene } from "@/components/marketing/landing/team-tools";
+import { WORKFLOW_STEPS } from "@/components/marketing/landing/workflow-scenes";
+import { WorkflowTabs } from "@/components/marketing/landing/workflow-tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -11,79 +18,107 @@ import {
   ARCHITECTURE_URL,
   EVAL_METHOD_URL,
   EVAL_REPORT_URL,
-  LANDING_METRICS,
   LANDING_METRICS_NOTE,
   REPO_URL,
 } from "@/lib/landing";
 import { parseThemePreference, THEME_COOKIE } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: { absolute: "SupportPilot · Support replies drafted by AI, approved by your team" },
 };
 
-/**
- * What happens to a new ticket, told as the ticket's own activity trail (the product's object,
- * not a row of numbered feature cards). Demo times and names; the explanations are factual.
+/*
+ * The landing page (docs/design/landing.md). Ink bands (hero, guardrails, closing) alternate with
+ * light working sections; the product is the picture throughout, built from the app's own tokens
+ * and labels. Every claim on the page is something the code does or a measured result with its
+ * sample size; there are no customer logos, testimonials or invented numbers.
  */
-const TRAIL = [
+
+/** Technologies the project is built on (package.json, Dockerfile, observability setup). */
+const STACK = [
+  "Next.js",
+  "React",
+  "TypeScript",
+  "PostgreSQL",
+  "pgvector",
+  "Google Gemini",
+  "OpenTelemetry",
+  "Sentry",
+  "Docker",
+  "Playwright",
+];
+
+/** The usual way against what SupportPilot does, row by row. */
+const CONTRAST = [
   {
-    icon: Tag,
-    actor: "AI triage",
-    action: "set the category to billing and the priority to normal",
-    time: "10:41",
-    body: "Every new request gets a category, priority, language and sentiment. A label the model is less than 95% sure of is not applied; it waits for an agent instead.",
+    before: "An agent reads the ticket, then decides who should handle it and how urgent it is.",
+    after:
+      "Category, priority, sentiment and language are suggested as the ticket arrives, and applied when the model is confident enough.",
   },
   {
-    icon: Search,
-    actor: "Knowledge search",
-    action: "found Refund policy and Cancel your subscription",
-    time: "10:41",
-    body: "Vector search over your help articles. If no passage is close enough to the question, no draft is written and the ticket stays with the team.",
+    before: "The answer is in the help centre, so someone searches for it and retypes it.",
+    after: "One click drafts a reply from the closest help-centre passages, with each claim cited.",
   },
   {
-    icon: PenLine,
-    actor: "AI draft",
-    action: "wrote a reply that cites 2 passages",
-    time: "10:42",
-    body: "Each claim cites a passage. The app checks every citation number against the passages the model was given, and flags any link the model made up.",
+    before: "An AI that answers on its own can sound sure and still be wrong.",
+    after: "Citations are checked, weak matches mean no draft, and a person approves every reply.",
   },
   {
-    icon: Send,
-    actor: "Olivia Owner",
-    action: "edited the draft and sent it",
-    time: "10:46",
-    body: "Nothing reaches the customer until an agent approves it, and every action is recorded in the audit log.",
+    before: "Customers need an account, or follow up by email and lose the thread.",
+    after: "A support form for each company and a private link to follow and answer the conversation.",
+  },
+];
+
+const TEAM_FEATURES = [
+  {
+    icon: RefreshCw,
+    title: "Live without reloading",
+    body: "Open pages check for new tickets and replies every 15 seconds while visible, never while you type.",
+  },
+  {
+    icon: Undo2,
+    title: "Instant changes with Undo",
+    body: "Status, priority, category and assignee save as you change them. Edits by someone else are detected.",
+  },
+  {
+    icon: BookOpen,
+    title: "Knowledge from your files",
+    body: "Upload Markdown, text or PDF articles. They are split into passages and indexed in the background.",
+  },
+  {
+    icon: Settings2,
+    title: "AI settings per workspace",
+    body: "Switch AI off, set a monthly token budget, the auto-apply threshold, the match score and categories.",
+  },
+  {
+    icon: Users,
+    title: "Roles and invitations",
+    body: "Owners, admins and agents, checked on the server for every action. New members join through an invitation.",
+  },
+  {
+    icon: History,
+    title: "Audit log and analytics",
+    body: "Who changed what and when, plus AI usage, estimated cost and what happened to each draft.",
   },
 ];
 
 const ENGINEERING = [
-  {
-    title: "Multi-tenant by design",
-    body: "Every query is scoped to a workspace, with role checks on the server and tests that another workspace's data returns 404.",
-  },
-  {
-    title: "Strict by default",
-    body: "Nonce-based Content Security Policy with no inline scripts or styles, hardened headers, rate-limited sign-in and validated API input.",
-  },
-  {
-    title: "Tested end to end",
-    body: "Unit, integration and browser tests, including automated accessibility checks in light and dark themes, run in CI.",
-  },
-  {
-    title: "Observable",
-    body: "OpenTelemetry traces for every AI call, structured logs with request IDs, and error reporting to Sentry.",
-  },
-  {
-    title: "AI costs under control",
-    body: "A monthly token budget per workspace, a daily call cap, timeouts, and a fallback model when the main one is overloaded.",
-  },
-  {
-    title: "A documented REST API",
-    body: "Versioned /api/v1 endpoints with Zod validation and an OpenAPI description, used by the app itself.",
-  },
+  "Every query scoped to a workspace, with tests that other workspaces' data returns 404",
+  "Nonce-based Content Security Policy: no inline scripts or styles",
+  "Versioned REST API with Zod validation and an OpenAPI description",
+  "Unit, integration and browser tests with axe accessibility checks in CI",
+  "OpenTelemetry traces for every AI call, structured logs and Sentry",
+  "Rate-limited sign-in, validated input and hardened headers",
 ];
 
-const FOOTER_LINKS = [
+const FOOTER_PRODUCT = [
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Guardrails", href: "#guardrails" },
+  { label: "Evaluation", href: "#evaluation" },
+];
+
+const FOOTER_PROJECT = [
   { label: "Source code", href: REPO_URL },
   { label: "Evaluation report", href: EVAL_REPORT_URL },
   { label: "Architecture", href: ARCHITECTURE_URL },
@@ -91,27 +126,60 @@ const FOOTER_LINKS = [
 ];
 
 const navLink =
-  "text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-2 py-1 text-sm outline-none focus-visible:ring-2";
+  "text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-2.5 py-1.5 text-sm transition-colors outline-none focus-visible:ring-2";
 const textLink =
-  "text-foreground decoration-border hover:decoration-foreground focus-visible:ring-ring rounded-sm underline underline-offset-4 outline-none focus-visible:ring-2";
+  "text-foreground decoration-foreground/30 hover:decoration-foreground focus-visible:ring-ring rounded-sm underline underline-offset-4 transition-colors outline-none focus-visible:ring-2";
+const container = "mx-auto w-full max-w-6xl px-4 sm:px-6";
+const h2 = "text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-[2.5rem] sm:leading-[1.1]";
+const lead = "text-muted-foreground text-lg leading-relaxed text-pretty";
+
+/** The Handoff mark drawn as two outlines, large and faint: the closing section's backdrop. */
+function HandoffMotif({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className} focusable="false">
+      <circle
+        cx="9"
+        cy="12"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+      <rect
+        x="11"
+        y="7"
+        width="10"
+        height="10"
+        stroke="currentColor"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
 
 export default async function Home() {
   const theme = parseThemePreference((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <>
-      <header className="bg-background/90 sticky top-0 z-40 border-b backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <Reveal />
+      <header data-theme="dark" className="land-band text-foreground sticky top-0 z-40 border-b">
+        <div className={cn(container, "flex h-14 items-center justify-between gap-4")}>
           <Logo />
-          <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
-            <a href="#how-it-works" className={`${navLink} hidden md:inline`}>
+          <nav aria-label="Main" className="flex items-center gap-1">
+            <a href="#how-it-works" className={cn(navLink, "hidden md:inline")}>
               How it works
             </a>
-            <a href="#evaluation" className={`${navLink} hidden md:inline`}>
+            <a href="#guardrails" className={cn(navLink, "hidden md:inline")}>
+              Guardrails
+            </a>
+            <a href="#evaluation" className={cn(navLink, "hidden md:inline")}>
               Evaluation
             </a>
-            <a href={REPO_URL} className={`${navLink} hidden sm:inline`}>
+            <a href={REPO_URL} className={cn(navLink, "hidden lg:inline")}>
               GitHub
             </a>
+            <span aria-hidden="true" className="bg-border mx-2 hidden h-5 w-px md:block" />
             <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "lg" })}>
               Sign in
             </Link>
@@ -123,144 +191,256 @@ export default async function Home() {
       </header>
 
       <main id="main" className="flex-1">
-        <section className="mx-auto w-full max-w-6xl px-4 pt-14 sm:px-6 sm:pt-20">
-          <div className="flex max-w-3xl flex-col gap-5">
-            <h1 className="text-[2.25rem] leading-[1.08] font-semibold tracking-[-0.03em] text-balance sm:text-5xl lg:text-[3.5rem]">
-              Support replies drafted by AI, approved by your team.
+        {/* Hero */}
+        <section
+          data-theme="dark"
+          aria-labelledby="hero-heading"
+          className="land-band text-foreground relative overflow-hidden"
+        >
+          <div aria-hidden="true" className="land-grid pointer-events-none absolute inset-0" />
+          <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
+          <div className={cn(container, "relative pt-16 sm:pt-24 lg:pt-28")}>
+            <h1
+              id="hero-heading"
+              className="max-w-4xl text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.045em] text-balance sm:text-6xl lg:max-w-none lg:text-[4.75rem]"
+            >
+              Support replies drafted by AI,{" "}
+              <span className="text-muted-foreground lg:block">approved by your team.</span>
             </h1>
-            <p className="text-muted-foreground max-w-2xl text-lg text-pretty">
-              SupportPilot reads each new ticket, finds the help articles that answer it and drafts a reply
-              that cites them. An agent checks every draft before anything reaches the customer.
-            </p>
-            <div className="flex flex-wrap gap-3 pt-1">
-              <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "h-10 px-4" })}>
-                Create a workspace
-              </Link>
-              <a
-                href={REPO_URL}
-                className={buttonVariants({
-                  size: "lg",
-                  variant: "outline",
-                  className: "border-foreground/20 h-10 px-4",
-                })}
-              >
-                View the source on GitHub
-              </a>
+            <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="flex max-w-2xl flex-col gap-7">
+                <p className={lead}>
+                  SupportPilot sorts each new ticket, finds the help articles that answer it and drafts a
+                  reply that cites them. Nothing reaches a customer until an agent approves it.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/sign-up"
+                    className={buttonVariants({ size: "lg", className: "h-11 px-5 text-[15px]" })}
+                  >
+                    Create a workspace
+                  </Link>
+                  <a
+                    href={REPO_URL}
+                    className={buttonVariants({
+                      size: "lg",
+                      variant: "outline",
+                      className: "border-foreground/20 h-11 bg-transparent px-5 text-[15px]",
+                    })}
+                  >
+                    View the source on GitHub
+                  </a>
+                </div>
+              </div>
+              <p className="text-muted-foreground max-w-xs text-sm leading-relaxed lg:text-right">
+                Evaluated on 420 labelled tickets and questions with real Gemini models.{" "}
+                <a href={EVAL_REPORT_URL} className={textLink}>
+                  Read the report
+                </a>
+              </p>
+            </div>
+
+            <figure className="mt-14 sm:mt-16">
+              <HeroDemo />
+              <figcaption className="text-muted-foreground mt-4 text-sm">
+                The agent&apos;s workspace with demo data: the inbox, a ticket with a cited AI draft and its
+                automatic checks, the AI triage, the passages the draft may cite, and a live notice for a new
+                request.
+              </figcaption>
+            </figure>
+
+            <div className="flex flex-col gap-4 border-t py-10 sm:flex-row sm:items-center sm:gap-10">
+              <p className="text-muted-foreground shrink-0 text-sm">Built with</p>
+              <ul className="flex flex-wrap gap-x-7 gap-y-2 text-[15px] font-medium tracking-tight">
+                {STACK.map((s) => (
+                  <li key={s} className="text-foreground/85">
+                    {s}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
 
-        <figure className="mx-auto w-full max-w-6xl px-4 pt-12 pb-20 sm:px-6">
-          <ProductPreview />
-          <figcaption className="text-muted-foreground mt-3 text-sm">
-            The ticket screen with demo data: a draft that cites two help articles, its automatic checks, and
-            the agent&apos;s choices. Nothing is sent until someone chooses Approve &amp; send.
-          </figcaption>
-        </figure>
+        {/* The problem, and what changes */}
+        <section aria-labelledby="problem-heading" className="py-24 sm:py-32">
+          <div className={container}>
+            <h2
+              id="problem-heading"
+              data-reveal
+              className="max-w-4xl text-3xl leading-[1.15] font-semibold tracking-[-0.03em] text-balance sm:text-[2.75rem]"
+            >
+              Most answers already exist in your help centre.{" "}
+              <span className="text-muted-foreground">
+                SupportPilot finds them, drafts the reply and shows its sources, so agents review instead of
+                retyping.
+              </span>
+            </h2>
+            <div data-reveal className="mt-14 overflow-hidden rounded-2xl border">
+              <div className="bg-muted/50 text-muted-foreground hidden grid-cols-2 border-b text-sm font-medium md:grid">
+                <p className="px-6 py-3">The usual way</p>
+                <p className="border-l px-6 py-3">With SupportPilot</p>
+              </div>
+              <ul className="divide-y">
+                {CONTRAST.map((row) => (
+                  <li key={row.after} className="grid grid-cols-1 md:grid-cols-2">
+                    <p className="text-muted-foreground px-6 pt-5 pb-2 md:py-6">
+                      <span className="sr-only">The usual way: </span>
+                      {row.before}
+                    </p>
+                    <p className="flex gap-3 px-6 pt-2 pb-5 md:border-l md:py-6">
+                      <Check aria-hidden="true" className="mt-1 size-4 shrink-0" />
+                      <span>
+                        <span className="sr-only">With SupportPilot: </span>
+                        {row.after}
+                      </span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
 
-        <section id="how-it-works" aria-labelledby="how-heading" className="scroll-mt-14 border-t py-20">
-          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
-            <div className="flex max-w-xl flex-col gap-3">
-              <h2 id="how-heading" className="text-3xl font-semibold tracking-tight text-balance">
-                What happens to a new ticket
+        {/* How it works */}
+        <section
+          id="how-it-works"
+          aria-labelledby="how-heading"
+          className="scroll-mt-14 border-t py-24 sm:py-32"
+        >
+          <div className={container}>
+            <div data-reveal className="mb-12 flex max-w-2xl flex-col gap-4">
+              <h2 id="how-heading" className={h2}>
+                From new ticket to approved reply
               </h2>
-              <p className="text-muted-foreground">
-                The agent sees each step on the ticket, in the order it happened. The AI suggests; a person
+              <p className={lead}>
+                Four stages, each visible on the ticket. The AI does the reading and the first draft; a person
                 decides what the customer gets.
               </p>
             </div>
-            <div className="flex flex-col gap-4">
-              <p className="text-muted-foreground font-mono text-xs">Ticket #128 · demo data</p>
-              <ol className="flex flex-col">
-                {TRAIL.map(({ icon: Icon, actor, action, time, body }, i) => (
-                  <li
-                    key={actor}
-                    className="relative grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-4 pb-8 last:pb-0"
-                  >
-                    {i < TRAIL.length - 1 && (
-                      <span
-                        aria-hidden="true"
-                        className="bg-border absolute top-8 bottom-1 left-[0.8125rem] w-px"
-                      />
-                    )}
-                    <span
-                      aria-hidden="true"
-                      className="bg-background text-muted-foreground flex size-7 items-center justify-center rounded-full border"
-                    >
-                      <Icon className="size-3.5" />
-                    </span>
-                    <div className="flex flex-col gap-1 pt-0.5">
-                      <p className="text-sm">
-                        <span className="font-medium">{actor}</span> {action}
-                        <span className="text-muted-foreground ml-2 font-mono text-xs">{time}</span>
-                      </p>
-                      <p className="text-muted-foreground text-sm">{body}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+            <div data-reveal>
+              <WorkflowTabs steps={WORKFLOW_STEPS} label="Stages of a ticket" />
             </div>
           </div>
         </section>
 
-        <section id="evaluation" aria-labelledby="evaluation-heading" className="scroll-mt-14 border-t py-20">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 sm:px-6">
-            <div className="flex max-w-2xl flex-col gap-3">
-              <h2 id="evaluation-heading" className="text-3xl font-semibold tracking-tight text-balance">
-                Measured on a labelled test set
+        {/* Guardrails */}
+        <section
+          id="guardrails"
+          data-theme="dark"
+          aria-labelledby="guardrails-heading"
+          className="land-band text-foreground relative scroll-mt-14 overflow-hidden py-24 sm:py-32"
+        >
+          <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
+          <div className={cn(container, "relative")}>
+            <div data-reveal className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-end">
+              <h2 id="guardrails-heading" className={h2}>
+                Guardrails you can see on every draft
               </h2>
-              <p className="text-muted-foreground">
-                Each result comes with its 95% confidence interval and the number of items it was measured on.
+              <p className={lead}>
+                The checks run before an agent opens the draft, and their results are shown on it. When the AI
+                can&apos;t back a reply with your articles, it doesn&apos;t write one.
               </p>
             </div>
-            <div
-              role="region"
-              aria-labelledby="evaluation-heading"
-              tabIndex={0}
-              className="focus-visible:ring-ring overflow-x-auto rounded-lg border outline-none focus-visible:ring-2"
-            >
-              <table className="w-full min-w-[40rem] text-sm">
-                <caption className="sr-only">
-                  Evaluation results with 95% confidence intervals, targets and sample sizes
-                </caption>
-                <thead className="bg-muted/50 text-muted-foreground text-left">
-                  <tr>
-                    <th scope="col" className="px-4 py-2.5 font-medium">
-                      Measure
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
-                      Result
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
-                      95% range
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
-                      Target
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
-                      Measured on
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y border-t">
-                  {LANDING_METRICS.map((m) => (
-                    <tr key={m.label}>
-                      <th scope="row" className="px-4 py-3 text-left font-normal">
-                        {m.label}
-                      </th>
-                      <td className="px-4 py-3 text-right font-semibold tabular-nums">{m.result}</td>
-                      <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">{m.range}</td>
-                      <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">{m.target}</td>
-                      <td className="text-muted-foreground px-4 py-3 text-right whitespace-nowrap tabular-nums">
-                        {m.n}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <Guardrails />
+          </div>
+        </section>
+
+        {/* Customers */}
+        <section aria-labelledby="customers-heading" className="py-24 sm:py-32">
+          <div className={cn(container, "grid grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-20")}>
+            <div data-reveal className="order-2 lg:order-1">
+              <CustomerSide />
+            </div>
+            <div data-reveal className="order-1 flex flex-col gap-6 lg:order-2">
+              <h2 id="customers-heading" className={h2}>
+                Customers just write in
+              </h2>
+              <p className={lead}>
+                Each company gets its own support form. Customers follow the conversation and reply from a
+                private link, with no account to create.
+              </p>
+              <ul className="flex flex-col gap-3">
+                {[
+                  "A public form at /p/your-company, with spam protection and rate limits",
+                  "A private tracking link; only a hash of it is stored",
+                  "Replies, status and history on one page, on a phone or a desktop",
+                ].map((t) => (
+                  <li key={t} className="flex gap-3">
+                    <Check aria-hidden="true" className="mt-1 size-4 shrink-0" />
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* The team */}
+        <section aria-labelledby="team-heading" className="bg-muted/40 border-y py-24 sm:py-32">
+          <div className={container}>
+            <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-20">
+              <div data-reveal className="flex flex-col gap-6">
+                <h2 id="team-heading" className={h2}>
+                  Fast for the people answering
+                </h2>
+                <p className={lead}>
+                  Keyboard first, with a command palette and shortcuts for the inbox. Pages keep themselves up
+                  to date, and changes save the moment you make them.
+                </p>
+              </div>
+              <div
+                data-reveal
+                className="land-dots bg-background rounded-2xl border px-4 py-10 sm:px-10 sm:py-14"
+              >
+                <PaletteScene />
+              </div>
+            </div>
+            <ul className="mt-16 grid grid-cols-1 gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              {TEAM_FEATURES.map(({ icon: Icon, title, body }) => (
+                <li key={title} data-reveal className="flex flex-col gap-2 border-t pt-5">
+                  <h3 className="flex items-center gap-2 font-semibold">
+                    <Icon aria-hidden="true" className="text-muted-foreground size-4" />
+                    {title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Evaluation */}
+        <section id="evaluation" aria-labelledby="evaluation-heading" className="scroll-mt-14 py-24 sm:py-32">
+          <div className={cn(container, "flex flex-col gap-10")}>
+            <div data-reveal className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-end">
+              <h2 id="evaluation-heading" className={h2}>
+                Measured, not assumed
+              </h2>
+              <p className={lead}>
+                Each result comes with its 95% confidence interval and the number of items it was measured on,
+                from runs against real Gemini models on a labelled test set.
+              </p>
+            </div>
+            <div data-reveal>
+              <EvalResults />
+              <p className="text-muted-foreground mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden="true" className="bg-foreground/25 h-1.5 w-4 rounded-full" /> 95% range
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden="true" className="bg-foreground h-3 w-0.5 rounded-full" /> Result
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden="true" className="border-muted-foreground h-3 border-l border-dashed" />{" "}
+                  Target
+                </span>
+              </p>
             </div>
             <div className="flex flex-col gap-3">
-              <p className="text-muted-foreground max-w-3xl text-sm">{LANDING_METRICS_NOTE}</p>
+              <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
+                {LANDING_METRICS_NOTE}
+              </p>
               <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                 <a href={EVAL_REPORT_URL} className={textLink}>
                   Read the evaluation report
@@ -273,48 +453,138 @@ export default async function Home() {
           </div>
         </section>
 
-        <section aria-labelledby="engineering-heading" className="border-t py-20">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 sm:px-6">
-            <div className="flex max-w-2xl flex-col gap-3">
-              <h2 id="engineering-heading" className="text-3xl font-semibold tracking-tight text-balance">
+        {/* Engineering */}
+        <section aria-labelledby="engineering-heading" className="border-t py-24 sm:py-32">
+          <div className={cn(container, "grid grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-20")}>
+            <div data-reveal className="flex flex-col gap-6">
+              <h2 id="engineering-heading" className={h2}>
                 Built like production software
               </h2>
-              <p className="text-muted-foreground">
-                Next.js 16, React 19 and TypeScript on PostgreSQL with pgvector, with Google Gemini for the AI
-                and Vitest and Playwright for the tests.
+              <p className={lead}>
+                Next.js 16, React 19 and TypeScript on PostgreSQL with pgvector. The app uses its own REST
+                API, described with OpenAPI, so anything it does can be scripted.
+              </p>
+              <ul className="flex flex-col gap-3 text-sm">
+                {ENGINEERING.map((t) => (
+                  <li key={t} className="flex gap-3">
+                    <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                <a href={API_SPEC_PATH} className={textLink}>
+                  OpenAPI description
+                </a>
+                <a href={ARCHITECTURE_URL} className={textLink}>
+                  Architecture
+                </a>
               </p>
             </div>
-            <ul className="grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-              {ENGINEERING.map((e) => (
-                <li key={e.title} className="flex flex-col gap-1.5 border-t pt-4">
-                  <h3 className="font-semibold">{e.title}</h3>
-                  <p className="text-muted-foreground text-sm">{e.body}</p>
-                </li>
-              ))}
-            </ul>
+            <figure data-reveal className="flex flex-col gap-3">
+              <div
+                data-theme="dark"
+                className="land-band text-foreground land-shadow overflow-hidden rounded-xl border"
+              >
+                <div className="flex items-center gap-3 border-b px-4 py-2.5">
+                  <span className="bg-success-subtle text-success-strong rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold">
+                    POST
+                  </span>
+                  <span className="text-muted-foreground truncate font-mono text-xs">
+                    /api/v1/portal/nimbus/tickets
+                  </span>
+                  <KeyRound aria-hidden="true" className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+                  <span className="text-muted-foreground font-mono text-[11px]">public</span>
+                </div>
+                <pre className="p-4 font-mono text-[12.5px] leading-6 break-words whitespace-pre-wrap">
+                  <code>
+                    <span className="text-muted-foreground">{"// Request body, validated with Zod\n"}</span>
+                    {"{\n"}
+                    {"  "}
+                    <span className="text-info-strong">&quot;name&quot;</span>
+                    {": "}
+                    <span className="text-success-strong">&quot;Priya Shah&quot;</span>
+                    {",\n  "}
+                    <span className="text-info-strong">&quot;email&quot;</span>
+                    {": "}
+                    <span className="text-success-strong">&quot;priya@example.com&quot;</span>
+                    {",\n  "}
+                    <span className="text-info-strong">&quot;subject&quot;</span>
+                    {": "}
+                    <span className="text-success-strong">&quot;Refund for my annual plan&quot;</span>
+                    {",\n  "}
+                    <span className="text-info-strong">&quot;message&quot;</span>
+                    {": "}
+                    <span className="text-success-strong">
+                      &quot;My annual plan renewed 12 days ago…&quot;
+                    </span>
+                    {"\n}\n\n"}
+                    <span className="text-muted-foreground">{"// 201 Created\n"}</span>
+                    {"{\n  "}
+                    <span className="text-info-strong">&quot;trackingUrl&quot;</span>
+                    {": "}
+                    <span className="text-success-strong">&quot;https://…/t/9f2c…&quot;</span>
+                    {"\n}"}
+                  </code>
+                </pre>
+              </div>
+              <figcaption className="text-muted-foreground text-sm">
+                A real endpoint from the OpenAPI description: how a customer&apos;s request is created. The
+                tracking link is returned once.
+              </figcaption>
+            </figure>
           </div>
         </section>
 
-        <section aria-labelledby="start-heading" className="border-t py-20">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex max-w-xl flex-col gap-2">
-              <h2 id="start-heading" className="text-2xl font-semibold tracking-tight">
-                Try it with your own help articles
-              </h2>
-              <p className="text-muted-foreground">
-                Create a workspace, upload a few Markdown or PDF articles, and send a request through your
-                support portal.
-              </p>
+        {/* Closing */}
+        <section
+          data-theme="dark"
+          aria-labelledby="start-heading"
+          className="land-band text-foreground relative overflow-hidden py-28 sm:py-36"
+        >
+          <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
+          <HandoffMotif className="text-foreground/[0.12] pointer-events-none absolute top-1/2 -right-40 size-[44rem] -translate-y-1/2 sm:-right-24 lg:right-0" />
+          <div className={cn(container, "relative flex flex-col items-start gap-8")}>
+            <h2
+              id="start-heading"
+              data-reveal
+              className="max-w-3xl text-4xl leading-[1.05] font-semibold tracking-[-0.04em] text-balance sm:text-6xl"
+            >
+              Put your help centre to work.
+            </h2>
+            <p data-reveal className={cn(lead, "max-w-xl")}>
+              Create a workspace, upload a few Markdown or PDF articles, and send a request through your own
+              support form. Without an API key, a built-in mock AI runs everything offline.
+            </p>
+            <div data-reveal className="flex flex-wrap gap-3">
+              <Link
+                href="/sign-up"
+                className={buttonVariants({ size: "lg", className: "h-11 px-5 text-[15px]" })}
+              >
+                Create a workspace
+              </Link>
+              <Link
+                href="/sign-in"
+                className={buttonVariants({
+                  size: "lg",
+                  variant: "outline",
+                  className: "border-foreground/20 h-11 bg-transparent px-5 text-[15px]",
+                })}
+              >
+                Sign in
+              </Link>
             </div>
-            <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "h-10 px-4" })}>
-              Create a workspace
-            </Link>
           </div>
         </section>
       </main>
 
       <footer className="border-t">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-10 text-sm sm:px-6 md:grid-cols-[minmax(0,1fr)_auto]">
+        <div
+          className={cn(
+            container,
+            "grid grid-cols-1 gap-10 py-12 text-sm md:grid-cols-[minmax(0,1fr)_auto_auto] md:gap-16",
+          )}
+        >
           <div className="flex flex-col items-start gap-3">
             <Logo />
             <p className="text-muted-foreground max-w-sm">
@@ -324,21 +594,32 @@ export default async function Home() {
               </a>
               . Open source under the MIT licence.
             </p>
-          </div>
-          <div className="flex flex-col gap-6 md:items-end">
-            <nav aria-label="Project">
-              <ul className="-mx-2 flex flex-col gap-1 md:items-end">
-                {FOOTER_LINKS.map((l) => (
-                  <li key={l.label}>
-                    <a href={l.href} className={navLink}>
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
             <ThemeToggle initial={theme} />
           </div>
+          <nav aria-label="Product">
+            <p className="mb-2 font-medium">Product</p>
+            <ul className="-mx-2.5 flex flex-col gap-0.5">
+              {FOOTER_PRODUCT.map((l) => (
+                <li key={l.label}>
+                  <a href={l.href} className={cn(navLink, "inline-flex min-h-8 items-center")}>
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <nav aria-label="Project">
+            <p className="mb-2 font-medium">Project</p>
+            <ul className="-mx-2.5 flex flex-col gap-0.5">
+              {FOOTER_PROJECT.map((l) => (
+                <li key={l.label}>
+                  <a href={l.href} className={cn(navLink, "inline-flex min-h-8 items-center")}>
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </footer>
     </>

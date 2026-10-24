@@ -80,7 +80,38 @@ export async function closeDrawer(page: Page) {
 export const appShell = (page: Page) => page.getByRole("button", { name: /^Search or jump to/ });
 
 /** WCAG 2.2 A/AA rules. Done-when for M2: zero serious or critical violations. */
+/**
+ * Brings a page to the state a reader sees: scrolls through it once, so scroll reveals have run
+ * (the landing page hides not-yet-seen sections until they enter the viewport), returns to the
+ * top, and waits for one-shot animations to end. Endless ones (a blinking caret) are ignored.
+ * Pages without scroll reveals (the app) are left alone.
+ */
+export async function settle(page: Page) {
+  if ((await page.locator("[data-reveal]").count()) === 0) return;
+  await page.evaluate(async () => {
+    const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    for (let y = 0; y < document.documentElement.scrollHeight; y += window.innerHeight / 2) {
+      window.scrollTo(0, y);
+      await frame();
+    }
+    window.scrollTo(0, 0);
+    await frame();
+  });
+  // The landing page's one-shot animations end within about 1.5 s; the cap only bounds the wait.
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity),
+      null,
+      { timeout: 3000 },
+    )
+    .catch(() => {});
+}
+
 export async function audit(page: Page, label: string) {
+  await settle(page);
   // Scan a settled page: once (finding #111) axe ran right after a save and found no <title>,
   // which never reproduced (6 repeats, and a probe watching the title through 5 saves). A page
   // with no title at all still fails here, with a clearer message.
