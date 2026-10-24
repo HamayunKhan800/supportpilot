@@ -1,5 +1,17 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { appShell, email, expect, signIn, signUp, test, waitForTriage, workspaceNav } from "./fixtures";
+import {
+  appShell,
+  email,
+  expect,
+  signIn,
+  signUp,
+  test,
+  waitForTriage,
+  workspaceNav,
+  property,
+  propertyValue,
+  setProperty,
+} from "./fixtures";
 
 /**
  * Design step 8: feedback, loading states and motion (docs/plans/feedback-and-motion.md).
@@ -92,24 +104,24 @@ test.describe("8.2 and 8.3: instant ticket details with toasts", () => {
     await oneTicket(page, customer, slug);
     await page.goto("/app/tickets/1");
 
-    const priority = page.getByLabel("Priority", { exact: true });
-    const before = await priority.inputValue();
-    const target = before === "urgent" ? "low" : "urgent";
-    await priority.selectOption(target);
+    const priority = property(page, "Priority");
+    const before = await propertyValue(page, "Priority");
+    const target = before === "Urgent" ? "Low" : "Urgent";
+    await setProperty(page, "Priority", target);
     const toast = page.getByText(/^Priority changed to/);
     await expect(toast).toBeVisible();
     await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
 
     // The saved value survives a reload: it really reached the server.
     await page.reload();
-    await expect(priority).toHaveValue(target);
+    await expect(priority).toHaveAccessibleName(`Priority ${target}`);
 
-    await priority.selectOption(before);
+    await setProperty(page, "Priority", before);
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(page.getByText("Change undone")).toBeVisible();
-    await expect(priority).toHaveValue(target);
+    await expect(priority).toHaveAccessibleName(`Priority ${target}`);
     await page.reload();
-    await expect(priority).toHaveValue(target);
+    await expect(priority).toHaveAccessibleName(`Priority ${target}`);
     await customer.dispose();
   });
 
@@ -119,8 +131,8 @@ test.describe("8.2 and 8.3: instant ticket details with toasts", () => {
     await oneTicket(page, customer, slug);
     await page.goto("/app/tickets/1");
 
-    const priority = page.getByLabel("Priority", { exact: true });
-    const before = await priority.inputValue();
+    const priority = property(page, "Priority");
+    const before = await propertyValue(page, "Priority");
     await page.route("**/api/v1/tickets/*", (route) =>
       route.request().method() === "PATCH"
         ? route.fulfill({
@@ -130,9 +142,9 @@ test.describe("8.2 and 8.3: instant ticket details with toasts", () => {
           })
         : route.continue(),
     );
-    await priority.selectOption(before === "urgent" ? "low" : "urgent");
+    await setProperty(page, "Priority", before === "Urgent" ? "Low" : "Urgent");
     await expect(page.getByRole("main").getByRole("alert")).toContainText("Something went wrong on our side");
-    await expect(priority).toHaveValue(before);
+    await expect(priority).toHaveAccessibleName(`Priority ${before}`);
     await customer.dispose();
   });
 });

@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { email, expect, signIn, signUp, test, waitForTriage } from "./fixtures";
+import { email, expect, signIn, signUp, test, waitForTriage, property, setProperty } from "./fixtures";
 
 /**
  * FR-T3–T6 through the agent UI: inbox filters and search, the ticket page, public
@@ -51,15 +51,28 @@ test("agent works a ticket end to end", async ({ page, browser, playwright, base
   await expect(results).toHaveCount(2);
   await expect(page.getByRole("link", { name: /^Active\s*2$/ })).toHaveAttribute("aria-current", "page");
   await page.getByLabel("Search").fill("refund");
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  await page.getByLabel("Search").press("Enter"); // filters apply at once; search on Enter (step 9.5)
   await expect(page).toHaveURL(/q=refund/);
   await expect(results).toHaveCount(1);
   await page.getByLabel("Search").fill("#2");
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  await page.getByLabel("Search").press("Enter");
   await expect(results).toHaveCount(1);
   await expect(results.first()).toContainText("Sync paused on Windows");
   await page.getByRole("link", { name: "Clear filters" }).click();
   await expect(results).toHaveCount(2);
+
+  // Filter chips apply the moment a value is picked and clear with one click (design step 9.5).
+  await page.getByRole("button", { name: /^Sort/ }).click();
+  await page.getByRole("menuitemradio", { name: "Oldest first", exact: true }).click();
+  await expect(page).toHaveURL(/sort=oldest/);
+  await expect(results.first()).not.toContainText("Sync paused on Windows");
+  await page.getByRole("button", { name: /^Assignee/ }).click();
+  await page.getByRole("menuitemradio", { name: "Unassigned", exact: true }).click();
+  await expect(page).toHaveURL(/assignee=unassigned/);
+  await page.getByRole("button", { name: "Clear assignee filter" }).click();
+  await expect(page).not.toHaveURL(/assignee=/);
+  await expect(page).toHaveURL(/sort=oldest/);
+  await page.goto("/app/tickets");
 
   // Keyboard: j/k move through the list and Enter opens; on a ticket, j/k step through the same list.
   await page.getByRole("heading", { level: 1, name: "Tickets" }).click();
@@ -108,9 +121,9 @@ test("agent works a ticket end to end", async ({ page, browser, playwright, base
   );
 
   // Details save as they change (design step 8.3): three quick changes, saved in order.
-  await page.getByLabel("Status").selectOption("pending");
-  await page.getByLabel("Priority").selectOption("high");
-  await page.getByLabel("Assignee").selectOption({ label: "Olivia Owner (you)" });
+  await setProperty(page, "Status", "Pending");
+  await setProperty(page, "Priority", "High");
+  await setProperty(page, "Assignee", "Olivia Owner (you)");
   await expect(page.getByText("Assignee changed to Olivia Owner")).toBeVisible();
   await expect(page.getByRole("main").getByText("Status: Pending")).toBeAttached();
 
@@ -152,18 +165,18 @@ test("concurrent edits are detected, and closed tickets accept notes only", asyn
   const other = await context.newPage();
   await other.goto("/app/tickets/1");
 
-  await page.getByLabel("Priority").selectOption("urgent");
+  await setProperty(page, "Priority", "Urgent");
   await expect(page.getByText("Priority changed to Urgent")).toBeVisible();
 
-  await other.getByLabel("Priority").selectOption("low");
+  await setProperty(other, "Priority", "Low");
   const alert = other.getByRole("main").getByRole("alert");
   await expect(alert).toContainText("changed by someone else");
   await other.getByRole("button", { name: "Load latest version" }).click();
-  await expect(other.getByLabel("Priority")).toHaveValue("urgent"); // the first save was not overwritten
+  await expect(property(other, "Priority")).toHaveAccessibleName("Priority Urgent"); // the first save was not overwritten
 
   // Closed: final status, public replies off, internal notes still allowed.
   await page.reload();
-  await page.getByLabel("Status").selectOption("closed");
+  await setProperty(page, "Status", "Closed");
   // Closing is final, so it asks first (and offers no Undo).
   const confirmClose = page.getByRole("alertdialog", { name: "Close this request?" });
   await confirmClose.getByRole("button", { name: "Close request" }).click();
@@ -171,7 +184,9 @@ test("concurrent edits are detected, and closed tickets accept notes only", asyn
   await expect(page.getByText("Closed requests are final.")).toBeVisible();
   await expect(page.getByLabel("Public reply to Casey Customer")).toBeDisabled();
   await expect(page.getByLabel("Internal note (team only)")).toBeChecked();
-  await expect(page.getByLabel("Status").locator('option[value="open"]')).toBeDisabled();
+  await property(page, "Status").click();
+  await expect(page.getByRole("menuitemradio", { name: "Open", exact: true })).toBeDisabled();
+  await page.keyboard.press("Escape");
   await page.getByLabel("Internal note", { exact: true }).fill("Closed after duplicate check.");
   await page.getByRole("button", { name: "Add internal note" }).click();
   await expect(page.getByText("Internal note added.")).toBeVisible();
@@ -236,7 +251,7 @@ test("a customer reply reopens a resolved ticket, and the overview counts it", a
     .fill("Fixed on our side. Please try the link again.");
   await page.getByRole("button", { name: "Send reply" }).click();
   await expect(page.getByText("Reply sent to Casey Customer.")).toBeVisible();
-  await page.getByLabel("Status").selectOption("resolved");
+  await setProperty(page, "Status", "Resolved");
   await expect(page.getByText("Status changed to Resolved")).toBeVisible();
   await page.goto("/app");
   await expect(overviewCount("open tickets")).toHaveText(/^0/);
@@ -252,7 +267,7 @@ test("a customer reply reopens a resolved ticket, and the overview counts it", a
   await page.reload();
   await expect(overviewCount("open tickets")).toHaveText(/^1/);
   await page.goto("/app/tickets/1");
-  await expect(page.getByLabel("Status")).toHaveValue("open");
+  await expect(property(page, "Status")).toHaveAccessibleName("Status Open");
   await expect(page.getByRole("listitem").filter({ hasText: "Still broken for me" })).toContainText(
     "customer",
   );

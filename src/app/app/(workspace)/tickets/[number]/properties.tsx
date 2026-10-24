@@ -6,12 +6,13 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { ChoiceMenu } from "@/components/choice-menu";
 import { patchJson } from "@/lib/api-client";
 import { notify } from "@/lib/toast";
 import { canAgentTransition } from "@/server/modules/tickets/lifecycle";
 import type { TicketPriority, TicketStatus } from "@/server/modules/tickets/types";
-import { PRIORITY_LABEL, selectClass, STATUS_LABEL } from "../labels";
+import { PRIORITY_LABEL, STATUS_LABEL } from "../labels";
+import { PriorityIcon, StatusIcon } from "../ticket-bits";
 
 const STATUSES: TicketStatus[] = ["open", "pending", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "normal", "high", "urgent"];
@@ -65,7 +66,7 @@ export function TicketProperties({ ticket, assignees, categories, currentUserId 
   const [confirmClose, setConfirmClose] = useState(false);
   const version = useRef(ticket.version);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
-  const statusRef = useRef<HTMLSelectElement>(null);
+  const statusRef = useRef<HTMLButtonElement>(null);
   // The newest version this panel knows about. A higher version in the props means someone
   // else changed the ticket (another agent, accepted triage, a customer reply reopening it):
   // adopt the server's values. Our own saves raise it first, so they never reset the panel.
@@ -126,9 +127,7 @@ export function TicketProperties({ ticket, assignees, categories, currentUserId 
     return run;
   }
 
-  function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const field = e.target.name as Field;
-    const value = e.target.value;
+  function change(field: Field, value: string) {
     if (field === "status" && value === "closed") {
       setConfirmClose(true); // final: ask first, change nothing yet
       return;
@@ -140,15 +139,6 @@ export function TicketProperties({ ticket, assignees, categories, currentUserId 
   // A category removed from settings can still be on old tickets: keep it selectable.
   const categoryOptions =
     ticket.category && !categories.includes(ticket.category) ? [...categories, ticket.category] : categories;
-
-  const fieldLabel = (field: Field, htmlFor: string) => (
-    <div className="flex items-center justify-between gap-2">
-      <Label htmlFor={htmlFor}>{FIELD_LABEL[field]}</Label>
-      <span aria-hidden="true" className="text-muted-foreground text-xs">
-        {saving === field ? "Saving…" : ""}
-      </span>
-    </div>
-  );
 
   return (
     <Card>
@@ -166,83 +156,56 @@ export function TicketProperties({ ticket, assignees, categories, currentUserId 
               Load latest version
             </Button>
           )}
-          <div className="flex flex-col gap-1.5">
-            {fieldLabel("status", `${id}-status`)}
-            <select
-              ref={statusRef}
-              id={`${id}-status`}
-              value={values.status}
-              name="status"
-              onChange={onChange}
-              className={selectClass}
-              aria-describedby={closed ? `${id}-closed` : undefined}
-            >
-              {STATUSES.map((s) => (
-                <option
-                  key={s}
-                  value={s}
-                  disabled={s !== values.status && !canAgentTransition(values.status, s)}
-                >
-                  {STATUS_LABEL[s]}
-                </option>
-              ))}
-            </select>
-            {closed && (
-              <p id={`${id}-closed`} className="text-muted-foreground text-sm">
-                Closed requests are final.
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {fieldLabel("priority", `${id}-priority`)}
-            <select
-              id={`${id}-priority`}
-              value={values.priority}
-              name="priority"
-              onChange={onChange}
-              className={selectClass}
-            >
-              {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {PRIORITY_LABEL[p]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {fieldLabel("category", `${id}-category`)}
-            <select
-              id={`${id}-category`}
-              value={values.category}
-              name="category"
-              onChange={onChange}
-              className={selectClass}
-            >
-              <option value="">None</option>
-              {categoryOptions.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {fieldLabel("assigneeId", `${id}-assignee`)}
-            <select
-              id={`${id}-assignee`}
-              value={values.assigneeId}
-              name="assigneeId"
-              onChange={onChange}
-              className={selectClass}
-            >
-              <option value="">Unassigned</option>
-              {assignees.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.id === currentUserId ? `${a.name} (you)` : a.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ChoiceMenu
+            label={FIELD_LABEL.status}
+            value={values.status}
+            onChange={(v) => change("status", v)}
+            status={saving === "status" ? "Saving…" : undefined}
+            triggerRef={statusRef}
+            describedBy={closed ? `${id}-closed` : undefined}
+            choices={STATUSES.map((s) => ({
+              value: s,
+              label: STATUS_LABEL[s],
+              icon: <StatusIcon status={s} />,
+              disabled: s !== values.status && !canAgentTransition(values.status, s),
+            }))}
+          />
+          {closed && (
+            <p id={`${id}-closed`} className="text-muted-foreground -mt-3 text-sm">
+              Closed requests are final.
+            </p>
+          )}
+          <ChoiceMenu
+            label={FIELD_LABEL.priority}
+            value={values.priority}
+            onChange={(v) => change("priority", v)}
+            status={saving === "priority" ? "Saving…" : undefined}
+            choices={PRIORITIES.map((p) => ({
+              value: p,
+              label: PRIORITY_LABEL[p],
+              icon: <PriorityIcon priority={p} />,
+            }))}
+          />
+          <ChoiceMenu
+            label={FIELD_LABEL.category}
+            value={values.category}
+            onChange={(v) => change("category", v)}
+            status={saving === "category" ? "Saving…" : undefined}
+            choices={[{ value: "", label: "None" }, ...categoryOptions.map((c) => ({ value: c, label: c }))]}
+          />
+          <ChoiceMenu
+            label={FIELD_LABEL.assigneeId}
+            value={values.assigneeId}
+            onChange={(v) => change("assigneeId", v)}
+            status={saving === "assigneeId" ? "Saving…" : undefined}
+            choices={[
+              { value: "", label: "Unassigned" },
+              ...assignees.map((a) => ({
+                value: a.id,
+                label: a.id === currentUserId ? `${a.name} (you)` : a.name,
+              })),
+            ]}
+          />
         </div>
         <ConfirmDialog
           open={confirmClose}

@@ -1,12 +1,12 @@
-import { Check, Inbox, PenLine, Search, SearchX } from "lucide-react";
+import { Check, Inbox, PenLine, SearchX } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { ZodError } from "zod";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { buttonVariants } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { PageHeader } from "@/components/page";
 import {
   isFiltered,
   listHref,
@@ -15,14 +15,13 @@ import {
   tabFor,
   TICKET_TABS,
   ticketHref,
-  type Queue,
   type TicketTab,
 } from "@/lib/ticket-queue";
 import { cn } from "@/lib/utils";
 import { getInboxOptions, listTicketsForAgent } from "@/server/modules/tickets/service";
-import { TICKET_PRIORITIES } from "@/server/modules/tickets/types";
 import { requireAppWorkspace } from "../workspace-context";
-import { PRIORITY_LABEL, selectClass, STATUS_LABEL } from "./labels";
+import { PRIORITY_LABEL, STATUS_LABEL } from "./labels";
+import { InboxFilters } from "./inbox-filters";
 import { ListKeys } from "./list-keys";
 import { Age, Avatar, PriorityIcon, StatusIcon } from "./ticket-bits";
 import { LiveRefresh } from "@/components/live-refresh";
@@ -66,16 +65,16 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
       <ListKeys />
       {/* A new view (other filters) starts afresh, so switching tabs never reads as news. */}
       <LiveRefresh key={JSON.stringify(queue)} notice={page ? newestTicketNotice(page.items) : null} />
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tickets</h1>
-          <p className="text-muted-foreground text-sm">Customer requests for {ctx.workspace.name}.</p>
-        </div>
-        <p className="text-muted-foreground hidden items-center gap-1.5 text-xs md:flex">
-          <Kbd>J</Kbd>
-          <Kbd>K</Kbd> to move, <Kbd>Enter</Kbd> to open
-        </p>
-      </div>
+      <PageHeader
+        title="Tickets"
+        description={`Customer requests for ${ctx.workspace.name}.`}
+        actions={
+          <p className="text-muted-foreground hidden items-center gap-1.5 text-xs md:flex">
+            <Kbd>J</Kbd>
+            <Kbd>K</Kbd> to move, <Kbd>Enter</Kbd> to open
+          </p>
+        }
+      />
 
       <nav aria-label="Ticket status" className="-mx-1 overflow-x-auto px-1">
         <ul className="flex min-w-max gap-1 border-b">
@@ -121,9 +120,8 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                     href={listHref(queue, { [v.key]: on ? undefined : v.value, after: undefined })}
                     aria-current={on ? "true" : undefined}
                     className={cn(
-                      "hover:bg-muted inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm",
-                      on &&
-                        "border-brand-border bg-brand-subtle text-brand-strong hover:bg-brand-subtle font-medium",
+                      "hover:bg-muted text-muted-foreground hover:text-foreground inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors",
+                      on && "bg-accent text-foreground font-medium",
                     )}
                   >
                     {on && <Check aria-hidden="true" className="size-3.5" />}
@@ -135,11 +133,11 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
           </ul>
         </nav>
 
-        <FilterBar
+        <InboxFilters
           queue={queue}
-          tab={tab}
           filtered={filtered}
-          options={options}
+          categories={options.categories}
+          assignees={options.assignees}
           currentUserId={ctx.user.id}
         />
       </div>
@@ -269,126 +267,6 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
         )
       )}
     </div>
-  );
-}
-
-function FilterBar({
-  queue,
-  tab,
-  filtered,
-  options,
-  currentUserId,
-}: {
-  queue: Queue;
-  tab: TicketTab;
-  filtered: boolean;
-  options: Awaited<ReturnType<typeof getInboxOptions>>;
-  currentUserId: string;
-}) {
-  const compactSelect = cn(selectClass, "h-9");
-  return (
-    <form
-      method="get"
-      action="/app/tickets"
-      role="search"
-      aria-label="Filter tickets"
-      className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex lg:flex-wrap lg:items-center"
-    >
-      {tab.value !== "active" && <input type="hidden" name="view" value={tab.value} />}
-      {queue.needsReview && <input type="hidden" name="needsReview" value={queue.needsReview} />}
-      <div className="relative col-span-2 sm:col-span-4 lg:min-w-64 lg:flex-1">
-        <label htmlFor="filter-q" className="sr-only">
-          Search
-        </label>
-        <Search
-          aria-hidden="true"
-          className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-        />
-        <Input
-          id="filter-q"
-          name="q"
-          type="search"
-          defaultValue={queue.q}
-          maxLength={200}
-          placeholder="Search: words, -exclude, or #12"
-          className="h-9 pl-8"
-        />
-      </div>
-      <label htmlFor="filter-priority" className="sr-only">
-        Priority
-      </label>
-      <select
-        id="filter-priority"
-        name="priority"
-        defaultValue={queue.priority ?? ""}
-        className={cn(compactSelect, "lg:w-36")}
-      >
-        <option value="">Any priority</option>
-        {TICKET_PRIORITIES.map((p) => (
-          <option key={p} value={p}>
-            {PRIORITY_LABEL[p]}
-          </option>
-        ))}
-      </select>
-      <label htmlFor="filter-category" className="sr-only">
-        Category
-      </label>
-      <select
-        id="filter-category"
-        name="category"
-        defaultValue={queue.category ?? ""}
-        className={cn(compactSelect, "lg:w-40")}
-      >
-        <option value="">Any category</option>
-        {options.categories.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-      <label htmlFor="filter-assignee" className="sr-only">
-        Assignee
-      </label>
-      <select
-        id="filter-assignee"
-        name="assignee"
-        defaultValue={queue.assignee ?? ""}
-        className={cn(compactSelect, "lg:w-40")}
-      >
-        <option value="">Anyone</option>
-        <option value="me">Assigned to me</option>
-        <option value="unassigned">Unassigned</option>
-        {options.assignees
-          .filter((a) => a.id !== currentUserId)
-          .map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-      </select>
-      <label htmlFor="filter-sort" className="sr-only">
-        Sort
-      </label>
-      <select
-        id="filter-sort"
-        name="sort"
-        defaultValue={queue.sort ?? "newest"}
-        className={cn(compactSelect, "lg:w-36")}
-      >
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-      </select>
-      <div className="col-span-2 flex items-center gap-3 sm:col-span-4 lg:col-span-1">
-        <Button type="submit" size="lg">
-          Apply filters
-        </Button>
-        {filtered && (
-          <Link href={listHref({ view: queue.view })} className="text-muted-foreground text-sm underline">
-            Clear filters
-          </Link>
-        )}
-      </div>
-    </form>
   );
 }
 

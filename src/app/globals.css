@@ -463,3 +463,18 @@ html[data-theme="dark"] {
       0 0 0 4px color-mix(in oklab, var(--destructive) 14%, transparent);
   }
 }
+
+/* The app's page bar (design step 9.5) gains a hairline edge once the page scrolls under it.
+   A scroll-driven animation does it in CSS alone; browsers without one keep a plain bar. */
+@keyframes page-bar-edge {
+  to {
+    box-shadow: 0 1px 0 var(--border);
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .page-bar {
+    animation: page-bar-edge linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 1.5rem;
+  }
+}

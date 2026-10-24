@@ -1,4 +1,14 @@
-import { audit, email, expect, signIn, signUp, test, waitForTriage, workspaceNav } from "./fixtures";
+import {
+  audit,
+  email,
+  expect,
+  signIn,
+  signUp,
+  test,
+  waitForTriage,
+  workspaceNav,
+  property,
+} from "./fixtures";
 
 /**
  * M5 step 5 through the real stack (production build, worker, mock AI): an owner sees this
@@ -120,7 +130,9 @@ test("an owner manages the AI budget, and drafts stop and resume with it", async
   await expect(current.getByRole("listitem").filter({ hasText: "feature-request" })).toHaveCount(0);
 
   await page.goto("/app/tickets/1");
-  await expect(page.getByLabel("Category").locator("option", { hasText: "refund-requests" })).toHaveCount(1);
+  await property(page, "Category").click();
+  await expect(page.getByRole("menuitemradio", { name: "refund-requests", exact: true })).toHaveCount(1);
+  await page.keyboard.press("Escape");
 
   // 5. Each change is in the audit log, readably.
   await page.goto("/app/audit");

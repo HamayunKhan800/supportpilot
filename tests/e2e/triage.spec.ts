@@ -1,4 +1,4 @@
-import { audit, email, expect, signIn, signUp, test, waitForTriage } from "./fixtures";
+import { audit, email, expect, signIn, signUp, test, waitForTriage, property } from "./fixtures";
 
 /**
  * M5 step 2 through the real stack: the portal queues triage, the worker (mock model) labels
@@ -53,20 +53,20 @@ test("AI triage labels new requests and agents review its suggestions", async ({
   await expect(card.getByRole("heading", { name: "AI triage" })).toBeVisible();
   await expect(card).toContainText("Applied automatically: category and priority.");
   await expect(card).toContainText("97%");
-  await expect(page.getByLabel("Category")).toHaveValue("billing");
-  await expect(page.getByLabel("Priority")).toHaveValue("high");
+  await expect(property(page, "Category")).toHaveAccessibleName("Category billing");
+  await expect(property(page, "Priority")).toHaveAccessibleName("Priority High");
 
   // The unsure one waits for a person; accepting applies it as this agent.
   await page.goto("/app/tickets/2");
   await expect(card).toContainText("Needs review");
   await expect(card).toContainText("40%");
   await expect(card).toContainText("confidence is below 95%");
-  await expect(page.getByLabel("Category")).toHaveValue("");
+  await expect(property(page, "Category")).toHaveAccessibleName("Category None");
   await audit(page, "/app/tickets/{number} (triage card)");
   await card.getByRole("button", { name: "Accept suggestion" }).click();
   await expect(card).toContainText("Reviewed");
   await expect(card.getByRole("button", { name: "Accept suggestion" })).toHaveCount(0);
-  await expect(page.getByLabel("Category")).toHaveValue("other");
+  await expect(property(page, "Category")).toHaveAccessibleName("Category other");
 
   // Nothing left to review; the audit log tells AI changes and the agent's apart.
   await page.goto("/app/tickets?needsReview=true");

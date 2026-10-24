@@ -2,11 +2,12 @@
 
 import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField, useFocusFirstInvalid } from "@/components/form-field";
 import { FormSection } from "@/components/form-section";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fieldErrors, patchJson } from "@/lib/api-client";
@@ -155,6 +156,14 @@ export function AiSettingsForm({ initial }: { initial: EditableSettings }) {
     fields.aiEnabled !== pristine.aiEnabled ||
     NUMBER_FIELDS.some((k) => fields[k].trim() !== pristine[k]) ||
     fields.categories.join("\n") !== pristine.categories.join("\n");
+
+  // Leaving with unsaved changes: the browser asks first (its own wording; there is no custom text).
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   return (
     <form ref={formRef} method="post" onSubmit={onSubmit} className="flex flex-col gap-6" noValidate>
@@ -318,7 +327,22 @@ export function AiSettingsForm({ initial }: { initial: EditableSettings }) {
         </FormSection>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t pt-5">
+      {/* With unsaved changes the save row sticks to the bottom of the screen (design step 9.5), so
+          Save and Discard are in reach anywhere on this long page. */}
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-3",
+          dirty
+            ? "bg-popover land-shadow-sm land-pop sticky bottom-3 z-10 rounded-xl border px-4 py-3"
+            : "border-t pt-5",
+        )}
+      >
+        {dirty && !pending && (
+          <span className="text-foreground mr-auto flex items-center gap-2 text-sm font-medium">
+            <span aria-hidden="true" className="bg-warning-strong size-1.5 rounded-full" />
+            Unsaved changes
+          </span>
+        )}
         <Button type="submit" size="lg" className="h-10" disabled={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>
@@ -338,7 +362,6 @@ export function AiSettingsForm({ initial }: { initial: EditableSettings }) {
             >
               Discard changes
             </Button>
-            <span className="text-muted-foreground text-sm">Unsaved changes</span>
           </>
         )}
       </div>

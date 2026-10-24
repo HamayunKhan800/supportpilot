@@ -1,7 +1,5 @@
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { Forbidden } from "@/components/forbidden";
 import { PageHeader } from "@/components/page";
 import { MOCK_SIMILARITY_FLOOR } from "@/server/modules/kb/embedder";
@@ -23,14 +21,8 @@ export default async function TestSearchPage() {
     : { value: MOCK_SIMILARITY_FLOOR, source: "mock" as const };
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href="/app/knowledge"
-        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
-      >
-        <ArrowLeft aria-hidden="true" className="size-4" />
-        Knowledge base
-      </Link>
       <PageHeader
+        breadcrumb={{ href: "/app/knowledge", label: "Knowledge base" }}
         title="Test search"
         description="Ask a question the way a customer would, and see which passages an AI draft would be given. The top 5 passages are ranked by meaning. A keyword search also runs, and its badge shows where it would have ranked each passage."
       />

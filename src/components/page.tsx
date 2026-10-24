@@ -1,32 +1,55 @@
-import type { LucideIcon } from "lucide-react";
+import { ChevronRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Page-level building blocks shared by the workspace pages (design system step 4): one header
- * pattern, stat tiles, section cards and a tab bar, so every page reads the same way.
+ * The compact top bar of an app page (design step 9.5), the way Linear and Plain head a view:
+ * a small title, an optional count and breadcrumb, and actions on the right, in a bar that stays
+ * at the top while the page scrolls. The help text sits below it, not in it. It must be the first
+ * child of the page's column: it pulls itself up and out to the edges of <main>, and sticks
+ * within that column. Under the mobile header (lg:hidden, 3.5rem) it sticks just below it.
  */
-
 export function PageHeader({
   title,
   description,
   actions,
-  className,
+  count,
+  breadcrumb,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
-  className?: string;
+  /** A number shown after the title, e.g. how many items the view holds. */
+  count?: React.ReactNode;
+  /** A link to the parent page, shown before the title. */
+  breadcrumb?: { href: string; label: string };
 }) {
   return (
-    <div className={cn("flex flex-wrap items-end justify-between gap-x-6 gap-y-3", className)}>
-      <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight break-words">{title}</h1>
-        {description && <p className="text-muted-foreground mt-1 max-w-prose text-sm">{description}</p>}
+    <>
+      <div
+        data-page-bar
+        className="page-bar bg-background sticky top-14 z-30 -mx-4 -mt-8 flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:-mx-6 sm:px-6 lg:top-0 lg:-mx-10 lg:px-10"
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          {breadcrumb && (
+            <>
+              <Link
+                href={breadcrumb.href}
+                className="text-muted-foreground hover:text-foreground shrink-0 rounded-sm text-sm transition-colors"
+              >
+                {breadcrumb.label}
+              </Link>
+              <ChevronRight aria-hidden="true" className="text-muted-foreground size-3.5 shrink-0" />
+            </>
+          )}
+          <h1 className="min-w-0 truncate text-base font-semibold tracking-tight">{title}</h1>
+          {count != null && <span className="text-muted-foreground text-sm tabular-nums">{count}</span>}
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-    </div>
+      {description && <p className="text-muted-foreground -mt-4 max-w-prose text-sm">{description}</p>}
+    </>
   );
 }
 

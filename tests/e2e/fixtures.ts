@@ -159,3 +159,19 @@ export async function waitForTriage(page: Page, expectedTickets: number) {
     )
     .toBe(true);
 }
+
+/**
+ * A ticket property menu (design step 9.5). Its button is named "<label> <value>", e.g.
+ * "Priority Urgent"; choosing opens a menu of radio items named by the value's label.
+ */
+export const property = (page: Page, label: string) =>
+  page.getByRole("button", { name: new RegExp(`^${label} `) });
+
+export async function setProperty(page: Page, label: string, option: string) {
+  await property(page, label).click();
+  await page.getByRole("menuitemradio", { name: option, exact: true }).click();
+}
+
+/** The value a property menu shows, e.g. "Urgent". */
+export const propertyValue = async (page: Page, label: string) =>
+  (await property(page, label).innerText()).trim();
