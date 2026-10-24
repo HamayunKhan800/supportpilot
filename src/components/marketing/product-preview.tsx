@@ -12,7 +12,7 @@ export function ProductPreview({ compact = false, className }: { compact?: boole
     <div
       aria-hidden="true"
       className={cn(
-        "bg-card text-card-foreground overflow-hidden rounded-xl border text-left shadow-xl select-none",
+        "bg-card text-card-foreground overflow-hidden rounded-xl border text-left shadow-sm select-none",
         className,
       )}
     >
@@ -110,7 +110,7 @@ export function ProductPreview({ compact = false, className }: { compact?: boole
 
         {!compact && (
           <div className="bg-muted/30 hidden flex-col gap-4 border-l p-4 text-xs md:flex">
-            <Property label="Status" value="Open" dot="bg-chart-1" />
+            <Property label="Status" value="Open" dot="bg-info" />
             <Property label="Priority" value="Normal" />
             <Property label="Category" value="billing" />
             <div className="flex flex-col gap-1.5">

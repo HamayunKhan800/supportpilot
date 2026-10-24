@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { PenLine, Search, Send, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -6,29 +6,53 @@ import { Logo } from "@/components/logo";
 import { ProductPreview } from "@/components/marketing/product-preview";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
-import { EVAL_METHOD_URL, LANDING_METRICS, LANDING_METRICS_NOTE, REPO_URL } from "@/lib/landing";
+import {
+  API_SPEC_PATH,
+  ARCHITECTURE_URL,
+  EVAL_METHOD_URL,
+  EVAL_REPORT_URL,
+  LANDING_METRICS,
+  LANDING_METRICS_NOTE,
+  REPO_URL,
+} from "@/lib/landing";
 import { parseThemePreference, THEME_COOKIE } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: { absolute: "SupportPilot · Support replies grounded in your help centre" },
+  title: { absolute: "SupportPilot · Support replies drafted by AI, approved by your team" },
 };
 
-const STEPS = [
+/**
+ * What happens to a new ticket, told as the ticket's own activity trail (the product's object,
+ * not a row of numbered feature cards). Demo times and names; the explanations are factual.
+ */
+const TRAIL = [
   {
-    title: "Triage",
-    body: "Each new request gets a category, priority, language and sentiment. Labels the model is unsure about wait for an agent as “Needs review”.",
+    icon: Tag,
+    actor: "AI triage",
+    action: "set the category to billing and the priority to normal",
+    time: "10:41",
+    body: "Every new request gets a category, priority, language and sentiment. A label the model is less than 95% sure of is not applied; it waits for an agent instead.",
   },
   {
-    title: "Retrieve",
-    body: "Keyword and vector search over your help articles, merged with reciprocal rank fusion. If no passage scores above the floor, no draft is written.",
+    icon: Search,
+    actor: "Knowledge search",
+    action: "found Refund policy and Cancel your subscription",
+    time: "10:41",
+    body: "Vector search over your help articles. If no passage is close enough to the question, no draft is written and the ticket stays with the team.",
   },
   {
-    title: "Draft",
-    body: "The model writes a reply that cites a passage for each claim. Citation numbers are checked against the passages it was given; links it invents are flagged.",
+    icon: PenLine,
+    actor: "AI draft",
+    action: "wrote a reply that cites 2 passages",
+    time: "10:42",
+    body: "Each claim cites a passage. The app checks every citation number against the passages the model was given, and flags any link the model made up.",
   },
   {
-    title: "Approve",
-    body: "An agent edits, approves or discards the draft. Nothing reaches the customer without that step, and every action lands in the audit log.",
+    icon: Send,
+    actor: "Olivia Owner",
+    action: "edited the draft and sent it",
+    time: "10:46",
+    body: "Nothing reaches the customer until an agent approves it, and every action is recorded in the audit log.",
   },
 ];
 
@@ -59,14 +83,17 @@ const ENGINEERING = [
   },
 ];
 
+const FOOTER_LINKS = [
+  { label: "Source code", href: REPO_URL },
+  { label: "Evaluation report", href: EVAL_REPORT_URL },
+  { label: "Architecture", href: ARCHITECTURE_URL },
+  { label: "API description (OpenAPI)", href: API_SPEC_PATH },
+];
+
 const navLink =
   "text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-2 py-1 text-sm outline-none focus-visible:ring-2";
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-muted-foreground font-mono text-xs font-medium tracking-wider uppercase">{children}</p>
-  );
-}
+const textLink =
+  "text-foreground decoration-border hover:decoration-foreground focus-visible:ring-ring rounded-sm underline underline-offset-4 outline-none focus-visible:ring-2";
 
 export default async function Home() {
   const theme = parseThemePreference((await cookies()).get(THEME_COOKIE)?.value);
@@ -96,130 +123,166 @@ export default async function Home() {
       </header>
 
       <main id="main" className="flex-1">
-        {/* Hero */}
-        <section className="mx-auto w-full max-w-6xl px-4 pt-16 pb-12 sm:px-6 sm:pt-24">
-          <div className="flex max-w-3xl flex-col gap-6">
-            <a
-              href={REPO_URL}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-xs outline-none focus-visible:ring-2"
-            >
-              Open-source portfolio project
-              <ArrowRight aria-hidden="true" className="size-3" />
-            </a>
-            <h1 className="text-[2rem] leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              Support replies grounded in your help centre.{" "}
-              <span className="text-muted-foreground">Approved by a person before they&apos;re sent.</span>
+        <section className="mx-auto w-full max-w-6xl px-4 pt-14 sm:px-6 sm:pt-20">
+          <div className="flex max-w-3xl flex-col gap-5">
+            <h1 className="text-[2.25rem] leading-[1.08] font-semibold tracking-[-0.03em] text-balance sm:text-5xl lg:text-[3.5rem]">
+              Support replies drafted by AI, approved by your team.
             </h1>
             <p className="text-muted-foreground max-w-2xl text-lg text-pretty">
-              SupportPilot triages incoming tickets, finds the help articles that answer them and drafts a
-              reply that cites each source. Your team checks the draft, edits it if needed, and decides what
-              goes out.
+              SupportPilot reads each new ticket, finds the help articles that answer it and drafts a reply
+              that cites them. An agent checks every draft before anything reaches the customer.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 pt-1">
               <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "h-10 px-4" })}>
                 Create a workspace
-                <ArrowRight aria-hidden="true" />
               </Link>
               <a
                 href={REPO_URL}
-                className={buttonVariants({ size: "lg", variant: "outline", className: "h-10 px-4" })}
+                className={buttonVariants({
+                  size: "lg",
+                  variant: "outline",
+                  className: "border-foreground/20 h-10 px-4",
+                })}
               >
-                Read the code
-                <ArrowUpRight aria-hidden="true" />
+                View the source on GitHub
               </a>
             </div>
-            <p className="text-muted-foreground font-mono text-xs">
-              Next.js · TypeScript · PostgreSQL with pgvector · Google Gemini
-            </p>
           </div>
         </section>
 
-        <figure className="mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6">
+        <figure className="mx-auto w-full max-w-6xl px-4 pt-12 pb-20 sm:px-6">
           <ProductPreview />
           <figcaption className="text-muted-foreground mt-3 text-sm">
-            The ticket screen with demo content: an AI draft that cites two help articles, its automatic
-            checks, and the agent&apos;s choices. Nothing is sent until someone chooses Approve &amp; send.
+            The ticket screen with demo data: a draft that cites two help articles, its automatic checks, and
+            the agent&apos;s choices. Nothing is sent until someone chooses Approve &amp; send.
           </figcaption>
         </figure>
 
-        {/* How it works */}
-        <section
-          id="how-it-works"
-          aria-labelledby="how-heading"
-          className="bg-muted/30 scroll-mt-14 border-y py-20"
-        >
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 sm:px-6">
-            <div className="flex max-w-2xl flex-col gap-3">
-              <Eyebrow>How it works</Eyebrow>
+        <section id="how-it-works" aria-labelledby="how-heading" className="scroll-mt-14 border-t py-20">
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
+            <div className="flex max-w-xl flex-col gap-3">
               <h2 id="how-heading" className="text-3xl font-semibold tracking-tight text-balance">
-                From a new ticket to an approved reply
+                What happens to a new ticket
               </h2>
               <p className="text-muted-foreground">
-                Four steps, each one visible to the agent. The AI suggests; people decide.
+                The agent sees each step on the ticket, in the order it happened. The AI suggests; a person
+                decides what the customer gets.
               </p>
             </div>
-            <ol className="bg-border grid grid-cols-1 gap-px overflow-hidden rounded-xl border sm:grid-cols-2 lg:grid-cols-4">
-              {STEPS.map(({ title, body }, i) => (
-                <li key={title} className="bg-card flex flex-col gap-2 p-5">
-                  <span aria-hidden="true" className="text-brand-strong font-mono text-xs font-medium">
-                    0{i + 1}
-                  </span>
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="text-muted-foreground text-sm">{body}</p>
-                </li>
-              ))}
-            </ol>
+            <div className="flex flex-col gap-4">
+              <p className="text-muted-foreground font-mono text-xs">Ticket #128 · demo data</p>
+              <ol className="flex flex-col">
+                {TRAIL.map(({ icon: Icon, actor, action, time, body }, i) => (
+                  <li
+                    key={actor}
+                    className="relative grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-4 pb-8 last:pb-0"
+                  >
+                    {i < TRAIL.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className="bg-border absolute top-8 bottom-1 left-[0.8125rem] w-px"
+                      />
+                    )}
+                    <span
+                      aria-hidden="true"
+                      className="bg-background text-muted-foreground flex size-7 items-center justify-center rounded-full border"
+                    >
+                      <Icon className="size-3.5" />
+                    </span>
+                    <div className="flex flex-col gap-1 pt-0.5">
+                      <p className="text-sm">
+                        <span className="font-medium">{actor}</span> {action}
+                        <span className="text-muted-foreground ml-2 font-mono text-xs">{time}</span>
+                      </p>
+                      <p className="text-muted-foreground text-sm">{body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
         </section>
 
-        {/* Evaluation */}
-        <section id="evaluation" aria-labelledby="evaluation-heading" className="scroll-mt-14 py-20">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 sm:px-6">
+        <section id="evaluation" aria-labelledby="evaluation-heading" className="scroll-mt-14 border-t py-20">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 sm:px-6">
             <div className="flex max-w-2xl flex-col gap-3">
-              <Eyebrow>Evaluation</Eyebrow>
               <h2 id="evaluation-heading" className="text-3xl font-semibold tracking-tight text-balance">
-                Measured, not promised
+                Measured on a labelled test set
               </h2>
               <p className="text-muted-foreground">
-                The AI is tested against a labelled set of help-centre questions and support tickets. Each
-                number comes with how many items it was measured on and its 95% confidence interval.
+                Each result comes with its 95% confidence interval and the number of items it was measured on.
               </p>
             </div>
-            <dl className="bg-border grid grid-cols-1 gap-px overflow-hidden rounded-xl border sm:grid-cols-2 lg:grid-cols-4">
-              {LANDING_METRICS.map((m) => (
-                <div key={m.value + m.label} className="bg-card flex flex-col gap-2 p-5">
-                  <dt className="sr-only">{m.label}</dt>
-                  <dd className="text-4xl font-semibold tracking-tight tabular-nums">{m.value}</dd>
-                  <dd className="text-sm">{m.label}</dd>
-                  <dd className="text-muted-foreground mt-auto pt-2 font-mono text-xs">{m.detail}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+            <div
+              role="region"
+              aria-labelledby="evaluation-heading"
+              tabIndex={0}
+              className="focus-visible:ring-ring overflow-x-auto rounded-lg border outline-none focus-visible:ring-2"
+            >
+              <table className="w-full min-w-[40rem] text-sm">
+                <caption className="sr-only">
+                  Evaluation results with 95% confidence intervals, targets and sample sizes
+                </caption>
+                <thead className="bg-muted/50 text-muted-foreground text-left">
+                  <tr>
+                    <th scope="col" className="px-4 py-2.5 font-medium">
+                      Measure
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                      Result
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                      95% range
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                      Target
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                      Measured on
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y border-t">
+                  {LANDING_METRICS.map((m) => (
+                    <tr key={m.label}>
+                      <th scope="row" className="px-4 py-3 text-left font-normal">
+                        {m.label}
+                      </th>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">{m.result}</td>
+                      <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">{m.range}</td>
+                      <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">{m.target}</td>
+                      <td className="text-muted-foreground px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                        {m.n}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-col gap-3">
               <p className="text-muted-foreground max-w-3xl text-sm">{LANDING_METRICS_NOTE}</p>
-              <a
-                href={EVAL_METHOD_URL}
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "lg",
-                  className: "h-10 shrink-0 px-4",
-                })}
-              >
-                How it is measured
-                <ArrowUpRight aria-hidden="true" />
-              </a>
+              <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                <a href={EVAL_REPORT_URL} className={textLink}>
+                  Read the evaluation report
+                </a>
+                <a href={EVAL_METHOD_URL} className={textLink}>
+                  How it is measured
+                </a>
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Engineering */}
-        <section aria-labelledby="engineering-heading" className="bg-muted/30 border-y py-20">
+        <section aria-labelledby="engineering-heading" className="border-t py-20">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 sm:px-6">
             <div className="flex max-w-2xl flex-col gap-3">
-              <Eyebrow>Engineering</Eyebrow>
               <h2 id="engineering-heading" className="text-3xl font-semibold tracking-tight text-balance">
                 Built like production software
               </h2>
+              <p className="text-muted-foreground">
+                Next.js 16, React 19 and TypeScript on PostgreSQL with pgvector, with Google Gemini for the AI
+                and Vitest and Playwright for the tests.
+              </p>
             </div>
             <ul className="grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
               {ENGINEERING.map((e) => (
@@ -232,8 +295,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Closing call to action */}
-        <section aria-labelledby="start-heading" className="py-20">
+        <section aria-labelledby="start-heading" className="border-t py-20">
           <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between">
             <div className="flex max-w-xl flex-col gap-2">
               <h2 id="start-heading" className="text-2xl font-semibold tracking-tight">
@@ -246,22 +308,37 @@ export default async function Home() {
             </div>
             <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "h-10 px-4" })}>
               Create a workspace
-              <ArrowRight aria-hidden="true" />
             </Link>
           </div>
         </section>
       </main>
 
       <footer className="border-t">
-        <div className="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
-            SupportPilot is a portfolio project by Hamayun Khan.{" "}
-            <a href={REPO_URL} className="hover:text-foreground underline underline-offset-4">
-              Source on GitHub
-            </a>
-            .
-          </p>
-          <ThemeToggle initial={theme} />
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-10 text-sm sm:px-6 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex flex-col items-start gap-3">
+            <Logo />
+            <p className="text-muted-foreground max-w-sm">
+              A portfolio project by{" "}
+              <a href="https://github.com/HamayunKhan800" className={textLink}>
+                Hamayun Khan
+              </a>
+              . Open source under the MIT licence.
+            </p>
+          </div>
+          <div className="flex flex-col gap-6 md:items-end">
+            <nav aria-label="Project">
+              <ul className="-mx-2 flex flex-col gap-1 md:items-end">
+                {FOOTER_LINKS.map((l) => (
+                  <li key={l.label}>
+                    <a href={l.href} className={navLink}>
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <ThemeToggle initial={theme} />
+          </div>
         </div>
       </footer>
     </>

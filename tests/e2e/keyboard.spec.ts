@@ -177,6 +177,9 @@ test("an agent goes from sign-in to a sent, cited reply with the keyboard alone"
   await expect(palette.getByRole("option").first()).toHaveText("Tickets"); // results have updated
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/app\/tickets$/);
+  // The URL changes before the palette's closing transition ends; until then its input keeps
+  // focus, so wait for it to go before pressing the next key.
+  await expect(palette).toBeHidden();
 
   // 3. J selects the first ticket, Enter opens it.
   await page.keyboard.press("j");

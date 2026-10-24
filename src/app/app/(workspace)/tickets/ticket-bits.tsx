@@ -11,7 +11,7 @@ import { dateFormat, PRIORITY_LABEL, STATUS_LABEL } from "./labels";
 
 const STATUS_ICON = { open: CircleDot, pending: Clock, resolved: CircleCheck, closed: Lock } as const;
 const STATUS_TONE: Record<TicketStatus, string> = {
-  open: "text-brand-strong",
+  open: "text-info-strong",
   pending: "text-warning-strong",
   resolved: "text-success-strong",
   closed: "text-muted-foreground",

@@ -19,6 +19,9 @@ test("an agent drafts, checks, edits and approves an AI reply", async ({
   playwright,
   baseURL,
 }, info) => {
+  // A long journey (sign-up, upload, three tickets, draft, edit, approve, axe in both themes):
+  // about 30 s on a 2-CPU machine, so the default 30 s budget is too tight.
+  test.setTimeout(60_000);
   const slug = `drafts-${info.project.name}-${Date.now().toString(36)}`;
   const who = email(`drafts-${info.project.name}`);
   await signUp(page, "Dana Drafter", who);

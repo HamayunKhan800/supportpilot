@@ -17,7 +17,7 @@ const buttonVariants = cva(
         destructive:
           // Tint strengths are contrast-tested in tests/unit/design-tokens.test.ts (10% and 15%).
           "bg-destructive/10 text-destructive hover:bg-destructive/15 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-primary underline decoration-border underline-offset-4 hover:decoration-current",
       },
       size: {
         default: "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",

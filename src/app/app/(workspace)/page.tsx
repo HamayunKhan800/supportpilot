@@ -24,7 +24,8 @@ import { requireAppWorkspace } from "./workspace-context";
 export const metadata: Metadata = { title: "Overview" };
 
 const requestTime = () => Date.now();
-const linkClass = "text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline";
+const linkClass =
+  "text-primary decoration-border hover:decoration-current inline-flex items-center gap-1 text-sm font-medium underline underline-offset-4";
 
 export default async function OverviewPage() {
   const { ctx } = await requireAppWorkspace();

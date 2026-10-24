@@ -8,7 +8,11 @@
  * - Lightness and chroma come from per-step curves in OKLCH, so changing the brand hue re-themes
  *   the whole app consistently, the way Linear generates themes from a base, an accent and a
  *   contrast value instead of 98 hand-picked colours.
- * - Neutrals carry a trace of the brand hue (very low chroma) for a calm, cohesive look.
+ * - The brand is ink: near-black in light mode and near-white in dark mode, on neutral greys with a
+ *   barely-there cool tint. Colour is kept for meaning (status, charts, focus), as on Vercel's Geist
+ *   and Linear's marketing site. It replaced the Iris accent on 2026-10-24: Iris sat at the same
+ *   hue as Tailwind's indigo-600, the colour most associated with AI-generated sites
+ *   (docs/plans/design-system.md, step 7).
  *
  * The stylesheet `src/app/theme.css` is generated from this file by `pnpm design:tokens`;
  * tests/unit/design-tokens.test.ts fails if it drifts or if any text/background pair used by the
@@ -20,8 +24,11 @@ export type Mode = "light" | "dark";
 export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 export type Scale = Record<Step, Oklch>;
 
-/** The brand: Iris (blue-violet), chosen by the owner on 2026-10-23. */
-export const BRAND = { hue: 277, chroma: 0.2 } as const;
+/** The brand: ink, a neutral with a trace of cool hue (zinc), chosen by the owner on 2026-10-24. */
+export const BRAND = { hue: 286, chroma: 0.006 } as const;
+
+/** Focus rings: a functional blue, so focus stays visible next to ink buttons (WCAG 2.4.7, 2.4.11). */
+export const FOCUS = { hue: 255, chroma: 0.17 } as const;
 
 /** Status hues (OKLCH degrees) and the chroma of their solid step. */
 export const STATUS = {
@@ -101,11 +108,11 @@ const STATUS_SOLID: Record<StatusName, ScaleSpec["solid"]> = {
 };
 
 /**
- * Light mode: a deep iris that carries white text. Dark mode: a lighter iris that carries dark
- * text. No single colour can carry white text at 4.5:1 *and* reach 4.5:1 as link text on a
- * near-black page (the luminance windows do not overlap), hence the switch.
+ * Light mode: near-black ink that carries white text (hover lifts it slightly). Dark mode:
+ * near-white that carries ink text. One colour can't do both jobs on both backgrounds, hence the
+ * switch.
  */
-const BRAND_SOLID: ScaleSpec["solid"] = { light: [0.52, 0.47], dark: [0.72, 0.78] };
+const BRAND_SOLID: ScaleSpec["solid"] = { light: [0.22, 0.32], dark: [0.95, 0.86] };
 
 export type Palette = {
   gray: Scale;
@@ -121,11 +128,11 @@ export function palette(mode: Mode): Palette {
       scale(mode, { ...STATUS[name], solid: STATUS_SOLID[name] }),
     ]),
   ) as Record<StatusName, Scale>;
-  // Five chart hues spread around the wheel (iris, teal, orange, pink, green), dark enough
-  // in light mode (and light enough in dark mode) for 3:1 against the page (WCAG 1.4.11).
+  // The first series is ink (the main measure); four hues spread around the wheel (teal, orange,
+  // pink, green) for the rest. All reach 3:1 against the page (WCAG 1.4.11).
   const cl = mode === "light" ? 0.56 : 0.72;
   const chart: Palette["chart"] = [
-    { l: cl, c: 0.19, h: BRAND.hue },
+    { l: mode === "light" ? 0.32 : 0.86, c: 0.01, h: BRAND.hue },
     { l: cl, c: 0.1, h: 195 },
     { l: cl, c: 0.15, h: 50 },
     { l: cl, c: 0.17, h: 350 },
@@ -135,7 +142,7 @@ export function palette(mode: Mode): Palette {
 }
 
 const WHITE: Oklch = { l: 1, c: 0, h: 0 };
-const ON_LIGHT_BRAND: Oklch = { l: 0.2, c: 0.05, h: BRAND.hue };
+const ON_LIGHT_BRAND: Oklch = { l: 0.2, c: 0.006, h: BRAND.hue };
 
 /**
  * Semantic tokens: the shadcn/ui contract (https://ui.shadcn.com/docs/theming) plus status,
@@ -165,8 +172,8 @@ export function semanticTokens(mode: Mode): Record<string, Oklch> {
     border: gray[6],
     // Input borders must reach 3:1 against the page (WCAG 1.4.11 non-text contrast).
     input: light ? { ...gray[8], l: 0.6 } : { ...gray[8], l: 0.56 },
-    // Focus rings use the solid brand step: brand[8] is too faint for 3:1 on the page.
-    ring: brand[9],
+    // Focus rings: functional blue, 3:1 against the page and distinct from ink buttons.
+    ring: fitGamut({ l: light ? 0.55 : 0.72, c: FOCUS.chroma, h: FOCUS.hue }),
     "chart-1": chart[0],
     "chart-2": chart[1],
     "chart-3": chart[2],
@@ -179,11 +186,13 @@ export function semanticTokens(mode: Mode): Record<string, Oklch> {
     "sidebar-accent": gray[4],
     "sidebar-accent-foreground": gray[12],
     "sidebar-border": gray[6],
-    "sidebar-ring": brand[9],
-    // Brand tints: selected navigation, AI draft headers, citation chips.
-    "brand-subtle": brand[3],
-    "brand-border": brand[6],
-    "brand-strong": brand[11],
+    "sidebar-ring": fitGamut({ l: light ? 0.55 : 0.72, c: FOCUS.chroma, h: FOCUS.hue }),
+    // Brand tints: selected navigation, AI draft headers, citation chips. With an ink brand
+    // these are quiet greys; the text step is full ink so selected items read clearly.
+    // One step darker than the hover grey (accent = step 4), so selected stays distinct from hover.
+    "brand-subtle": brand[5],
+    "brand-border": brand[8],
+    "brand-strong": brand[12],
   };
   for (const name of Object.keys(STATUS) as StatusName[]) {
     const s = status[name];

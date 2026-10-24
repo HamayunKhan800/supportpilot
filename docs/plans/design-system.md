@@ -80,6 +80,22 @@ Each idea is adopted because it solves a problem above. We take inspiration, not
 | 4. Remaining app pages     | Knowledge, analytics, evaluation, settings, members, audit, account                                                                       | E2E plus axe on every page                                                                      |
 | 5. Public pages            | Landing, auth, portal, onboarding                                                                                                         | E2E plus axe; Lighthouse check of the landing page                                              |
 | 6. Polish and proof        | Playwright **visual regression** baselines (light, dark, mobile) for key screens, a keyboard-only walkthrough, new screenshots and README | All gates green; screenshots are taken from the production build                                |
+| 7. Brand refresh           | Ink colour (replaces Iris), the Handoff mark, favicon, app icon and share image, landing page rework (details below)                      | Contrast unit tests, axe in both themes, visual baselines, design-slop scanner before and after |
+
+### Step 7: brand refresh (added 2026-10-24)
+
+The owner judged the logo and landing page "good but not the best", with a logo that "looks very AI generated at first glance". Research findings that shaped the fix:
+
+- The old mark (a chat bubble with a tick) is almost the same shape as Lucide's `message-square-check` icon, and support-logo templates are mostly headsets and speech bubbles, so a bubble mark reads as generic.
+- Iris (`oklch(0.52 0.2 277)`) sat at the hue of Tailwind's indigo-500/600, the default that the Tailwind author later apologised for because it spread across so many AI-generated sites.
+- Lists of AI-design tells (for example mowgli.ai's "15 tells") also name the eyebrow pill above the headline, two-tone headlines, numbered 01–04 step cards, big-number stat strips and ALL-CAPS section labels.
+- An automated check (`AdrianKrebs/design-slop-cop`, 14 patterns) rated the old landing page **Low** (1 of 14: the stat strip). Its purple check covers HSL hues 250–300, and Tailwind's indigo sits near 243, so the scanner did not count the colour. The hand review above is stricter than the tool.
+
+Owner decisions (2026-10-24): **mark C "Handoff"**, **ink only** as the brand colour, and the full landing rework with fresh screenshots.
+
+- **Mark:** a circle (the AI's draft) overlapping a square (the person who approves it); the overlap is cut out. One even-odd path on a 24-unit grid, drawn by hand, in the current text colour. Favicon and app icon: the white mark on an ink tile.
+- **Colour:** ink (near-black in light mode, near-white in dark mode) on neutral greys. Colour is kept for meaning: status, charts and a **blue focus ring** that stays visible next to ink buttons. The "Open" ticket status moved from the brand colour to info blue.
+- **Landing:** no pill and a one-colour headline; the product screen straight after the headline; the ticket's activity trail instead of numbered cards; a results table (result, 95% range, target, sample size) instead of a stat strip; plain headings without ALL-CAPS labels; a fuller footer (source, evaluation report, architecture, OpenAPI, author). The old "How it works" text claimed keyword and vector search merged by rank fusion; keyword weight has been 0 since ADR-0014, so the copy now says vector search.
 
 ## 7. Rules and non-goals
 
@@ -92,5 +108,5 @@ Each idea is adopted because it solves a problem above. We take inspiration, not
 ## 8. Decisions needed from the owner
 
 1. Approve this plan, so step 1 can start.
-2. Accent colour: see `docs/design/preview.html` (Iris, Teal or Amber). Default proposal: **Iris** (blue-violet).
+2. Accent colour: see `docs/design/preview.html` (Iris, Teal or Amber). Default proposal: **Iris** (blue-violet). _Chosen: Iris (2026-10-23); replaced by ink in step 7 (2026-10-24)._
 3. Default theme: follow the device setting (proposal), or always light or always dark.

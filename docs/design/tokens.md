@@ -6,7 +6,7 @@ How SupportPilot's colours, type and themes work (design system step 1, `docs/pl
 
 | File                                                | Role                                                                                                                                                                                                                                      |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/design/tokens.ts`                          | **Source of truth.** Generates every colour from a few inputs: brand hue and chroma (Iris, 277°), status hues, per-step lightness and chroma curves.                                                                                      |
+| `src/lib/design/tokens.ts`                          | **Source of truth.** Generates every colour from a few inputs: brand hue and chroma (ink: hue 286°, chroma 0.006; Iris until 2026-10-24), status hues, per-step lightness and chroma curves.                                              |
 | `src/lib/design/color.ts`                           | OKLCH → sRGB conversion, gamut fitting, WCAG contrast.                                                                                                                                                                                    |
 | `src/app/theme.css`                                 | **Generated** by `pnpm design:tokens`. Never edit by hand.                                                                                                                                                                                |
 | `src/app/globals.css`                               | Maps tokens to Tailwind utilities (`bg-warning-subtle`, …), fonts, radius and the `dark:` variant.                                                                                                                                        |
@@ -18,8 +18,9 @@ How SupportPilot's colours, type and themes work (design system step 1, `docs/pl
 - **12-step scales** (Radix Colors roles): 1–2 backgrounds, 3–5 component states, 6–8 borders and focus, 9–10 solid fills, 11–12 text.
 - **OKLCH**, so equal lightness looks equally light; changing `BRAND.hue` re-themes everything.
 - **Gamut fitting:** chroma is reduced until the colour fits sRGB, so the screen shows exactly the colour the tests measured.
-- **Neutrals** carry a trace of the brand hue (chroma ≤ 0.016).
-- **Dark mode primary** is a lighter iris with dark text. No colour can carry white text at 4.5:1 _and_ be 4.5:1 link text on a near-black page.
+- **Neutrals** carry a trace of cool hue (chroma ≤ 0.016).
+- **Focus rings** are a functional blue (`FOCUS`, hue 255°), so focus stays visible next to ink buttons.
+- **Dark mode primary** is near-white with ink text; light mode primary is ink with white text.
 
 ## Which token to use
 
