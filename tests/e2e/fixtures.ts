@@ -79,15 +79,32 @@ export async function closeDrawer(page: Page) {
 /** Present on every workspace page once the app shell has rendered (desktop and mobile). */
 export const appShell = (page: Page) => page.getByRole("button", { name: /^Search or jump to/ });
 
-/** WCAG 2.2 A/AA rules. Done-when for M2: zero serious or critical violations. */
 /**
  * Brings a page to the state a reader sees: scrolls through it once, so scroll reveals have run
  * (the landing page hides not-yet-seen sections until they enter the viewport), returns to the
  * top, and waits for one-shot animations to end. Endless ones (a blinking caret) are ignored.
- * Pages without scroll reveals (the app) are left alone.
+ * Pages without scroll reveals (the app) are not scrolled, but still wait for opening transitions:
+ * on a slow CI runner axe once scanned the command palette mid-fade and measured the half-faded
+ * text as low contrast.
  */
 export async function settle(page: Page) {
-  if ((await page.locator("[data-reveal]").count()) === 0) return;
+  const reveals = (await page.locator("[data-reveal]").count()) > 0;
+  if (reveals) await scrollThrough(page);
+  // The landing page's one-shot animations end within about 1.5 s, app transitions within 0.3 s;
+  // the caps only bound the wait.
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity),
+      null,
+      { timeout: reveals ? 3000 : 1000 },
+    )
+    .catch(() => {});
+}
+
+async function scrollThrough(page: Page) {
   await page.evaluate(async () => {
     const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     for (let y = 0; y < document.documentElement.scrollHeight; y += window.innerHeight / 2) {
@@ -97,19 +114,9 @@ export async function settle(page: Page) {
     window.scrollTo(0, 0);
     await frame();
   });
-  // The landing page's one-shot animations end within about 1.5 s; the cap only bounds the wait.
-  await page
-    .waitForFunction(
-      () =>
-        document
-          .getAnimations()
-          .every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity),
-      null,
-      { timeout: 3000 },
-    )
-    .catch(() => {});
 }
 
+/** WCAG 2.2 A/AA rules. Done-when for M2: zero serious or critical violations. */
 export async function audit(page: Page, label: string) {
   await settle(page);
   // Scan a settled page: once (finding #111) axe ran right after a save and found no <title>,
