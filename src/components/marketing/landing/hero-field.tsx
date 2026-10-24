@@ -13,6 +13,21 @@ import { cn } from "@/lib/utils";
  * the first paint), pauses off screen and in background tabs, and with "reduce motion" it draws
  * one still frame. The colour comes from CSS (`currentColor`), so it suits both themes.
  */
+/**
+ * The theme colours are oklch(), which can't be parsed as "r, g, b" numbers. Let the browser
+ * convert: paint one pixel in the colour and read it back.
+ */
+function toRgb(color: string): string | null {
+  const c = document.createElement("canvas");
+  c.width = c.height = 1;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  if (!x) return null;
+  x.fillStyle = color;
+  x.fillRect(0, 0, 1, 1);
+  const [r, g, b] = x.getImageData(0, 0, 1, 1).data;
+  return `${r},${g},${b}`;
+}
+
 export function HeroField({ className, quiet = false }: { className?: string; quiet?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -65,8 +80,7 @@ export function HeroField({ className, quiet = false }: { className?: string; qu
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const m = getComputedStyle(canvas).color.match(/\d+(\.\d+)?/g);
-      if (m && m.length >= 3) rgb = `${m[0]},${m[1]},${m[2]}`;
+      rgb = toRgb(getComputedStyle(canvas).color) ?? rgb;
       beams = quiet || reduce ? [] : Array.from({ length: w < 700 ? 2 : 4 }, newBeam);
     };
 
