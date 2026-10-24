@@ -126,7 +126,12 @@ export function Section({
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b px-4 py-3">
         <div className="min-w-0">
-          <Heading id={headingId} className="text-sm font-semibold">
+          {/* tabIndex -1: a place to move focus to when the control that had it goes away. */}
+          <Heading
+            id={headingId}
+            tabIndex={headingId ? -1 : undefined}
+            className="text-sm font-semibold outline-none"
+          >
             {title}
           </Heading>
           {description && <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>}

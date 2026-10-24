@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import type { NavItem } from "@/lib/navigation";
 import { parseSidebarCollapsed, SIDEBAR_COOKIE } from "@/lib/sidebar";
 import { parseThemePreference, THEME_COOKIE } from "@/lib/theme";
+import { Toaster } from "@/components/toaster";
 import { isReviewer } from "@/server/modules/eval-review/service";
 import { getTicketCounts } from "@/server/modules/tickets/service";
 import { can } from "@/server/platform/auth/permissions";
@@ -129,6 +130,7 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
           </main>
         </div>
       </div>
+      <Toaster />
     </ShellProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { accountMenu, email, expect, signIn, signUp, test } from "./fixtures";
+import { accountMenu, audit, email, expect, signIn, signUp, test } from "./fixtures";
 
 /**
  * The M2 journey: an owner creates a workspace and invites an agent, the agent joins
@@ -95,6 +95,8 @@ test("owner sees the agent, can change their role, and sees it in the audit log"
   await expect(page.getByRole("row", { name: /Aaron Agent/ }).locator('[data-slot="badge"]')).toHaveText(
     "admin",
   );
+  const toasts = page.getByRole("region", { name: "Notifications" });
+  await expect(toasts.getByRole("dialog", { name: "Aaron Agent is now an admin" })).toBeVisible();
 
   await page.goto("/app/audit");
   const table = page.getByRole("table", { name: "Audit events" });
@@ -107,6 +109,58 @@ test("owner sees the agent, can change their role, and sees it in the audit log"
     await expect(table.getByText(text).first()).toBeVisible();
   }
   await expect(table.getByRole("cell", { name: "Olivia Owner" }).first()).toBeVisible();
+});
+
+test("destructive actions ask first, in an accessible dialog, then confirm with a toast", async ({
+  page,
+}) => {
+  await page.goto("/sign-in");
+  await signIn(page, owner);
+  await expect(page).toHaveURL(/\/app$/);
+  await page.goto("/app/members");
+  const toasts = page.getByRole("region", { name: "Notifications" });
+
+  // Cancelling an invitation: "Keep invitation" changes nothing and gives focus back.
+  const invitee = email("invitee");
+  await page.getByLabel("Email").fill(invitee);
+  await page.getByRole("button", { name: "Create invite link" }).click();
+  const pending = page.getByRole("region", { name: "Pending invitations" });
+  await expect(pending.getByText(invitee)).toBeVisible();
+  const cancel = pending.getByRole("button", { name: `Cancel invitation for ${invitee}` });
+  await cancel.click();
+  const dialog = page.getByRole("alertdialog", { name: "Cancel this invitation?" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Keep invitation" })).toBeFocused();
+  await audit(page, "cancel invitation dialog");
+  await dialog.getByRole("button", { name: "Keep invitation" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(cancel).toBeFocused();
+  await expect(pending.getByText(invitee)).toBeVisible();
+
+  await cancel.click();
+  await dialog.getByRole("button", { name: "Cancel invitation" }).click();
+  await expect(toasts.getByRole("dialog", { name: "Invitation cancelled" })).toBeVisible();
+  await expect(pending.getByText("No pending invitations")).toBeVisible();
+
+  // Removing a member: Escape backs out; confirming removes them and moves focus to the team.
+  await page.getByRole("button", { name: "Remove Aaron Agent" }).click();
+  const remove = page.getByRole("alertdialog", { name: "Remove Aaron Agent?" });
+  await expect(remove).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(remove).toBeHidden();
+  await expect(page.getByRole("row", { name: /Aaron Agent/ })).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove Aaron Agent" }).click();
+  await remove.getByRole("button", { name: "Remove member" }).click();
+  await expect(toasts.getByRole("dialog", { name: "Removed Aaron Agent" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Aaron Agent/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 2, name: "Team", exact: true })).toBeFocused();
+  await audit(page, "members after removal");
+
+  await page.goto("/app/audit");
+  const table = page.getByRole("table", { name: "Audit events" });
+  await expect(table.getByText("Removed a member").first()).toBeVisible();
+  await expect(table.getByText("Cancelled an invitation").first()).toBeVisible();
 });
 
 test("signing out ends the session", async ({ page }) => {

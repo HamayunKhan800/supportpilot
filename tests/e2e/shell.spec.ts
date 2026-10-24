@@ -134,6 +134,15 @@ test.describe("wide screens", () => {
     // Client-side navigation does not unload the page, so the menu must close itself.
     await expect(menu).toBeHidden();
 
+    // The Account page offers the same theme choice as a radio group.
+    const themes = page.getByRole("group", { name: "Theme" });
+    await expect(themes.getByRole("radio", { name: /^Device/ })).toBeChecked();
+    await themes.getByRole("radio", { name: /^Dark/ }).check();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await audit(page, "account page (dark)");
+    await themes.getByRole("radio", { name: /^Device/ }).check();
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+
     await (await accountMenu(page)).getByRole("menuitem", { name: "Keyboard shortcuts" }).click();
     await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
   });

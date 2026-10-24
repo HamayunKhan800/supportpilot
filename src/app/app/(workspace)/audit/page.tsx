@@ -1,8 +1,20 @@
+import {
+  ArrowRight,
+  BookOpen,
+  Building2,
+  type LucideIcon,
+  ScrollText,
+  SlidersHorizontal,
+  Ticket,
+  Users,
+} from "lucide-react";
 import type { Metadata } from "next";
-import { TableScroll } from "@/components/table-scroll";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Forbidden } from "@/components/forbidden";
+import { EmptyState, PageHeader } from "@/components/page";
+import { TableScroll } from "@/components/table-scroll";
+import { buttonVariants } from "@/components/ui/button";
 import { requireAppWorkspace } from "../workspace-context";
 import { getAuditPage } from "@/server/modules/workspaces/service";
 import type { AuditAction } from "@/server/platform/auth/audit";
@@ -38,6 +50,17 @@ const LABELS: Record<AuditAction, string> = {
 
 /** Rows store the action as text; anything unrecognised is shown as-is. */
 const labelFor = (action: string) => (Object.hasOwn(LABELS, action) ? LABELS[action as AuditAction] : action);
+
+/** A small, decorative icon per kind of event, so the list scans by area at a glance. */
+const AREA_ICONS: Record<string, LucideIcon> = {
+  workspace: Building2,
+  invitation: Users,
+  member: Users,
+  ticket: Ticket,
+  settings: SlidersHorizontal,
+  kb: BookOpen,
+};
+const iconFor = (action: string) => AREA_ICONS[action.split(".")[0] ?? ""] ?? ScrollText;
 
 const ACTORS: Record<string, string> = { system: "System", customer: "Customer", user: "Deleted user" };
 
@@ -88,21 +111,34 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
     if (err instanceof AppError && err.status === 403) return <Forbidden what="the audit log" />;
     throw err;
   }
+  const older = typeof after === "string";
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
-        <p className="text-muted-foreground">
-          Membership and workspace changes, newest first. Times are UTC.
-        </p>
-      </div>
+      <PageHeader
+        title="Audit log"
+        description="Who changed what: members, tickets, knowledge and AI settings, newest first. Times are UTC."
+      />
       {page.entries.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No events yet.</p>
+        <EmptyState
+          icon={ScrollText}
+          title={older ? "No older events" : "No events yet"}
+          action={
+            older ? (
+              <Link href="/app/audit" className={buttonVariants({ variant: "outline", size: "lg" })}>
+                Back to the newest events
+              </Link>
+            ) : undefined
+          }
+        >
+          {older
+            ? "You have reached the start of this workspace's history."
+            : "Changes to members, tickets, knowledge documents and AI settings are recorded here as they happen."}
+        </EmptyState>
       ) : (
         <TableScroll label="Audit events">
           <table className="w-full text-sm">
             <caption className="sr-only">Audit events</caption>
-            <thead className="bg-muted/50 text-left">
+            <thead className="bg-muted/50 text-muted-foreground text-left text-xs">
               <tr>
                 <th scope="col" className="px-4 py-2 font-medium">
                   When
@@ -116,30 +152,55 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
               </tr>
             </thead>
             <tbody>
-              {page.entries.map((e) => (
-                <tr key={e.id} className="border-t align-top">
-                  <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
-                    <time dateTime={e.createdAt.toISOString()}>{fmt.format(e.createdAt)}</time>
-                  </td>
-                  <td className="px-4 py-3">
-                    {e.actorName ??
-                      (e.metadata.source === "ai_triage" ? "AI triage" : ACTORS[e.actorType]) ??
-                      "Unknown"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>{labelFor(e.action)}</div>
-                    <div className="text-muted-foreground">{detail(e.action, e.metadata)}</div>
-                  </td>
-                </tr>
-              ))}
+              {page.entries.map((e) => {
+                const Icon = iconFor(e.action);
+                const extra = detail(e.action, e.metadata);
+                return (
+                  <tr key={e.id} className="border-t align-top">
+                    <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
+                      <time dateTime={e.createdAt.toISOString()}>{fmt.format(e.createdAt)}</time>
+                    </td>
+                    <td className="px-4 py-3">
+                      {e.actorName ??
+                        (e.metadata.source === "ai_triage" ? "AI triage" : ACTORS[e.actorType]) ??
+                        "Unknown"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-start gap-2">
+                        <Icon aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+                        <div className="min-w-0">
+                          <div>{labelFor(e.action)}</div>
+                          {extra && <div className="text-muted-foreground break-words">{extra}</div>}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </TableScroll>
       )}
-      {page.nextCursor && (
-        <Link href={`/app/audit?after=${encodeURIComponent(page.nextCursor)}`} className="text-sm underline">
-          Older events
-        </Link>
+      {(page.nextCursor || older) && (
+        <nav aria-label="Audit log pages" className="flex flex-wrap gap-2">
+          {older && page.entries.length > 0 && (
+            <Link
+              href="/app/audit"
+              className={buttonVariants({ variant: "outline", size: "lg", className: "h-10" })}
+            >
+              Newest events
+            </Link>
+          )}
+          {page.nextCursor && (
+            <Link
+              href={`/app/audit?after=${encodeURIComponent(page.nextCursor)}`}
+              className={buttonVariants({ variant: "outline", size: "lg", className: "h-10" })}
+            >
+              Older events
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          )}
+        </nav>
       )}
     </div>
   );

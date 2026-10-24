@@ -70,6 +70,15 @@ test("an owner manages the AI budget, and drafts stop and resume with it", async
   await audit(page, "/app/settings");
 
   // 2. Budget 0: the page says it's used up, and drafts stop with a clear message.
+  await expect(page.getByRole("switch", { name: "Use AI for triage and reply drafts" })).toBeChecked();
+  const threshold = page.getByLabel("Auto-apply threshold");
+  const saved = await threshold.inputValue();
+  await threshold.fill(saved === "0.9" ? "0.8" : "0.9");
+  await expect(page.getByText("Unsaved changes")).toBeVisible();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await expect(threshold).toHaveValue(saved);
+  await expect(page.getByText("Unsaved changes")).toHaveCount(0);
+
   await page.getByLabel("Monthly token budget").fill("0");
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Settings saved." })).toBeVisible();

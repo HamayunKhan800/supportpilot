@@ -118,6 +118,7 @@ test("dark theme has no serious accessibility violations", async ({ page, baseUR
   for (const path of [
     "/app",
     "/app/members",
+    "/app/settings",
     "/app/audit",
     "/app/account",
     "/app/tickets",

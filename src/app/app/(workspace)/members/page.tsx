@@ -1,35 +1,50 @@
+import { MailPlus } from "lucide-react";
 import type { Metadata } from "next";
-import { TableScroll } from "@/components/table-scroll";
 import { headers } from "next/headers";
+import { EmptyState, PageHeader, Section } from "@/components/page";
+import { TableScroll } from "@/components/table-scroll";
 import { Badge } from "@/components/ui/badge";
-import { requireAppWorkspace } from "../workspace-context";
+import { initials } from "@/lib/initials";
 import { getMembersPage } from "@/server/modules/workspaces/service";
+import { requireAppWorkspace } from "../workspace-context";
 import { InvitationRow, InviteForm, MemberActions } from "./member-controls";
 
 export const metadata: Metadata = { title: "Members" };
 
 const dateFmt = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
 
+const ROLE_BADGE: Record<string, string> = {
+  owner: "",
+  admin: "bg-brand-subtle text-brand-strong",
+  agent: "",
+};
+
 export default async function MembersPage() {
   await requireAppWorkspace(); // resolve the active workspace first (shared with the layout)
   const { ctx, canManage, canInvite, members, invitations } = await getMembersPage(await headers());
+  const memberCount = `${members.length} ${members.length === 1 ? "person" : "people"}`;
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Members</h1>
-        <p className="text-muted-foreground">People with access to {ctx.workspace.name}.</p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Members"
+        description={`People with access to ${ctx.workspace.name}. Owners and admins manage the team; agents work on tickets.`}
+      />
 
-      {canInvite && <InviteForm />}
+      {canInvite && (
+        <Section
+          id="invite"
+          title="Invite a teammate"
+          description="Email delivery arrives in a later milestone. For now, copy the link and send it yourself. Links expire after 7 days and work once, for the invited email address only."
+        >
+          <InviteForm />
+        </Section>
+      )}
 
-      <section aria-labelledby="members-heading" className="flex flex-col gap-3">
-        <h2 id="members-heading" className="text-lg font-semibold">
-          Team ({members.length})
-        </h2>
-        <TableScroll label="Team members">
+      <Section id="team" title="Team" description={memberCount} bodyClassName="p-0">
+        <TableScroll label="Team members" className="rounded-t-none rounded-b-xl border-0">
           <table className="w-full text-sm">
             <caption className="sr-only">Workspace members and their roles</caption>
-            <thead className="bg-muted/50 text-left">
+            <thead className="bg-muted/50 text-muted-foreground text-left text-xs">
               <tr>
                 <th scope="col" className="px-4 py-2 font-medium">
                   Name
@@ -51,16 +66,31 @@ export default async function MembersPage() {
               {members.map((m) => (
                 <tr key={m.memberId} className="border-t">
                   <td className="px-4 py-3">
-                    <div className="font-medium">
-                      {m.name}
-                      {m.userId === ctx.user.id && <span className="text-muted-foreground"> (you)</span>}
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="bg-muted text-muted-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                      >
+                        {initials(m.name)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-medium">
+                          {m.name}
+                          {m.userId === ctx.user.id && <span className="text-muted-foreground"> (you)</span>}
+                        </div>
+                        <div className="text-muted-foreground break-all">{m.email}</div>
+                      </div>
                     </div>
-                    <div className="text-muted-foreground">{m.email}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={m.role === "owner" ? "default" : "secondary"}>{m.role}</Badge>
+                    <Badge
+                      variant={m.role === "owner" ? "default" : "secondary"}
+                      className={ROLE_BADGE[m.role]}
+                    >
+                      {m.role}
+                    </Badge>
                   </td>
-                  <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
+                  <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap sm:table-cell">
                     {dateFmt.format(m.joinedAt)}
                   </td>
                   {canManage && (
@@ -75,17 +105,25 @@ export default async function MembersPage() {
             </tbody>
           </table>
         </TableScroll>
-      </section>
+      </Section>
 
       {canInvite && (
-        <section aria-labelledby="invites-heading" className="flex flex-col gap-3">
-          <h2 id="invites-heading" className="text-lg font-semibold">
-            Pending invitations ({invitations.length})
-          </h2>
+        <Section
+          id="invites"
+          title="Pending invitations"
+          description={
+            invitations.length === 0
+              ? "Nobody is waiting to join."
+              : `${invitations.length} waiting to be accepted`
+          }
+          bodyClassName={invitations.length === 0 ? undefined : "p-0"}
+        >
           {invitations.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No pending invitations.</p>
+            <EmptyState icon={MailPlus} title="No pending invitations" className="border-0 py-6">
+              Invite links you create above appear here until they are used, cancelled or expire.
+            </EmptyState>
           ) : (
-            <ul className="flex flex-col divide-y rounded-lg border">
+            <ul className="flex flex-col divide-y">
               {invitations.map((i) => (
                 <InvitationRow
                   key={i.id}
@@ -97,7 +135,7 @@ export default async function MembersPage() {
               ))}
             </ul>
           )}
-        </section>
+        </Section>
       )}
     </div>
   );

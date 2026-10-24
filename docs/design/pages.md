@@ -1,7 +1,8 @@
 # Workspace pages
 
-Design system step 4 (`docs/plans/design-system.md` §5). This note covers the shared page building blocks and the pages
-redesigned so far; the admin pages follow in step 4c.
+Design system step 4 (`docs/plans/design-system.md` §5). This note covers the shared page building blocks and every
+workspace page except the ticket inbox (`docs/design/inbox.md`): Overview and Knowledge (4a), Analytics and Evaluation
+(4b), and the admin pages: Members, AI settings, Audit log, Review and Account (4c).
 
 ## Shared building blocks
 
@@ -16,6 +17,21 @@ redesigned so far; the admin pages follow in step 4c.
 | `EmptyState` | Dashed box: icon, one line, explanation, optional next action                                    | Every empty list says what would fill it.                                                                                                        |
 | `TabNav`     | Underlined links between sibling pages, `aria-current="page"` on the current one                 | For Analytics / Evaluation (step 4b).                                                                                                            |
 | `MeterBar`   | A thin bar with an optional marker line                                                          | Decorative (`aria-hidden`): the number is always in the text beside it. SVG geometry, not inline `style`, because the CSP forbids inline styles. |
+
+Step 4c adds feedback and safety blocks, available to every workspace page (used by the admin pages so far):
+
+| Block                                  | What it is                                                                                                                             | Notes                                                                                                                                                                                                                                         |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ConfirmDialog`                        | `src/components/confirm-dialog.tsx`: a Base UI AlertDialog in front of destructive actions; replaces `window.confirm`                  | Focus starts on the safe button; Escape or "Keep…/Cancel" changes nothing and returns focus to the trigger. Errors show inside the dialog, which stays open. After a confirmed removal, focus moves to the section heading (the row is gone). |
+| `notify` + `Toaster`                   | `src/lib/toast.ts`, `src/components/toaster.tsx`: one Base UI Toast queue for the workspace                                            | Only for actions with no message of their own on the page (role changed, member removed, invitation cancelled, link copied). Inline form messages stay where they were. Polite announcements; errors use high priority and stay 8 s.          |
+| `FormSection`                          | `src/components/form-section.tsx`: a settings group, title and explanation on the left, controls on the right                          | Stacks on phones. A `role="group"` named by its title.                                                                                                                                                                                        |
+| Error page                             | `src/app/app/(workspace)/error.tsx`                                                                                                    | Renders inside the app shell, so the sidebar keeps working. "Try again" calls Next.js's `retry()`, which re-fetches the page; the reference matches the server log.                                                                           |
+| `Section` heading focus, `TableScroll` | Section headings with an `id` take programmatic focus (`tabIndex=-1`); `TableScroll` takes a `className` to sit flush inside a Section | Used as focus targets by `ConfirmDialog`.                                                                                                                                                                                                     |
+
+**No route-level loading skeleton.** A `loading.tsx` was tried and removed: with a Suspense boundary around the page,
+React streams parts of it late, and a part that lands inside an SVG chart is sent as `<svg style="display:none">`.
+The strict nonce CSP blocks that inline style (the E2E CSP check caught it on Analytics, intermittently). Pages render
+on the server in one piece instead; buttons show their own pending text ("Saving…", "Working…").
 
 ## Overview
 
@@ -92,6 +108,45 @@ Each result now shows **why it ranked** and **what a draft would do**:
 - The mock-run and unfinished-run notices are info and warning callouts; an empty provider shows an empty state with
   the command that fills it.
 
+## Members
+
+- Page header, then three sections: **Invite a teammate** (form; the new link appears in a tinted box with Copy),
+  **Team** (table flush in the section: initials avatar, name and email, role badge, joined date, actions) and
+  **Pending invitations** (rows with Copy link / Cancel; an empty state when none).
+- Role badges: owner solid brand, admin brand tint, agent neutral.
+- Changing a role saves at once and confirms with a toast ("Aaron Agent is now an admin"); if it fails, the select
+  goes back to the role they still have and the error shows under it.
+- **Remove** and **Cancel invitation** ask first in a `ConfirmDialog` that says what happens ("They lose access to
+  this workspace straight away. You can invite them again later."). Cancel's safe button reads "Keep invitation", so
+  two "Cancel" buttons never sit side by side.
+- Cancelling an invitation now reports errors (before, a failure was silent). Clipboard failures (it needs HTTPS)
+  show an error toast asking the user to copy the link by hand.
+
+## AI settings
+
+- Page header; **This month's usage** and **Settings** are Sections.
+- The form is four `FormSection` groups: **AI features** (one switch), **Budget**, **Triage** (auto-apply threshold
+  and categories) and **Reply drafts** (minimum match score).
+- The AI switch is a native checkbox with `role="switch"`, drawn with CSS only; keyboard and form behaviour are the
+  checkbox's own.
+- A footer row holds **Save settings**; once something changes, **Discard changes** and the note "Unsaved changes"
+  appear beside it. Saving keeps the existing inline "Settings saved." message (no toast, so it isn't announced twice).
+- Category chips use an icon remove button (32 px target) with the name in its label ("Remove feature-request").
+
+## Audit log
+
+- Page header with an honest description (members, tickets, knowledge and AI settings, not only membership).
+- Each event has a small decorative icon for its area (people, ticket, knowledge, settings, workspace).
+- Empty state explains what will be recorded; past the last page it says so and links back to the newest events.
+- "Older events" / "Newest events" are outline buttons in a labelled `nav`.
+
+## Review and Account
+
+- **Review:** shared page header with the "N of M checked" total as a pill on the right; the Start / Continue links use
+  the shared button style. The item page is unchanged (its tests depend on the existing link text).
+- **Account:** **Profile** (initials avatar, name, email, role in this workspace), **Appearance** (Device / Light /
+  Dark as a radio group, the same preference as the account menu and command palette) and **Change password**.
+
 ## Tests
 
 - Unit: `tests/unit/highlight.test.ts` (terms, stemming, stop words, no regex injection, the segments rebuild the text);
@@ -101,3 +156,11 @@ Each result now shows **why it ranked** and **what a draft would do**:
   theme; `drafts.spec.ts` audits the overview in the dark theme with tickets and checks it shows "AI draft ready".
 - `analytics.spec.ts` checks the key numbers' change line, the status legend and the Met / Not met chips;
   `theme.spec.ts` audits both analytics pages in the dark theme.
+- Step 4c: `workspace-journey.spec.ts` checks the role-change toast, then a new test cancels an invitation (Keep
+  invitation first: focus returns, nothing changes; then confirm: toast and empty state) and removes a member (Escape
+  backs out; confirm: toast, row gone, focus on the Team heading), auditing the dialog and the page with axe, and
+  finds both events in the audit log. `settings.spec.ts` checks the switch role and Discard changes; `shell.spec.ts`
+  switches theme from the Account page and audits it in the dark theme; `accessibility.spec.ts` and `theme.spec.ts`
+  now audit AI settings in both themes. `tests/unit/initials.test.ts` covers the shared avatar initials.
+- Not covered by an automated test: the workspace error page (it needs a server error to appear); it is type-checked
+  and built.

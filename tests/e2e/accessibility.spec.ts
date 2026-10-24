@@ -20,7 +20,7 @@ test("signed-in pages have no serious accessibility violations", async ({ page }
   await page.getByRole("button", { name: "Create workspace" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Accessible Co" })).toBeVisible();
 
-  for (const path of ["/app", "/app/members", "/app/audit", "/app/account"]) {
+  for (const path of ["/app", "/app/members", "/app/settings", "/app/audit", "/app/account"]) {
     await page.goto(path);
     await audit(page, path);
   }

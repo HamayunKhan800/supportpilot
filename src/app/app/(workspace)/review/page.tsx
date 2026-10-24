@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
+import { PageHeader } from "@/components/page";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getReviewOverview } from "@/server/modules/eval-review/service";
 import { requireAppWorkspace } from "../workspace-context";
@@ -16,17 +18,18 @@ export default async function ReviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Review</h1>
-        <p className="text-muted-foreground">
-          The human check in the evaluation plan. The test data was written with AI help, so a person checks a
-          sample of it. Your answers are exported to the repository and every ❌ gets fixed. Only reviewers
-          listed in the server settings see this page.
-        </p>
-        <p className="text-sm" data-testid="review-total">
-          {reviewed} of {total} checked
-        </p>
-      </div>
+      <PageHeader
+        title="Review"
+        description="The human check in the evaluation plan. The test data was written with AI help, so a person checks a sample of it. Your answers are exported to the repository and every ❌ gets fixed. Only reviewers listed in the server settings see this page."
+        actions={
+          <p
+            className="bg-muted rounded-md px-2.5 py-1 text-sm font-medium tabular-nums"
+            data-testid="review-total"
+          >
+            {reviewed} of {total} checked
+          </p>
+        }
+      />
 
       <ul className="flex flex-col gap-4">
         {sets.map((s) => {
@@ -67,7 +70,7 @@ export default async function ReviewPage() {
                         href={`/app/review/${s.set}`}
                         // The visible word first, then which set (WCAG 2.5.3 label in name).
                         aria-label={`${action}: ${s.title}`}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-medium sm:w-fit"
+                        className={buttonVariants({ size: "lg", className: "h-11 w-full px-4 sm:w-fit" })}
                       >
                         {action}
                       </Link>
