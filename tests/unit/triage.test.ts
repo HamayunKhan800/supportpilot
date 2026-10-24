@@ -10,7 +10,11 @@ import {
   stripHiddenCharacters,
   type ThreadMessage,
 } from "@/server/modules/ai/untrusted";
-import { decideTriage, type TriageDecisionInput } from "@/server/modules/triage/decide";
+import {
+  decideTriage,
+  DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD,
+  type TriageDecisionInput,
+} from "@/server/modules/triage/decide";
 import { mockTriageResponder } from "@/server/modules/triage/mock-responder";
 import {
   buildTriagePrompt,
@@ -188,6 +192,19 @@ describe("decideTriage (D5: never overwrite a human)", () => {
     expect(decideTriage(base)).toEqual({ applyCategory: true, applyPriority: true, needsReview: false });
   });
 
+  it("defaults to 0.95 (M6 baseline): the mock's confident answers apply, one-keyword ones wait", () => {
+    expect(DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD).toBe(0.95);
+    const at = (confidence: number) =>
+      decideTriage({
+        ...base,
+        threshold: DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD,
+        suggestion: { ...base.suggestion, confidence },
+      });
+    expect(at(0.97)).toMatchObject({ applyCategory: true, needsReview: false });
+    expect(at(0.9)).toMatchObject({ applyCategory: false, needsReview: true });
+    expect(at(0.75)).toMatchObject({ applyCategory: false, needsReview: true });
+  });
+
   it("applies at exactly the threshold, and only suggests below it", () => {
     expect(decideTriage({ ...base, suggestion: { ...base.suggestion, confidence: 0.7 } }).applyCategory).toBe(
       true,
@@ -252,7 +269,7 @@ describe("mock triage model", () => {
     expect(triageOutputSchema(CATEGORIES).parse(answer)).toMatchObject({
       category: "billing",
       priority: "high",
-      confidence: 0.9,
+      confidence: 0.97,
     });
   });
 
@@ -307,7 +324,7 @@ describe("mock triage model", () => {
       { workspaceId: "ws" },
       { feature: "triage", system: p.system, prompt: p.prompt, schema: triageOutputSchema(CATEGORIES) },
     );
-    expect(result.object).toMatchObject({ category: "bug", confidence: 0.9 });
+    expect(result.object).toMatchObject({ category: "bug", confidence: 0.97 });
     expect(result.modelId).toBe("mock-llm");
   });
 });

@@ -92,6 +92,13 @@
       "when": 1792751475775,
       "tag": "0012_m6_grade_feature",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792820794876,
+      "tag": "0013_m6_triage_threshold",
+      "breakpoints": true
     }
   ]
 }

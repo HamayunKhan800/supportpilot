@@ -6,8 +6,9 @@ import type { MockRequest } from "@/server/modules/ai/mock-model";
  * measures: M6 measures Gemini. It reads only the user prompt (the <ticket> block), and takes
  * the allowed categories from the JSON Schema the SDK sends, exactly like a real model.
  *
- * Confidence: 0.9 with two or more keyword hits for the chosen category, 0.75 with one, 0.4
- * with none, so both the "applied" and the "needs review" paths show up in a demo.
+ * Confidence: 0.97 with two or more keyword hits for the chosen category, 0.75 with one, 0.4
+ * with none, so both the "applied" and the "needs review" paths show up in a demo under the
+ * default threshold of 0.95 (0.9 before the M6 baseline raised the default from 0.7).
  */
 
 const CATEGORY_KEYWORDS: Record<string, readonly string[]> = {
@@ -129,7 +130,7 @@ export function mockTriageResponder(request: MockRequest): string {
     priority,
     sentiment,
     language: guessLanguage(text),
-    confidence: best.found.length >= 2 ? 0.9 : best.found.length === 1 ? 0.75 : 0.4,
+    confidence: best.found.length >= 2 ? 0.97 : best.found.length === 1 ? 0.75 : 0.4,
     reason: best.found.length
       ? `Mentions ${best.found.slice(0, 3).join(", ")}.`
       : "No clear signal in the request; best guess.",

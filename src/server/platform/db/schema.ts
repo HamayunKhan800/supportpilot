@@ -33,6 +33,7 @@ import {
   EVAL_SUITES,
 } from "../../modules/eval/constants";
 import { DEFAULT_RETRIEVAL_MIN_SCORE } from "../../modules/kb/retrieval";
+import { DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD } from "../../modules/triage/decide";
 
 /**
  * Drizzle schema. Application tables are added milestone by milestone:
@@ -59,7 +60,10 @@ export const workspaceSettings = pgTable(
       .default(sql`'{}'::text[]`),
     aiEnabled: boolean("ai_enabled").notNull().default(true),
     monthlyTokenBudget: integer("monthly_token_budget").notNull().default(1_000_000),
-    triageConfidenceThreshold: real("triage_confidence_threshold").notNull().default(0.7),
+    /** Triage labels are applied without review at or above this. See DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD (0.7 before M6). */
+    triageConfidenceThreshold: real("triage_confidence_threshold")
+      .notNull()
+      .default(DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD),
     /**
      * Drafts are refused without a model call when the best passage scores below this (M5 D7).
      * See DEFAULT_RETRIEVAL_MIN_SCORE (M6 threshold analysis; 0.65 before, finding #87).

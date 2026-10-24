@@ -3,7 +3,7 @@ import { audit, email, expect, signIn, signUp, test, waitForTriage } from "./fix
 /**
  * M5 step 2 through the real stack: the portal queues triage, the worker (mock model) labels
  * the ticket, and the agent sees the result, filters "Needs review" and accepts a suggestion.
- * Mock model: two keyword hits → 90% (applied), none → 40% (needs review).
+ * Mock model: two keyword hits → 97% (applied at the default 0.95), none → 40% (needs review).
  */
 test("AI triage labels new requests and agents review its suggestions", async ({
   page,
@@ -52,7 +52,7 @@ test("AI triage labels new requests and agents review its suggestions", async ({
   const card = page.getByTestId("triage-card");
   await expect(card.getByRole("heading", { name: "AI triage" })).toBeVisible();
   await expect(card).toContainText("Applied automatically: category and priority.");
-  await expect(card).toContainText("90%");
+  await expect(card).toContainText("97%");
   await expect(page.getByLabel("Category")).toHaveValue("billing");
   await expect(page.getByLabel("Priority")).toHaveValue("high");
 
@@ -60,7 +60,7 @@ test("AI triage labels new requests and agents review its suggestions", async ({
   await page.goto("/app/tickets/2");
   await expect(card).toContainText("Needs review");
   await expect(card).toContainText("40%");
-  await expect(card).toContainText("confidence is below 70%");
+  await expect(card).toContainText("confidence is below 95%");
   await expect(page.getByLabel("Category")).toHaveValue("");
   await audit(page, "/app/tickets/{number} (triage card)");
   await card.getByRole("button", { name: "Accept suggestion" }).click();

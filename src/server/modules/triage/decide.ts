@@ -1,6 +1,15 @@
 import type { TicketPriority } from "@/server/modules/tickets/types";
 
 /**
+ * Default auto-apply threshold for new workspaces (admins can change it on the AI settings page).
+ * 0.95 from the M6 Gemini baseline (docs/eval/m6-baseline.md, finding 1): at the earlier 0.7 the
+ * model rated 149 of 150 test tickets above the bar, so all 19 wrong categories were applied
+ * without review; at 0.95, 22% went to a person and 13 of the 19 were caught. Read off the same
+ * 150 tickets, so it should be re-checked on new data.
+ */
+export const DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD = 0.95;
+
+/**
  * D5, "triage never overwrites a human", as a pure function. A label is written to the
  * ticket only when all of these hold:
  *  - the model is confident enough (confidence ≥ the workspace threshold),

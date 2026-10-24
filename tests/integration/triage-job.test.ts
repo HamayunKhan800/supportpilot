@@ -181,7 +181,7 @@ describe("applying a suggestion (D5)", () => {
       category: "billing",
       priority: "high",
       language: "en",
-      confidence: expect.closeTo(0.9, 5),
+      confidence: expect.closeTo(0.97, 5),
       appliedCategory: true,
       appliedPriority: true,
       needsReview: false,
@@ -231,7 +231,7 @@ describe("applying a suggestion (D5)", () => {
   it("respects a stricter threshold set by the workspace", async () => {
     await db()
       .update(workspaceSettings)
-      .set({ triageConfidenceThreshold: 0.95 })
+      .set({ triageConfidenceThreshold: 0.99 }) // above the mock's confident 0.97
       .where(eq(workspaceSettings.workspaceId, acmeId));
     const t = await newTicket(...CHARGED_TWICE);
     expect(await run(t.id)).toMatchObject({

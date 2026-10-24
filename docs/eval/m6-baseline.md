@@ -79,20 +79,26 @@ specific category.
 ## Findings
 
 1. **Triage's auto-apply rule does not catch mistakes.** A label is applied without review when
-   the model's self-rated confidence is at least 0.7 (the default in AI settings). The model rated
+   the model's self-rated confidence is at least 0.7 (the default in AI settings during this run). The model rated
    149 of 150 tickets at 0.8 or higher, so all 19 wrong categories were applied automatically.
    Confidence does carry a signal at the top of the scale:
 
-   | Auto-apply at         | Sent to a person | Wrong labels caught | Accuracy of auto-applied labels |
-   | --------------------- | ---------------- | ------------------- | ------------------------------- |
-   | 0.7 (current default) | 1 (0.7%)         | 0 of 19             | 87.2% (130 of 149)              |
-   | 0.9                   | 6 (4%)           | 4 of 19             | 89.6% (129 of 144)              |
-   | 0.95                  | 33 (22%)         | 13 of 19            | 94.9% (111 of 117)              |
-   | 1.0                   | 96 (64%)         | 15 of 19            | 92.6% (50 of 54)                |
+   | Auto-apply at     | Sent to a person | Wrong labels caught | Accuracy of auto-applied labels |
+   | ----------------- | ---------------- | ------------------- | ------------------------------- |
+   | 0.7 (old default) | 1 (0.7%)         | 0 of 19             | 87.2% (130 of 149)              |
+   | 0.9               | 6 (4%)           | 4 of 19             | 89.6% (129 of 144)              |
+   | 0.95              | 33 (22%)         | 13 of 19            | 94.9% (111 of 117)              |
+   | 1.0               | 96 (64%)         | 15 of 19            | 92.6% (50 of 54)                |
 
    0.95 looks like the better default, but it was read off the same 150 tickets, so it should be
    confirmed on new tickets before relying on it. Agents always see triage as a suggestion they
    can change. A wrong category only affects sorting and filtering, never what a customer is sent.
+
+   **Action taken:** the default for new workspaces is now 0.95
+   (`DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD`, migration `0013_m6_triage_threshold.sql`). Existing
+   workspaces keep their saved value, because an admin may have chosen it; they can change it
+   on the AI settings page. The mock model's confident answer moved from 0.9 to 0.97 so that the
+   offline demo and tests still show both the "applied" and the "needs review" paths.
 
 2. **Drafts mostly measure the fallback model.** `gemini-3.8-flash` timed out, was overloaded or
    hit its daily limit on most calls, so `gemini-3.5-flash-lite` wrote 132 of 140 drafts, the main

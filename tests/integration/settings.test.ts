@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_RETRIEVAL_MIN_SCORE } from "@/server/modules/kb/retrieval";
+import { DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD } from "@/server/modules/triage/decide";
 
 import { AiSettingsView, Problem } from "@/server/api/schemas";
 import { createAiGateway, createPostgresLedger, type AiGatewayOptions } from "@/server/modules/ai/gateway";
@@ -122,7 +123,7 @@ describe("reading the settings", () => {
       version: 1,
       aiEnabled: true,
       monthlyTokenBudget: 1_000_000,
-      triageConfidenceThreshold: 0.7,
+      triageConfidenceThreshold: DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD, // 0.95 since the M6 baseline
       retrievalMinScore: DEFAULT_RETRIEVAL_MIN_SCORE, // the migrated database default matches the code
       categories: DEFAULT_CATEGORIES,
       // Tests run with the offline mock embedder, which has its own floor (finding #89).

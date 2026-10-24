@@ -8,6 +8,7 @@ import { Errors } from "@/server/platform/errors";
 import { logger } from "@/server/platform/logger";
 import { consumeRateLimit, rateLimitKey, type RateLimitRule } from "@/server/platform/rate-limit";
 import { listMembers } from "@/server/modules/workspaces/repository";
+import { DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD } from "@/server/modules/triage/decide";
 import * as triageRepo from "@/server/modules/triage/repository";
 import { canAgentPost, canAgentTransition, canCustomerReply, statusAfterCustomerReply } from "./lifecycle";
 import * as repo from "./repository";
@@ -214,7 +215,7 @@ async function ticketDetail(ctx: WorkspaceContext, t: repo.Ticket) {
     triage,
     assignees: members.map((m) => ({ id: m.userId, name: m.name })),
     categories: settings?.categories ?? [],
-    triageThreshold: settings?.triageConfidenceThreshold ?? 0.7,
+    triageThreshold: settings?.triageConfidenceThreshold ?? DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD,
   };
 }
 

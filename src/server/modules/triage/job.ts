@@ -10,7 +10,7 @@ import { transaction } from "@/server/platform/db/tx";
 import type { AiTriagePayload } from "@/server/platform/jobs/queues";
 import { logger as defaultLogger } from "@/server/platform/logger";
 
-import { decideTriage } from "./decide";
+import { decideTriage, DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD } from "./decide";
 import {
   buildTriagePrompt,
   normalizeTriage,
@@ -162,7 +162,7 @@ export async function runTriageJob(
   }
 
   const suggestion = normalizeTriage(result.object);
-  const threshold = settings?.triageConfidenceThreshold ?? 0.7;
+  const threshold = settings?.triageConfidenceThreshold ?? DEFAULT_TRIAGE_CONFIDENCE_THRESHOLD;
 
   const outcome = await transaction(async (tx): Promise<TriageOutcome> => {
     const current = await lockTicketLabels(tx, workspaceId, ticketId);
