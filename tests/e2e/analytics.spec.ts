@@ -53,8 +53,9 @@ test.beforeAll(async () => {
     );
     runIds.push(rows[0]!.id);
   };
-  await insert(rate(120, 150, 0.73, 0.86), 10, "completed");
-  await insert(rate(132, 150, 0.82, 0.92), 5, "stopped");
+  // The headline is the newest complete run; the newer partial one is announced and in the trend.
+  await insert(rate(132, 150, 0.82, 0.92), 10, "completed");
+  await insert(rate(120, 150, 0.73, 0.86), 5, "stopped");
 });
 
 test.afterAll(async () => {
@@ -127,14 +128,18 @@ test("usage: a triaged request appears, periods switch, charts have a table", as
   await expect(period.getByRole("link", { name: "Last 30 days" })).toHaveAttribute("aria-current", "true");
 });
 
-test("evaluation: latest run with its range and target, partial-run notice, trend", async ({
+test("evaluation: latest complete run with its range and target, newer partial run notice, trend", async ({
   page,
 }, info) => {
   await ownerWithOneTriagedRequest(page, `${info.project.name}-eval`);
   await page.goto("/app/analytics/evaluation?provider=mock");
   await expect(page.getByRole("heading", { level: 1, name: "Analytics" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: /Latest Mock run/ })).toContainText("Partial");
-  await expect(page.getByText("Stopped because: call budget of 60 reached.")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /Latest complete Mock run/ })).toContainText(
+    "Complete",
+  );
+  const newer = page.getByRole("paragraph").filter({ hasText: "A newer run is not finished." });
+  await expect(newer).toContainText("measured 260 items with prompts triage: triage.v1.");
+  await expect(newer).toContainText("Stopped because: call budget of 60 reached.");
   await expect(page.getByText(/scripted stand-in plays the AI/)).toBeVisible();
 
   const category = page
@@ -163,7 +168,7 @@ test("evaluation: latest run with its range and target, partial-run notice, tren
 
   await expect(page.getByRole("heading", { level: 2, name: "Trend across runs" })).toBeVisible();
   await expect(
-    page.getByRole("img", { name: /^Category accuracy by run, oldest first\. .*80%.*88%/ }),
+    page.getByRole("img", { name: /^Category accuracy by run, oldest first\. .*88%.*80%/ }),
   ).toBeVisible();
   await audit(page, "analytics evaluation");
 });

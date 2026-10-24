@@ -68,13 +68,13 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 
 ## Evaluation (real Gemini models)
 
-One complete run of 420 test items on the Gemini free tier, finished on 24 October 2026. It used `gemini-3.5-flash-lite` for triage and grading, and `gemini-3.8-flash` for drafts with `gemini-3.5-flash-lite` as the fallback. The ranges are 95% Wilson intervals. Full report, method and raw results: [`docs/eval/m6-baseline.md`](docs/eval/m6-baseline.md).
+One complete run of 420 test items on the Gemini free tier, finished on 24 October 2026, plus a second triage run that compared two prompts. The runs used `gemini-3.5-flash-lite` for triage and grading, and `gemini-3.8-flash` for drafts with `gemini-3.5-flash-lite` as the fallback. The ranges are 95% Wilson intervals. Full report, method and raw results: [`docs/eval/m6-baseline.md`](docs/eval/m6-baseline.md).
 
 | What is measured                                                            | Result        | 95% range               | Items | Target |
 | --------------------------------------------------------------------------- | ------------- | ----------------------- | ----- | ------ |
 | Right article in the top 5 search results (recall@5)                        | 99.1%         | 95.0–99.8%              | 110   | ≥ 90%  |
-| Triage category correct                                                     | 87.3%         | 81.1–91.7%              | 150   | ≥ 85%  |
-| Triage priority exact / within one level                                    | 73.3% / 99.3% | 65.7–79.8% / 96.3–99.9% | 150   | none   |
+| Triage category correct (prompt v2)                                         | 94.0%         | 89.0–96.8%              | 150   | ≥ 85%  |
+| Triage priority exact / within one level (prompt v2)                        | 91.3% / 99.3% | 85.7–94.9% / 96.3–99.9% | 150   | none   |
 | Citations pointing at a passage the model was given                         | 100%          | 97.2–100%               | 133   | 100%   |
 | Unanswerable questions declined                                             | 100%          | 88.6–100%               | 30    | ≥ 90%  |
 | Answerable questions wrongly declined                                       | 1.8%          | 0.5–6.4%                | 110   | ≤ 10%  |
@@ -87,9 +87,11 @@ One complete run of 420 test items on the Gemini free tier, finished on 24 Octob
 | Draft, first text on screen | 0.9 s         | 9.3 s      |
 | Draft, complete             | 13.7 s        | 28.5 s     |
 
-**Cost:** about **$0.18 for the whole run** at paid-tier prices (roughly $0.0005 per draft and $0.0003 per triage), and $0 on the free tier.
+**Triage prompt v1 vs v2.** The app now uses triage prompt v2, which spells out the labelling rules. It was written and frozen before it was measured, and the rule for adopting it was fixed in advance: better on category or priority with p < 0.025 (exact McNemar test on the same 150 tickets), and worse on neither. Priority went from 73.3% to 91.3% (p < 0.001) and category from 87.3% to 94.0% (p = 0.031, which on its own does not pass the bar). v2's rules come from the same rubric used to label the tickets, so part of the gain may be the prompt matching the labeller. Details: [`docs/eval/triage-v1-v2.md`](docs/eval/triage-v1-v2.md).
 
-**Read with care.** Every point estimate meets its target. For three of them, though, the lower end of the range is below target: triage (81.1 vs 85), refusals (88.6 vs 90) and injection (83.9 vs 100). The samples are small, and the data is synthetic (a 35-article help centre for a made-up company). The main draft model often timed out or was overloaded on the free tier, so the fallback model wrote 132 of the 140 drafts. More caveats are under [Limitations](#limitations). CI runs the same evaluation on every push with the deterministic mock AI, and fails if a result drops below its floor. The Gemini run is started by hand, behind a protected GitHub environment.
+**Cost:** about **$0.18 for the whole 420-item run** at paid-tier prices (roughly $0.0005 per draft and $0.0003 per triage with prompt v1), and $0 on the free tier. Prompt v2 is longer, so a triage costs about $0.0006.
+
+**Read with care.** Every point estimate meets its target. For two of them, though, the lower end of the range is below target: refusals (88.6 vs 90) and injection (83.9 vs 100). The samples are small, and the data is synthetic (a 35-article help centre for a made-up company). The main draft model often timed out or was overloaded on the free tier, so the fallback model wrote 132 of the 140 drafts. More caveats are under [Limitations](#limitations). CI runs the same evaluation on every push with the deterministic mock AI, and fails if a result drops below its floor. The Gemini run is started by hand, behind a protected GitHub environment.
 
 ## Architecture
 
@@ -173,7 +175,7 @@ Threat model: [docs/03](docs/03-threat-model.md) (STRIDE, OWASP Top 10:2025, OWA
 
 | Layer         | What runs                                                                                                                                                                                                                                                |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit          | 1,230 tests. Coverage thresholds: 80% lines, functions and statements, and 75% branches.                                                                                                                                                                 |
+| Unit          | 1,242 tests. Coverage thresholds: 80% lines, functions and statements, and 75% branches.                                                                                                                                                                 |
 | Integration   | 508 tests on real PostgreSQL + pgvector: services, the REST API, tenancy, the job worker, and the prompt-injection set.                                                                                                                                  |
 | End to end    | 15 Playwright suites on desktop and mobile Chromium against the production build: 63 pass, and 6 are skipped by design (desktop-only or mobile-only checks). They include axe scans in both themes, 20 visual baselines and a keyboard-only walkthrough. |
 | AI evaluation | The full evaluation with the mock AI on every push, with floors. The Gemini run is manual only, behind a protected environment.                                                                                                                          |
@@ -191,7 +193,7 @@ AI coding assistants were used to build this project, under a written policy: AI
 - **Triage:**
   - The 0.95 threshold was chosen on the same 150 tickets it was measured on, so it needs confirming on new data.
   - Existing workspaces keep the threshold they had saved.
-  - Comparing the v1 and v2 triage prompts on Gemini is still open.
+  - Prompt v2 was measured on the same 150 tickets whose labelling rubric it was written from, with one run on one model.
 - **The Gemini free tier may use inputs to improve Google's products,** so use demo data only.
 - **No outbound email:** invite and tracking links are copied and shared by hand.
 - **English-only interface**; the AI detects the customer's language.
@@ -252,7 +254,7 @@ docker compose --profile full up --build
 | `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                                        |
 | `pnpm db:generate` / `db:migrate` | create / apply migrations                                                                                        |
 | `pnpm db:seed-demo`               | demo workspace, users, tickets and knowledge base (needs `DEMO_PASSWORD`)                                        |
-| `pnpm eval`                       | the full evaluation with 95% intervals (`--check-floors`, `--provider gemini`, `--resume`, `--triage-prompt v2`) |
+| `pnpm eval`                       | the full evaluation with 95% intervals (`--check-floors`, `--provider gemini`, `--resume`, `--triage-prompt v1`) |
 | `pnpm eval:retrieval`             | retrieval eval: recall@5, MRR@5, latency, cost (`--grid`, `--provider gemini`)                                   |
 | `pnpm eval:threshold`             | refusal threshold analysis from cached Gemini embeddings (no API calls)                                          |
 | `pnpm kb:reembed`                 | re-embed a workspace's knowledge base after changing the embedding model                                         |

@@ -6,7 +6,7 @@
  *   pnpm eval --check-floors           # ... and fail below eval/floors.json (CI does this)
  *   GEMINI_API_KEY=... pnpm eval --provider gemini            # on demand, budgeted
  *   GEMINI_API_KEY=... pnpm eval --provider gemini --resume   # continue the stopped run
- *   pnpm eval --triage-prompt v2       # measure another triage prompt (the app keeps its own)
+ *   pnpm eval --triage-prompt v1       # measure another triage prompt (default: the app's own, v2)
  *
  * Every item is saved to the database (eval_run / eval_item) as soon as it is measured, so a
  * run that stops keeps what it measured; --resume measures only what is missing, and refuses
@@ -55,7 +55,7 @@ const { values } = parseArgs({
     floors: { type: "string", default: "eval/floors.json" },
     out: { type: "string", default: "eval/results" },
     cache: { type: "string", default: "eval/cache" },
-    "triage-prompt": { type: "string", default: "v1" },
+    "triage-prompt": { type: "string" },
   },
 });
 
@@ -74,7 +74,7 @@ async function main() {
   const maxCalls = int("max-calls", values["max-calls"] ?? (provider === "gemini" ? "60" : "100000"));
   const gapMs = int("gap-ms", values["gap-ms"] ?? (provider === "gemini" ? "7000" : "0"));
   const floors = values["check-floors"] ? loadFloors(values.floors, provider) : null;
-  const triagePrompt = `triage.${values["triage-prompt"]}`;
+  const triagePrompt = values["triage-prompt"] ? `triage.${values["triage-prompt"]}` : TRIAGE_PROMPT_VERSION;
   if (!isTriagePromptVersion(triagePrompt)) {
     throw new Error(
       `--triage-prompt must be one of: ${TRIAGE_PROMPT_VERSIONS.map((v) => v.slice(7)).join(", ")}`,

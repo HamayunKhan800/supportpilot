@@ -20,6 +20,7 @@ import {
 import { DEFAULT_ANALYTICS_PERIOD, parsePeriod, parseProvider } from "@/server/modules/analytics/periods";
 import {
   EVAL_METRICS,
+  headlineRun,
   itemsMeasured,
   meetsTarget,
   metricValues,
@@ -287,5 +288,26 @@ describe("sparkPoints", () => {
     ]);
     expect(sparkPoints([3], { width: 10, height: 4 })).toEqual([{ x: 5, y: 0 }]);
     expect(sparkPoints([], { width: 10, height: 4 })).toEqual([]);
+  });
+});
+
+describe("headlineRun", () => {
+  const run = (id: string, status: string) => ({ id, status });
+
+  it("leads with the newest complete run, even when a newer run is partial", () => {
+    // M6: a triage-only prompt comparison run is newer than the full baseline.
+    const runs = [run("v2-triage-only", "stopped"), run("baseline", "completed"), run("old", "completed")];
+    expect(headlineRun(runs)).toEqual({ run: runs[1], newer: runs[0] });
+  });
+
+  it("uses the newest run when it is complete, or when none is", () => {
+    const done = [run("new", "completed"), run("old", "stopped")];
+    expect(headlineRun(done)).toEqual({ run: done[0], newer: null });
+    const partial = [run("running", "running"), run("stopped", "stopped")];
+    expect(headlineRun(partial)).toEqual({ run: partial[0], newer: null });
+  });
+
+  it("has nothing to show without runs", () => {
+    expect(headlineRun([])).toBeNull();
   });
 });

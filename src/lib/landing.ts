@@ -3,8 +3,10 @@
  * saved evaluation report and carries its sample size and 95% Wilson interval; update them
  * from the report when a newer run finishes (docs/eval/README.md explains the method).
  *
- * Source: eval/results/eval-gemini-d4f53fa4.md (run d4f53fa4, Gemini, dataset ba1b4b3d915f,
- * completed 2026-10-24), summarised in docs/eval/m6-baseline.md.
+ * Sources (Gemini, dataset ba1b4b3d915f): eval/results/eval-gemini-d4f53fa4.md (run d4f53fa4,
+ * the complete 420-item run of 2026-10-24, summarised in docs/eval/m6-baseline.md), and for triage
+ * eval/results/eval-gemini-75a705fc.md (run 75a705fc, the app's current prompt triage.v2;
+ * docs/eval/triage-v1-v2.md).
  */
 export const REPO_URL = "https://github.com/HamayunKhan800/supportpilot";
 export const EVAL_METHOD_URL = `${REPO_URL}/blob/main/docs/eval/README.md`;
@@ -22,9 +24,9 @@ export const LANDING_METRICS: LandingMetric[] = [
     detail: "Recall@5 · n=110 · 95% CI 95.0–99.8%",
   },
   {
-    value: "87.3%",
+    value: "94.0%",
     label: "of test tickets get the right category from AI triage",
-    detail: "n=150 · 95% CI 81.1–91.7% · target 85%",
+    detail: "Prompt v2 · n=150 · 95% CI 89.0–96.8% · target 85%",
   },
   {
     value: "100%",
@@ -39,4 +41,4 @@ export const LANDING_METRICS: LandingMetric[] = [
 ];
 
 export const LANDING_METRICS_NOTE =
-  "One complete evaluation run against Google Gemini on the project's own test set of 420 items. The same run found the AI declined all 30 questions the help centre cannot answer and resisted all 20 prompt-injection attempts. On the free tier the main draft model often timed out or was overloaded, so 132 of the 140 drafts were written by the fallback model, gemini-3.5-flash-lite.";
+  "One complete evaluation run against Google Gemini on the project's own test set of 420 items, plus a second run of the 150 triage tickets for the current triage prompt (v2; the first prompt scored 87.3%). The complete run found the AI declined all 30 questions the help centre cannot answer and resisted all 20 prompt-injection attempts. On the free tier the main draft model often timed out or was overloaded, so 132 of the 140 drafts were written by the fallback model, gemini-3.5-flash-lite.";

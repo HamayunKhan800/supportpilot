@@ -21,6 +21,7 @@ import { formatCount, formatDateTime, formatMs, formatShare, formatUsd } from "@
 import { EVAL_PROVIDERS, type EvalProvider } from "@/server/modules/eval/constants";
 import {
   EVAL_METRICS,
+  headlineRun,
   itemsMeasured,
   METRIC_GROUPS,
   metricValues,
@@ -125,7 +126,7 @@ function MetricRow({ m }: { m: MetricValue }) {
   );
 }
 
-function LatestRun({ run }: { run: EvalRunListing }) {
+function LatestRun({ run, newer }: { run: EvalRunListing; newer: EvalRunListing | null }) {
   const summary = run.summary;
   const labels = runLabels(run.config);
   const status = STATUS[run.status] ?? { label: run.status, variant: "outline" as const };
@@ -153,7 +154,8 @@ function LatestRun({ run }: { run: EvalRunListing }) {
         id="latest-run"
         title={
           <span className="flex flex-wrap items-center gap-2">
-            Latest {PROVIDER_LABELS[run.provider]} run
+            Latest {newer ? "complete " : ""}
+            {PROVIDER_LABELS[run.provider]} run
             <Badge variant={status.variant}>{status.label}</Badge>
           </span>
         }
@@ -174,6 +176,20 @@ function LatestRun({ run }: { run: EvalRunListing }) {
             <span>
               <strong>Mock run.</strong> A scripted stand-in plays the AI, so these numbers test the pipeline
               and guard CI against regressions. They say nothing about the quality of a real model.
+            </span>
+          </p>
+        )}
+        {newer && (
+          <p className="border-warning-border bg-warning-subtle text-warning-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
+            <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <span>
+              <strong>A newer run is not finished.</strong> It started {formatDateTime(newer.startedAt)} and
+              measured {formatCount(itemsMeasured(newer.summary))} items
+              {runLabels(newer.config).prompts.length > 0 && (
+                <> with prompts {runLabels(newer.config).prompts.join(", ")}</>
+              )}
+              .{newer.stopReason && <> Stopped because: {newer.stopReason.slice(0, 200)}.</>} Its numbers are
+              in the trend below; this section shows the newest complete run.
             </span>
           </p>
         )}
@@ -393,7 +409,7 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
     throw err;
   }
   const { provider, runCounts, runs } = overview;
-  const latest = runs[0];
+  const latest = headlineRun(runs);
 
   return (
     <div className="flex flex-col gap-6">
@@ -411,7 +427,7 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
       />
       {latest ? (
         <>
-          <LatestRun run={latest} />
+          <LatestRun run={latest.run} newer={latest.newer} />
           {runs.length > 1 && <Trend runs={runs} />}
         </>
       ) : (

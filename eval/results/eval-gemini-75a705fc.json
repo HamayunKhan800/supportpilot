@@ -1,0 +1,6852 @@
+{
+  "run": {
+    "id": "75a705fc-19bf-4ef5-921b-5ce6db7e0068",
+    "provider": "gemini",
+    "status": "stopped",
+    "stopReason": "call budget of 1 reached",
+    "startedAt": "2026-10-24T07:12:29.812Z",
+    "finishedAt": null,
+    "calls": 151,
+    "datasetHash": "ba1b4b3d915fc46c514c7aad11a2c8b4591a7ae8c91ee4d46bef65bdb50a622b",
+    "configHash": "6e9f9a7a25f116bbba628a36af5ad5a8388075b622116b12cb8298a164168ae3",
+    "config": {
+      "topK": 5,
+      "chunk": {
+        "overlapRatio": 0.15,
+        "targetTokens": 500
+      },
+      "models": {
+        "draft": "gemini-3.8-flash",
+        "grade": "gemini-3.5-flash-lite",
+        "triage": "gemini-3.5-flash-lite",
+        "draftFallback": "gemini-3.5-flash-lite"
+      },
+      "provider": "gemini",
+      "embeddingModel": "gemini-embedding-2@768",
+      "promptVersions": {
+        "draft": "draft.v1",
+        "grader": "grader.v1",
+        "triage": "triage.v2"
+      },
+      "retrievalMinScore": 0.62
+    }
+  },
+  "floors": {
+    "checked": false,
+    "failures": []
+  },
+  "summary": {
+    "items": {
+      "retrieval": 110,
+      "triage": 150,
+      "draft": 0,
+      "injection": 0
+    },
+    "retrieval": {
+      "n": 110,
+      "recallAt5": {
+        "successes": 109,
+        "n": 110,
+        "rate": 0.990909090909091,
+        "low": 0.9502943479206695,
+        "high": 0.9983934246956784
+      },
+      "mrrAt5": 0.9177272727272726,
+      "latencyMs": {
+        "n": 110,
+        "p50": 6,
+        "p95": 9
+      }
+    },
+    "triage": {
+      "n": 150,
+      "errors": {
+        "successes": 0,
+        "n": 150,
+        "rate": 0,
+        "low": 0,
+        "high": 0.0249702443680766
+      },
+      "category": {
+        "successes": 141,
+        "n": 150,
+        "rate": 0.94,
+        "low": 0.8899102291652979,
+        "high": 0.9681159557907947
+      },
+      "categoryF1": {
+        "macroF1": 0.9404229555655895,
+        "perLabel": [
+          {
+            "label": "billing",
+            "support": 26,
+            "precision": 0.9629629629629629,
+            "recall": 1,
+            "f1": 0.9811320754716981
+          },
+          {
+            "label": "bug",
+            "support": 28,
+            "precision": 0.9615384615384616,
+            "recall": 0.8928571428571429,
+            "f1": 0.9259259259259259
+          },
+          {
+            "label": "account",
+            "support": 25,
+            "precision": 0.8928571428571429,
+            "recall": 1,
+            "f1": 0.9433962264150945
+          },
+          {
+            "label": "how-to",
+            "support": 30,
+            "precision": 0.9310344827586207,
+            "recall": 0.9,
+            "f1": 0.9152542372881356
+          },
+          {
+            "label": "feature-request",
+            "support": 20,
+            "precision": 0.9047619047619048,
+            "recall": 0.95,
+            "f1": 0.9268292682926829
+          },
+          {
+            "label": "other",
+            "support": 21,
+            "precision": 1,
+            "recall": 0.9047619047619048,
+            "f1": 0.9500000000000001
+          }
+        ]
+      },
+      "priority": {
+        "successes": 137,
+        "n": 150,
+        "rate": 0.9133333333333333,
+        "low": 0.8573717762637809,
+        "high": 0.9486528217252759
+      },
+      "priorityWithinOne": {
+        "successes": 149,
+        "n": 150,
+        "rate": 0.9933333333333333,
+        "low": 0.9632071602251817,
+        "high": 0.9988221986649826
+      },
+      "sentiment": {
+        "successes": 131,
+        "n": 150,
+        "rate": 0.8733333333333333,
+        "low": 0.8106335124178631,
+        "high": 0.9173887051206396
+      },
+      "language": {
+        "successes": 149,
+        "n": 150,
+        "rate": 0.9933333333333333,
+        "low": 0.9632071602251817,
+        "high": 0.9988221986649826
+      },
+      "needsReview": {
+        "successes": 23,
+        "n": 150,
+        "rate": 0.15333333333333332,
+        "low": 0.10439953770520066,
+        "high": 0.2195798317233324
+      },
+      "categoryConfusion": {
+        "billing": {
+          "billing": 26
+        },
+        "bug": {
+          "bug": 25,
+          "how-to": 1,
+          "account": 2
+        },
+        "account": {
+          "account": 25
+        },
+        "how-to": {
+          "how-to": 27,
+          "bug": 1,
+          "feature-request": 2
+        },
+        "feature-request": {
+          "feature-request": 19,
+          "how-to": 1
+        },
+        "other": {
+          "other": 19,
+          "account": 1,
+          "billing": 1
+        }
+      },
+      "latencyMs": {
+        "n": 150,
+        "p50": 1126,
+        "p95": 4790
+      }
+    },
+    "drafts": {
+      "answerable": 0,
+      "unanswerable": 0,
+      "errors": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "refusalRecall": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "falseRefusal": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "citesGold": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "citationValidity": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "blocked": 0,
+      "refusedBeforeModel": 0,
+      "truncated": 0,
+      "byModel": {},
+      "ttftMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "endToEndMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null
+      },
+      "groundedness": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "claims": {
+        "total": 0,
+        "supported": 0,
+        "unbacked": 0,
+        "cut": 0
+      },
+      "graderErrors": 0,
+      "gradedBy": {}
+    },
+    "injection": {
+      "n": 0,
+      "errors": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "resisted": {
+        "successes": 0,
+        "n": 0,
+        "rate": null,
+        "low": null,
+        "high": null
+      },
+      "obeyed": [],
+      "obeyedCaughtByCode": []
+    },
+    "cost": {
+      "calls": 150,
+      "failedCalls": 0,
+      "inputTokens": 200834,
+      "outputTokens": 10412,
+      "estCostUsd": 0.086293,
+      "perTriageUsd": 0.000575,
+      "perDraftUsd": null,
+      "perGradeUsd": null
+    }
+  },
+  "items": [
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q001",
+        "retrieved": [
+          "getting-started.md",
+          "payment-methods.md",
+          "cancel-subscription.md",
+          "file-requests.md",
+          "payment-methods.md"
+        ],
+        "retrievalMs": 8.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q002",
+        "retrieved": [
+          "sharing-links.md",
+          "sharing-links.md",
+          "getting-started.md",
+          "sharing-links.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 3
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q003",
+        "retrieved": [
+          "reset-password.md",
+          "reset-password.md",
+          "reset-password.md",
+          "reset-password.md",
+          "reset-password.md"
+        ],
+        "retrievalMs": 6.3,
+        "firstGoldRank": 2
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q004",
+        "retrieved": [
+          "reset-password.md",
+          "reset-password.md",
+          "reset-password.md",
+          "single-sign-on.md",
+          "reset-password.md"
+        ],
+        "retrievalMs": 8.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q005",
+        "retrieved": [
+          "reset-password.md",
+          "reset-password.md",
+          "suspicious-activity.md",
+          "reset-password.md",
+          "reset-password.md"
+        ],
+        "retrievalMs": 5.4,
+        "firstGoldRank": 2
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q006",
+        "retrieved": [
+          "two-step-verification.md",
+          "two-step-verification.md",
+          "two-step-verification.md",
+          "two-step-verification.md",
+          "account-recovery.md"
+        ],
+        "retrievalMs": 7.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q007",
+        "retrieved": [
+          "two-step-verification.md",
+          "two-step-verification.md",
+          "two-step-verification.md",
+          "two-step-verification.md",
+          "account-recovery.md"
+        ],
+        "retrievalMs": 5.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q008",
+        "retrieved": [
+          "two-step-verification.md",
+          "account-recovery.md",
+          "two-step-verification.md",
+          "two-step-verification.md",
+          "account-recovery.md"
+        ],
+        "retrievalMs": 6.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q009",
+        "retrieved": [
+          "account-recovery.md",
+          "suspicious-activity.md",
+          "account-recovery.md",
+          "account-recovery.md",
+          "account-recovery.md"
+        ],
+        "retrievalMs": 6.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q010",
+        "retrieved": [
+          "account-recovery.md",
+          "account-recovery.md",
+          "account-recovery.md",
+          "account-recovery.md",
+          "suspicious-activity.md"
+        ],
+        "retrievalMs": 8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q011",
+        "retrieved": [
+          "two-step-verification.md",
+          "account-recovery.md",
+          "account-recovery.md",
+          "two-step-verification.md",
+          "mobile-app.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 2
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q012",
+        "retrieved": [
+          "change-email.md",
+          "change-email.md",
+          "payment-methods.md",
+          "account-recovery.md",
+          "reset-password.md"
+        ],
+        "retrievalMs": 5.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q013",
+        "retrieved": [
+          "change-email.md",
+          "change-email.md",
+          "account-recovery.md",
+          "reset-password.md",
+          "suspicious-activity.md"
+        ],
+        "retrievalMs": 7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q014",
+        "retrieved": [
+          "delete-account.md",
+          "cancel-subscription.md",
+          "delete-account.md",
+          "deleted-files.md",
+          "deleted-files.md"
+        ],
+        "retrievalMs": 5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q015",
+        "retrieved": [
+          "delete-account.md",
+          "refunds.md",
+          "cancel-subscription.md",
+          "delete-account.md",
+          "delete-account.md"
+        ],
+        "retrievalMs": 6.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q016",
+        "retrieved": [
+          "data-export.md",
+          "data-export.md",
+          "data-export.md",
+          "security-and-encryption.md",
+          "delete-account.md"
+        ],
+        "retrievalMs": 8.4,
+        "firstGoldRank": 2
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q017",
+        "retrieved": [
+          "data-export.md",
+          "data-export.md",
+          "data-export.md",
+          "sharing-links.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q018",
+        "retrieved": [
+          "data-export.md",
+          "data-export.md",
+          "data-export.md",
+          "account-recovery.md",
+          "family-plan.md"
+        ],
+        "retrievalMs": 5.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q019",
+        "retrieved": [
+          "single-sign-on.md",
+          "single-sign-on.md",
+          "single-sign-on.md",
+          "integrations-and-api.md",
+          "web-app.md"
+        ],
+        "retrievalMs": 7.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q020",
+        "retrieved": [
+          "single-sign-on.md",
+          "delete-account.md",
+          "delete-account.md",
+          "single-sign-on.md",
+          "reset-password.md"
+        ],
+        "retrievalMs": 7.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q021",
+        "retrieved": [
+          "single-sign-on.md",
+          "single-sign-on.md",
+          "reset-password.md",
+          "single-sign-on.md",
+          "single-sign-on.md"
+        ],
+        "retrievalMs": 7.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q022",
+        "retrieved": [
+          "security-and-encryption.md",
+          "file-size-limits.md",
+          "data-export.md",
+          "file-requests.md",
+          "version-history.md"
+        ],
+        "retrievalMs": 9.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q023",
+        "retrieved": [
+          "security-and-encryption.md",
+          "security-and-encryption.md",
+          "data-export.md",
+          "storage-quota.md",
+          "data-export.md"
+        ],
+        "retrievalMs": 5.9,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q024",
+        "retrieved": [
+          "security-and-encryption.md",
+          "family-plan.md",
+          "data-export.md",
+          "security-and-encryption.md",
+          "getting-started.md"
+        ],
+        "retrievalMs": 8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q025",
+        "retrieved": [
+          "security-and-encryption.md",
+          "sharing-links.md",
+          "security-and-encryption.md",
+          "family-plan.md",
+          "data-export.md"
+        ],
+        "retrievalMs": 5.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q026",
+        "retrieved": [
+          "security-and-encryption.md",
+          "single-sign-on.md",
+          "single-sign-on.md",
+          "security-and-encryption.md",
+          "data-export.md"
+        ],
+        "retrievalMs": 6.6,
+        "firstGoldRank": 4
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q027",
+        "retrieved": [
+          "security-and-encryption.md",
+          "data-export.md",
+          "business-admin-console.md",
+          "refunds.md",
+          "data-export.md"
+        ],
+        "retrievalMs": 6.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q028",
+        "retrieved": [
+          "student-discount.md",
+          "plans-and-pricing.md",
+          "plans-and-pricing.md",
+          "refunds.md",
+          "student-discount.md"
+        ],
+        "retrievalMs": 5.9,
+        "firstGoldRank": 3
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q029",
+        "retrieved": [
+          "business-admin-console.md",
+          "business-admin-console.md",
+          "storage-quota.md",
+          "plans-and-pricing.md",
+          "single-sign-on.md"
+        ],
+        "retrievalMs": 5.9,
+        "firstGoldRank": 4
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q030",
+        "retrieved": [
+          "storage-quota.md",
+          "shared-folders.md",
+          "business-admin-console.md",
+          "plans-and-pricing.md",
+          "family-plan.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 4
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q031",
+        "retrieved": [
+          "plans-and-pricing.md",
+          "student-discount.md",
+          "refunds.md",
+          "refunds.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 6.1,
+        "firstGoldRank": null
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q032",
+        "retrieved": [
+          "billing-cycle-and-invoices.md",
+          "billing-cycle-and-invoices.md",
+          "refunds.md",
+          "change-plan.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 5.9,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q033",
+        "retrieved": [
+          "billing-cycle-and-invoices.md",
+          "billing-cycle-and-invoices.md",
+          "billing-cycle-and-invoices.md",
+          "payment-methods.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q034",
+        "retrieved": [
+          "billing-cycle-and-invoices.md",
+          "billing-cycle-and-invoices.md",
+          "refunds.md",
+          "refunds.md",
+          "cancel-subscription.md"
+        ],
+        "retrievalMs": 5.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q035",
+        "retrieved": [
+          "billing-cycle-and-invoices.md",
+          "refunds.md",
+          "change-plan.md",
+          "cancel-subscription.md",
+          "student-discount.md"
+        ],
+        "retrievalMs": 6.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q036",
+        "retrieved": [
+          "refunds.md",
+          "refunds.md",
+          "refunds.md",
+          "refunds.md",
+          "cancel-subscription.md"
+        ],
+        "retrievalMs": 6.9,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q037",
+        "retrieved": [
+          "refunds.md",
+          "refunds.md",
+          "refunds.md",
+          "billing-cycle-and-invoices.md",
+          "cancel-subscription.md"
+        ],
+        "retrievalMs": 6.9,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q038",
+        "retrieved": [
+          "refunds.md",
+          "refunds.md",
+          "account-recovery.md",
+          "refunds.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 7.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q039",
+        "retrieved": [
+          "refunds.md",
+          "refunds.md",
+          "refunds.md",
+          "refunds.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 7.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q040",
+        "retrieved": [
+          "cancel-subscription.md",
+          "cancel-subscription.md",
+          "change-plan.md",
+          "family-plan.md",
+          "storage-quota.md"
+        ],
+        "retrievalMs": 9.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q041",
+        "retrieved": [
+          "refunds.md",
+          "cancel-subscription.md",
+          "cancel-subscription.md",
+          "cancel-subscription.md",
+          "cancel-subscription.md"
+        ],
+        "retrievalMs": 7.8,
+        "firstGoldRank": 2
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q042",
+        "retrieved": [
+          "cancel-subscription.md",
+          "refunds.md",
+          "refunds.md",
+          "cancel-subscription.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q043",
+        "retrieved": [
+          "payment-methods.md",
+          "refunds.md",
+          "billing-cycle-and-invoices.md",
+          "billing-cycle-and-invoices.md",
+          "payment-methods.md"
+        ],
+        "retrievalMs": 5.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q044",
+        "retrieved": [
+          "payment-methods.md",
+          "cancel-subscription.md",
+          "account-recovery.md",
+          "suspicious-activity.md",
+          "storage-quota.md"
+        ],
+        "retrievalMs": 7.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q045",
+        "retrieved": [
+          "payment-methods.md",
+          "payment-methods.md",
+          "billing-cycle-and-invoices.md",
+          "billing-cycle-and-invoices.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 6.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q046",
+        "retrieved": [
+          "change-plan.md",
+          "change-plan.md",
+          "refunds.md",
+          "billing-cycle-and-invoices.md",
+          "change-plan.md"
+        ],
+        "retrievalMs": 6.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q047",
+        "retrieved": [
+          "change-plan.md",
+          "change-plan.md",
+          "cancel-subscription.md",
+          "change-plan.md",
+          "cancel-subscription.md"
+        ],
+        "retrievalMs": 5.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q048",
+        "retrieved": [
+          "family-plan.md",
+          "family-plan.md",
+          "change-plan.md",
+          "family-plan.md",
+          "family-plan.md"
+        ],
+        "retrievalMs": 8.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q049",
+        "retrieved": [
+          "family-plan.md",
+          "family-plan.md",
+          "change-plan.md",
+          "family-plan.md",
+          "family-plan.md"
+        ],
+        "retrievalMs": 6.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q050",
+        "retrieved": [
+          "family-plan.md",
+          "cancel-subscription.md",
+          "change-plan.md",
+          "cancel-subscription.md",
+          "family-plan.md"
+        ],
+        "retrievalMs": 6.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q051",
+        "retrieved": [
+          "family-plan.md",
+          "family-plan.md",
+          "family-plan.md",
+          "storage-quota.md",
+          "family-plan.md"
+        ],
+        "retrievalMs": 6.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q052",
+        "retrieved": [
+          "student-discount.md",
+          "student-discount.md",
+          "student-discount.md",
+          "student-discount.md",
+          "plans-and-pricing.md"
+        ],
+        "retrievalMs": 5.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q053",
+        "retrieved": [
+          "student-discount.md",
+          "student-discount.md",
+          "student-discount.md",
+          "student-discount.md",
+          "plans-and-pricing.md"
+        ],
+        "retrievalMs": 5.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q054",
+        "retrieved": [
+          "student-discount.md",
+          "student-discount.md",
+          "student-discount.md",
+          "student-discount.md",
+          "plans-and-pricing.md"
+        ],
+        "retrievalMs": 5.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q055",
+        "retrieved": [
+          "storage-quota.md",
+          "storage-quota.md",
+          "deleted-files.md",
+          "deleted-files.md",
+          "storage-quota.md"
+        ],
+        "retrievalMs": 6.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q056",
+        "retrieved": [
+          "version-history.md",
+          "storage-quota.md",
+          "storage-quota.md",
+          "version-history.md",
+          "version-history.md"
+        ],
+        "retrievalMs": 6.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q057",
+        "retrieved": [
+          "storage-quota.md",
+          "storage-quota.md",
+          "selective-sync.md",
+          "selective-sync.md",
+          "storage-quota.md"
+        ],
+        "retrievalMs": 5.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q058",
+        "retrieved": [
+          "desktop-app.md",
+          "desktop-app.md",
+          "desktop-app.md",
+          "desktop-app.md",
+          "getting-started.md"
+        ],
+        "retrievalMs": 5.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q059",
+        "retrieved": [
+          "desktop-app.md",
+          "sync-troubleshooting.md",
+          "getting-started.md",
+          "getting-started.md",
+          "sync-troubleshooting.md"
+        ],
+        "retrievalMs": 7.2,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q060",
+        "retrieved": [
+          "desktop-app.md",
+          "delete-account.md",
+          "delete-account.md",
+          "delete-account.md",
+          "getting-started.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q061",
+        "retrieved": [
+          "sync-troubleshooting.md",
+          "storage-quota.md",
+          "sync-troubleshooting.md",
+          "file-size-limits.md",
+          "sync-conflicts.md"
+        ],
+        "retrievalMs": 5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q062",
+        "retrieved": [
+          "sync-troubleshooting.md",
+          "storage-quota.md",
+          "sync-troubleshooting.md",
+          "file-size-limits.md",
+          "sync-conflicts.md"
+        ],
+        "retrievalMs": 6.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q063",
+        "retrieved": [
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "contact-support.md",
+          "getting-started.md",
+          "sync-troubleshooting.md"
+        ],
+        "retrievalMs": 6.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q064",
+        "retrieved": [
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md"
+        ],
+        "retrievalMs": 6.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q065",
+        "retrieved": [
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md"
+        ],
+        "retrievalMs": 5.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q066",
+        "retrieved": [
+          "sync-troubleshooting.md",
+          "web-app.md",
+          "single-sign-on.md",
+          "mobile-app.md",
+          "getting-started.md"
+        ],
+        "retrievalMs": 6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q067",
+        "retrieved": [
+          "selective-sync.md",
+          "selective-sync.md",
+          "selective-sync.md",
+          "selective-sync.md",
+          "storage-quota.md"
+        ],
+        "retrievalMs": 6.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q068",
+        "retrieved": [
+          "selective-sync.md",
+          "mobile-app.md",
+          "sync-conflicts.md",
+          "data-export.md",
+          "selective-sync.md"
+        ],
+        "retrievalMs": 5.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q069",
+        "retrieved": [
+          "selective-sync.md",
+          "sync-troubleshooting.md",
+          "getting-started.md",
+          "selective-sync.md",
+          "sync-troubleshooting.md"
+        ],
+        "retrievalMs": 6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q070",
+        "retrieved": [
+          "file-size-limits.md",
+          "web-app.md",
+          "file-requests.md",
+          "mobile-app.md",
+          "file-size-limits.md"
+        ],
+        "retrievalMs": 16,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q071",
+        "retrieved": [
+          "file-size-limits.md",
+          "file-size-limits.md",
+          "file-size-limits.md",
+          "sync-troubleshooting.md",
+          "file-requests.md"
+        ],
+        "retrievalMs": 5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q072",
+        "retrieved": [
+          "file-size-limits.md",
+          "sync-conflicts.md",
+          "sync-conflicts.md",
+          "file-size-limits.md",
+          "selective-sync.md"
+        ],
+        "retrievalMs": 5.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q073",
+        "retrieved": [
+          "version-history.md",
+          "version-history.md",
+          "version-history.md",
+          "sync-conflicts.md",
+          "version-history.md"
+        ],
+        "retrievalMs": 6,
+        "firstGoldRank": 2
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q074",
+        "retrieved": [
+          "version-history.md",
+          "deleted-files.md",
+          "version-history.md",
+          "desktop-app.md",
+          "deleted-files.md"
+        ],
+        "retrievalMs": 6.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q075",
+        "retrieved": [
+          "version-history.md",
+          "security-and-encryption.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "delete-account.md"
+        ],
+        "retrievalMs": 6.2,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q076",
+        "retrieved": [
+          "deleted-files.md",
+          "deleted-files.md",
+          "version-history.md",
+          "cancel-subscription.md",
+          "storage-quota.md"
+        ],
+        "retrievalMs": 6.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q077",
+        "retrieved": [
+          "deleted-files.md",
+          "deleted-files.md",
+          "deleted-files.md",
+          "deleted-files.md",
+          "deleted-files.md"
+        ],
+        "retrievalMs": 6.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q078",
+        "retrieved": [
+          "deleted-files.md",
+          "deleted-files.md",
+          "deleted-files.md",
+          "deleted-files.md",
+          "version-history.md"
+        ],
+        "retrievalMs": 6.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q079",
+        "retrieved": [
+          "mobile-app.md",
+          "desktop-app.md",
+          "desktop-app.md",
+          "mobile-app.md",
+          "web-app.md"
+        ],
+        "retrievalMs": 5.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q080",
+        "retrieved": [
+          "mobile-app.md",
+          "mobile-app.md",
+          "reset-password.md",
+          "getting-started.md",
+          "security-and-encryption.md"
+        ],
+        "retrievalMs": 6.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q081",
+        "retrieved": [
+          "mobile-app.md",
+          "web-app.md",
+          "delete-account.md",
+          "mobile-app.md",
+          "delete-account.md"
+        ],
+        "retrievalMs": 5.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q082",
+        "retrieved": [
+          "camera-uploads.md",
+          "camera-uploads.md",
+          "camera-uploads.md",
+          "camera-uploads.md",
+          "mobile-app.md"
+        ],
+        "retrievalMs": 5.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q083",
+        "retrieved": [
+          "camera-uploads.md",
+          "camera-uploads.md",
+          "camera-uploads.md",
+          "camera-uploads.md",
+          "camera-uploads.md"
+        ],
+        "retrievalMs": 5.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q084",
+        "retrieved": [
+          "camera-uploads.md",
+          "mobile-app.md",
+          "camera-uploads.md",
+          "camera-uploads.md",
+          "mobile-app.md"
+        ],
+        "retrievalMs": 6.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q085",
+        "retrieved": [
+          "web-app.md",
+          "contact-support.md",
+          "web-app.md",
+          "single-sign-on.md",
+          "desktop-app.md"
+        ],
+        "retrievalMs": 4.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q086",
+        "retrieved": [
+          "web-app.md",
+          "mobile-app.md",
+          "getting-started.md",
+          "contact-support.md",
+          "delete-account.md"
+        ],
+        "retrievalMs": 6.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q087",
+        "retrieved": [
+          "sync-conflicts.md",
+          "sync-conflicts.md",
+          "sync-conflicts.md",
+          "sync-conflicts.md",
+          "sync-conflicts.md"
+        ],
+        "retrievalMs": 5.9,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q088",
+        "retrieved": [
+          "sync-conflicts.md",
+          "sync-conflicts.md",
+          "sync-conflicts.md",
+          "sync-conflicts.md",
+          "sync-conflicts.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q089",
+        "retrieved": [
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 6.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q090",
+        "retrieved": [
+          "sharing-links.md",
+          "sharing-links.md",
+          "file-requests.md",
+          "sharing-links.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 5.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q091",
+        "retrieved": [
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 6.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q092",
+        "retrieved": [
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 6.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q093",
+        "retrieved": [
+          "shared-folders.md",
+          "shared-folders.md",
+          "shared-folders.md",
+          "shared-folders.md",
+          "shared-folders.md"
+        ],
+        "retrievalMs": 6.2,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q094",
+        "retrieved": [
+          "shared-folders.md",
+          "storage-quota.md",
+          "shared-folders.md",
+          "storage-quota.md",
+          "shared-folders.md"
+        ],
+        "retrievalMs": 6.9,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q095",
+        "retrieved": [
+          "shared-folders.md",
+          "family-plan.md",
+          "deleted-files.md",
+          "cancel-subscription.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 7.1,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q096",
+        "retrieved": [
+          "file-requests.md",
+          "file-requests.md",
+          "sharing-links.md",
+          "file-requests.md",
+          "sharing-links.md"
+        ],
+        "retrievalMs": 7.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q097",
+        "retrieved": [
+          "file-requests.md",
+          "file-requests.md",
+          "file-requests.md",
+          "file-requests.md",
+          "file-requests.md"
+        ],
+        "retrievalMs": 7.3,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q098",
+        "retrieved": [
+          "family-plan.md",
+          "data-export.md",
+          "shared-folders.md",
+          "data-export.md",
+          "business-admin-console.md"
+        ],
+        "retrievalMs": 6.8,
+        "firstGoldRank": 5
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q099",
+        "retrieved": [
+          "version-history.md",
+          "deleted-files.md",
+          "business-admin-console.md",
+          "account-recovery.md",
+          "security-and-encryption.md"
+        ],
+        "retrievalMs": 6.2,
+        "firstGoldRank": 3
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q100",
+        "retrieved": [
+          "business-admin-console.md",
+          "business-admin-console.md",
+          "reset-password.md",
+          "two-step-verification.md",
+          "account-recovery.md"
+        ],
+        "retrievalMs": 6.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q101",
+        "retrieved": [
+          "business-admin-console.md",
+          "cancel-subscription.md",
+          "cancel-subscription.md",
+          "single-sign-on.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q102",
+        "retrieved": [
+          "integrations-and-api.md",
+          "integrations-and-api.md",
+          "file-size-limits.md",
+          "file-requests.md",
+          "storage-quota.md"
+        ],
+        "retrievalMs": 5.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q103",
+        "retrieved": [
+          "integrations-and-api.md",
+          "integrations-and-api.md",
+          "sync-troubleshooting.md",
+          "sync-troubleshooting.md",
+          "integrations-and-api.md"
+        ],
+        "retrievalMs": 6.5,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q104",
+        "retrieved": [
+          "integrations-and-api.md",
+          "single-sign-on.md",
+          "data-export.md",
+          "two-step-verification.md",
+          "camera-uploads.md"
+        ],
+        "retrievalMs": 5.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q105",
+        "retrieved": [
+          "contact-support.md",
+          "family-plan.md",
+          "family-plan.md",
+          "family-plan.md",
+          "change-plan.md"
+        ],
+        "retrievalMs": 6.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q106",
+        "retrieved": [
+          "contact-support.md",
+          "sync-troubleshooting.md",
+          "web-app.md",
+          "mobile-app.md",
+          "contact-support.md"
+        ],
+        "retrievalMs": 6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q107",
+        "retrieved": [
+          "contact-support.md",
+          "contact-support.md",
+          "contact-support.md",
+          "cancel-subscription.md",
+          "refunds.md"
+        ],
+        "retrievalMs": 6.4,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q108",
+        "retrieved": [
+          "suspicious-activity.md",
+          "suspicious-activity.md",
+          "account-recovery.md",
+          "suspicious-activity.md",
+          "web-app.md"
+        ],
+        "retrievalMs": 6.6,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q109",
+        "retrieved": [
+          "suspicious-activity.md",
+          "contact-support.md",
+          "suspicious-activity.md",
+          "storage-quota.md",
+          "account-recovery.md"
+        ],
+        "retrievalMs": 8.7,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "retrieval",
+      "failed": false,
+      "result": {
+        "id": "q110",
+        "retrieved": [
+          "suspicious-activity.md",
+          "account-recovery.md",
+          "account-recovery.md",
+          "account-recovery.md",
+          "account-recovery.md"
+        ],
+        "retrievalMs": 5.8,
+        "firstGoldRank": 1
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-01",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1180.3896210000003,
+        "inputTokens": 1333,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 570,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "nim-02",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1003.8149830000002,
+        "inputTokens": 1352,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "nim-03",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 926.4977889999973,
+        "inputTokens": 1337,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 569,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-04",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1113.5686199999982,
+        "inputTokens": 1334,
+        "needsReview": false,
+        "outputTokens": 77,
+        "estCostMicros": 593,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-05",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1009.0787599999967,
+        "inputTokens": 1326,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 575,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-06",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 776.8652080000029,
+        "inputTokens": 1329,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 576,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative",
+          "confidence": 0.9
+        },
+        "key": "nim-07",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 930.4117629999964,
+        "inputTokens": 1342,
+        "needsReview": true,
+        "outputTokens": 72,
+        "estCostMicros": 583,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-08",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 963.6363500000007,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 51,
+        "estCostMicros": 527,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "nim-09",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1053.252953000003,
+        "inputTokens": 1333,
+        "needsReview": true,
+        "outputTokens": 72,
+        "estCostMicros": 580,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "nim-10",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1039.3732779999991,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 577,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-11",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 979.344127999997,
+        "inputTokens": 1324,
+        "needsReview": false,
+        "outputTokens": 64,
+        "estCostMicros": 557,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "nim-12",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1008.0632420000038,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "nim-13",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1389.722058000014,
+        "inputTokens": 1327,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 571,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "nim-14",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1176.222495999973,
+        "inputTokens": 1348,
+        "needsReview": true,
+        "outputTokens": 79,
+        "estCostMicros": 602,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "nim-15",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3743.4471100000083,
+        "inputTokens": 1352,
+        "needsReview": true,
+        "outputTokens": 59,
+        "estCostMicros": 553,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "nim-16",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4533.120919999987,
+        "inputTokens": 1329,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 576,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "nim-17",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3940.150187000021,
+        "inputTokens": 1327,
+        "needsReview": true,
+        "outputTokens": 77,
+        "estCostMicros": 591,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "nim-18",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 6612.160399999993,
+        "inputTokens": 1318,
+        "needsReview": true,
+        "outputTokens": 53,
+        "estCostMicros": 528,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-19",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3444.668288999994,
+        "inputTokens": 1334,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-20",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4354.758344000002,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 569,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "nim-21",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4032.266359000001,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 583,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-22",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4382.054698999971,
+        "inputTokens": 1325,
+        "needsReview": false,
+        "outputTokens": 74,
+        "estCostMicros": 583,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "nim-23",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4490.797217999992,
+        "inputTokens": 1328,
+        "needsReview": false,
+        "outputTokens": 65,
+        "estCostMicros": 561,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "nim-24",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4519.666955000022,
+        "inputTokens": 1325,
+        "needsReview": false,
+        "outputTokens": 54,
+        "estCostMicros": 533,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "nim-25",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1053.388254999998,
+        "inputTokens": 1338,
+        "needsReview": false,
+        "outputTokens": 78,
+        "estCostMicros": 596,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-001",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1015.0672489999561,
+        "inputTokens": 1342,
+        "needsReview": false,
+        "outputTokens": 70,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-002",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1051.3066559999716,
+        "inputTokens": 1334,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 573,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "es",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-003",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "es",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 953.5258739999845,
+        "inputTokens": 1346,
+        "needsReview": false,
+        "outputTokens": 55,
+        "estCostMicros": 541,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-004",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 883.1938069999451,
+        "inputTokens": 1348,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-005",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1854.6805910000112,
+        "inputTokens": 1339,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-006",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 884.7808809999842,
+        "inputTokens": 1459,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 615,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "de",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-007",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "de",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 975.3565190000227,
+        "inputTokens": 1354,
+        "needsReview": false,
+        "outputTokens": 72,
+        "estCostMicros": 586,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-008",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 879.797351999965,
+        "inputTokens": 1367,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 580,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-009",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1249.188984999957,
+        "inputTokens": 1343,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 580,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-010",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1104.7004359999555,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 580,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-011",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 2135.1965690000216,
+        "inputTokens": 1323,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 574,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-012",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1932.8504700000049,
+        "inputTokens": 1347,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 574,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "fr",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-013",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1115.9112800000003,
+        "inputTokens": 1334,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "fr",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-014",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "fr",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1094.3978809999535,
+        "inputTokens": 1343,
+        "needsReview": false,
+        "outputTokens": 70,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-015",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 2814.053435000009,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 585,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-016",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 745.382026999956,
+        "inputTokens": 1338,
+        "needsReview": false,
+        "outputTokens": 61,
+        "estCostMicros": 554,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-017",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 967.8845560000045,
+        "inputTokens": 1342,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 570,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-018",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 849.7118179999525,
+        "inputTokens": 1326,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 580,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-019",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1029.918422000017,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 72,
+        "estCostMicros": 581,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "pt",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-020",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "pt",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1677.7653900000732,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 56,
+        "estCostMicros": 541,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-021",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "billing",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1241.6055990000023,
+        "inputTokens": 1327,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 568,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-022",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1364.4856719999807,
+        "inputTokens": 1345,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 576,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-023",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 4408.866338000051,
+        "inputTokens": 1473,
+        "needsReview": false,
+        "outputTokens": 70,
+        "estCostMicros": 617,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-024",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 4806.089419999975,
+        "inputTokens": 1343,
+        "needsReview": false,
+        "outputTokens": 66,
+        "estCostMicros": 568,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-025",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 3941.3733899999643,
+        "inputTokens": 1353,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "ar",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-026",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "ar",
+          "priority": "urgent",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4465.700783,
+        "inputTokens": 1352,
+        "needsReview": false,
+        "outputTokens": 77,
+        "estCostMicros": 598,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-027",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1060.4704469999997,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 70,
+        "estCostMicros": 577,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-028",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1012.3164499999984,
+        "inputTokens": 1348,
+        "needsReview": false,
+        "outputTokens": 72,
+        "estCostMicros": 584,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-029",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 2530.425894,
+        "inputTokens": 1344,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 571,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "ur",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-030",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "ur",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1838.3293080000003,
+        "inputTokens": 1353,
+        "needsReview": false,
+        "outputTokens": 70,
+        "estCostMicros": 581,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-031",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1273.907825000002,
+        "inputTokens": 1334,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 583,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-032",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 2963.930622,
+        "inputTokens": 1347,
+        "needsReview": false,
+        "outputTokens": 61,
+        "estCostMicros": 557,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "es",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-033",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "es",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 4790.428253999999,
+        "inputTokens": 1344,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 586,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-034",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 3640.3274010000023,
+        "inputTokens": 1347,
+        "needsReview": false,
+        "outputTokens": 72,
+        "estCostMicros": 584,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "fr",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-035",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "fr",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4079.144721000004,
+        "inputTokens": 1349,
+        "needsReview": false,
+        "outputTokens": 76,
+        "estCostMicros": 595,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-036",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3114.834627000004,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-037",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1473.7036320000188,
+        "inputTokens": 1334,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-038",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 2249.6972430000023,
+        "inputTokens": 1339,
+        "needsReview": false,
+        "outputTokens": 72,
+        "estCostMicros": 582,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-039",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 5249.294814000023,
+        "inputTokens": 1332,
+        "needsReview": false,
+        "outputTokens": 72,
+        "estCostMicros": 580,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-040",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1819.5661120000004,
+        "inputTokens": 1335,
+        "needsReview": true,
+        "outputTokens": 73,
+        "estCostMicros": 583,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "de",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-041",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "de",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 969.9037190000236,
+        "inputTokens": 1339,
+        "needsReview": false,
+        "outputTokens": 70,
+        "estCostMicros": 577,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative",
+          "confidence": 0.9
+        },
+        "key": "tri-042",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 2209.8430489999882,
+        "inputTokens": 1329,
+        "needsReview": true,
+        "outputTokens": 76,
+        "estCostMicros": 589,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 0.9
+        },
+        "key": "tri-043",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1671.9454489999916,
+        "inputTokens": 1342,
+        "needsReview": true,
+        "outputTokens": 69,
+        "estCostMicros": 575,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-044",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 917.4490479999804,
+        "inputTokens": 1353,
+        "needsReview": false,
+        "outputTokens": 63,
+        "estCostMicros": 563,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-045",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 998.226794999995,
+        "inputTokens": 1347,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-046",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 997.3233239999972,
+        "inputTokens": 1323,
+        "needsReview": false,
+        "outputTokens": 66,
+        "estCostMicros": 562,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "es",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-047",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "es",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 943.5377549999976,
+        "inputTokens": 1342,
+        "needsReview": false,
+        "outputTokens": 64,
+        "estCostMicros": 563,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.9
+        },
+        "key": "tri-048",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1044.0527199999779,
+        "inputTokens": 1342,
+        "needsReview": true,
+        "outputTokens": 64,
+        "estCostMicros": 563,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-049",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 859.4838069999823,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 575,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-050",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1136.5520690000267,
+        "inputTokens": 1357,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 585,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "pt",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-051",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "pt",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 878.0180809999583,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 65,
+        "estCostMicros": 565,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-052",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 992.6472819999908,
+        "inputTokens": 1367,
+        "needsReview": false,
+        "outputTokens": 77,
+        "estCostMicros": 603,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-053",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1060.8980810000212,
+        "inputTokens": 1340,
+        "needsReview": false,
+        "outputTokens": 66,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-054",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1229.1066110000247,
+        "inputTokens": 1345,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 586,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "de",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-055",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "de",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 774.7515649999841,
+        "inputTokens": 1343,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 573,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-056",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 979.482061000017,
+        "inputTokens": 1339,
+        "needsReview": false,
+        "outputTokens": 72,
+        "estCostMicros": 582,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-057",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1023.0240040000062,
+        "inputTokens": 1339,
+        "needsReview": false,
+        "outputTokens": 75,
+        "estCostMicros": 589,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-058",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1118.1878859999706,
+        "inputTokens": 1333,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-059",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1070.7389170000097,
+        "inputTokens": 1337,
+        "needsReview": false,
+        "outputTokens": 74,
+        "estCostMicros": 586,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-060",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1204.7276380000403,
+        "inputTokens": 1334,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-061",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 968.8495370000019,
+        "inputTokens": 1337,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 574,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-062",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 3949.6875500000315,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 66,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-063",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4103.618000000017,
+        "inputTokens": 1336,
+        "needsReview": true,
+        "outputTokens": 73,
+        "estCostMicros": 583,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-064",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 2655.9774839999736,
+        "inputTokens": 1329,
+        "needsReview": true,
+        "outputTokens": 70,
+        "estCostMicros": 574,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.9
+        },
+        "key": "tri-065",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1392.4478000000236,
+        "inputTokens": 1349,
+        "needsReview": true,
+        "outputTokens": 72,
+        "estCostMicros": 585,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-066",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 959.1715759999934,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 573,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-067",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 918.4742929999484,
+        "inputTokens": 1324,
+        "needsReview": true,
+        "outputTokens": 54,
+        "estCostMicros": 532,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "es",
+          "priority": "high",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-068",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "es",
+          "priority": "high",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1929.3274680000031,
+        "inputTokens": 1329,
+        "needsReview": false,
+        "outputTokens": 75,
+        "estCostMicros": 586,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-069",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 766.0135519999312,
+        "inputTokens": 1340,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 575,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.9
+        },
+        "key": "tri-070",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1055.3738899999298,
+        "inputTokens": 1355,
+        "needsReview": true,
+        "outputTokens": 76,
+        "estCostMicros": 597,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "de",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-071",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "de",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 918.337034999975,
+        "inputTokens": 1342,
+        "needsReview": false,
+        "outputTokens": 75,
+        "estCostMicros": 590,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-072",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "high",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 973.3928989999695,
+        "inputTokens": 1329,
+        "needsReview": false,
+        "outputTokens": 75,
+        "estCostMicros": 586,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-073",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 970.684372000047,
+        "inputTokens": 1347,
+        "needsReview": false,
+        "outputTokens": 78,
+        "estCostMicros": 599,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "bug",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-074",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1239.100065000006,
+        "inputTokens": 1348,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 582,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-075",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1153.5732899999712,
+        "inputTokens": 1338,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 569,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 0.9
+        },
+        "key": "tri-076",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 2479.163627,
+        "inputTokens": 1339,
+        "needsReview": true,
+        "outputTokens": 79,
+        "estCostMicros": 599,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "fr",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-077",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "fr",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3751.494707,
+        "inputTokens": 1336,
+        "needsReview": false,
+        "outputTokens": 75,
+        "estCostMicros": 588,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-078",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4050.8402970000025,
+        "inputTokens": 1337,
+        "needsReview": false,
+        "outputTokens": 78,
+        "estCostMicros": 596,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-079",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 6434.293758,
+        "inputTokens": 1337,
+        "needsReview": false,
+        "outputTokens": 77,
+        "estCostMicros": 594,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-080",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4096.913887000002,
+        "inputTokens": 1327,
+        "needsReview": false,
+        "outputTokens": 75,
+        "estCostMicros": 586,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-081",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 4801.179342000003,
+        "inputTokens": 1328,
+        "needsReview": false,
+        "outputTokens": 74,
+        "estCostMicros": 583,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-082",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3766.3857350000035,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 77,
+        "estCostMicros": 593,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-083",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 4084.1188120000006,
+        "inputTokens": 1330,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-084",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3752.2218430000066,
+        "inputTokens": 1443,
+        "needsReview": false,
+        "outputTokens": 80,
+        "estCostMicros": 633,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-085",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3032.937512999997,
+        "inputTokens": 1336,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 578,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "how-to",
+          "language": "pt",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-086",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "pt",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 932.6244290000177,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-087",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1134.1269690000045,
+        "inputTokens": 1330,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-088",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 3440.993403999979,
+        "inputTokens": 1322,
+        "needsReview": true,
+        "outputTokens": 70,
+        "estCostMicros": 572,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-089",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 5109.953034999984,
+        "inputTokens": 1343,
+        "needsReview": false,
+        "outputTokens": 76,
+        "estCostMicros": 593,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-090",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1660.1349380000029,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-091",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 853.2467000000179,
+        "inputTokens": 1346,
+        "needsReview": true,
+        "outputTokens": 78,
+        "estCostMicros": 599,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-092",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1159.7674649999826,
+        "inputTokens": 1337,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 579,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-093",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 818.8909890000068,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 582,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "es",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-094",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "es",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 722.5341440000047,
+        "inputTokens": 1332,
+        "needsReview": false,
+        "outputTokens": 75,
+        "estCostMicros": 587,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-095",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1227.313175999996,
+        "inputTokens": 1318,
+        "needsReview": false,
+        "outputTokens": 74,
+        "estCostMicros": 580,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "fr",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-096",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "how-to",
+          "language": "fr",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 959.2288640000043,
+        "inputTokens": 1347,
+        "needsReview": false,
+        "outputTokens": 77,
+        "estCostMicros": 597,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-097",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 999.9963579999749,
+        "inputTokens": 1324,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 565,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "ur",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-098",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "ur",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1065.9271550000412,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 70,
+        "estCostMicros": 577,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-099",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 1283.8621780000394,
+        "inputTokens": 1341,
+        "needsReview": false,
+        "outputTokens": 74,
+        "estCostMicros": 587,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-100",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1023.8589030000148,
+        "inputTokens": 1329,
+        "needsReview": false,
+        "outputTokens": 69,
+        "estCostMicros": 571,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-101",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1619.5694779999903,
+        "inputTokens": 1327,
+        "needsReview": false,
+        "outputTokens": 55,
+        "estCostMicros": 536,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-102",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 5477.946578999981,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 569,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-103",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 3912.0477340000216,
+        "inputTokens": 1335,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 568,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-104",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 4109.672571000003,
+        "inputTokens": 1336,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 571,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-105",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "feature-request",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1047.9782479999703,
+        "inputTokens": 1340,
+        "needsReview": false,
+        "outputTokens": 73,
+        "estCostMicros": 585,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "neutral",
+          "confidence": 0.95
+        },
+        "key": "tri-106",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 974.8960260000313,
+        "inputTokens": 1356,
+        "needsReview": false,
+        "outputTokens": 65,
+        "estCostMicros": 569,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.95
+        },
+        "key": "tri-107",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1126.3414869999979,
+        "inputTokens": 1337,
+        "needsReview": false,
+        "outputTokens": 64,
+        "estCostMicros": 561,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-108",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 938.1894960000063,
+        "inputTokens": 1338,
+        "needsReview": false,
+        "outputTokens": 63,
+        "estCostMicros": 559,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-109",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 799.0654269999941,
+        "inputTokens": 1324,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 575,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-110",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1000.483607000031,
+        "inputTokens": 1336,
+        "needsReview": false,
+        "outputTokens": 63,
+        "estCostMicros": 558,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-111",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 917.2991219999967,
+        "inputTokens": 1330,
+        "needsReview": false,
+        "outputTokens": 67,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-112",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 870.2551289999974,
+        "inputTokens": 1331,
+        "needsReview": false,
+        "outputTokens": 50,
+        "estCostMicros": 524,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.5
+        },
+        "key": "tri-113",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 896.0411459999741,
+        "inputTokens": 1302,
+        "needsReview": true,
+        "outputTokens": 70,
+        "estCostMicros": 566,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "account",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.5
+        },
+        "key": "tri-114",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1435.2438419999671,
+        "inputTokens": 1316,
+        "needsReview": true,
+        "outputTokens": 64,
+        "estCostMicros": 555,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-115",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1177.3440619999892,
+        "inputTokens": 1340,
+        "needsReview": false,
+        "outputTokens": 63,
+        "estCostMicros": 560,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-116",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1099.8237439999357,
+        "inputTokens": 1327,
+        "needsReview": false,
+        "outputTokens": 64,
+        "estCostMicros": 558,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-117",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1013.8453289999161,
+        "inputTokens": 1321,
+        "needsReview": false,
+        "outputTokens": 71,
+        "estCostMicros": 574,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "billing",
+          "language": "es",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-118",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "es",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 904.0937859999249,
+        "inputTokens": 1325,
+        "needsReview": true,
+        "outputTokens": 70,
+        "estCostMicros": 573,
+        "providerErrors": [],
+        "categoryCorrect": false,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "ar",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-119",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "ar",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1009.8004870000295,
+        "inputTokens": 1340,
+        "needsReview": false,
+        "outputTokens": 66,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral",
+          "confidence": 0.9
+        },
+        "key": "tri-120",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "ur",
+          "priority": "normal",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1548.2552550000837,
+        "inputTokens": 1332,
+        "needsReview": true,
+        "outputTokens": 67,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "urgent",
+          "sentiment": "negative",
+          "confidence": 0.8
+        },
+        "key": "tri-121",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "normal",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 2391.0093160000397,
+        "inputTokens": 1323,
+        "needsReview": true,
+        "outputTokens": 68,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": false
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-123",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1056.471871000016,
+        "inputTokens": 1314,
+        "needsReview": false,
+        "outputTokens": 65,
+        "estCostMicros": 557,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative",
+          "confidence": 1
+        },
+        "key": "tri-124",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "negative"
+        },
+        "errorCode": null,
+        "latencyMs": 924.6818269999931,
+        "inputTokens": 1321,
+        "needsReview": false,
+        "outputTokens": 65,
+        "estCostMicros": 559,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral",
+          "confidence": 1
+        },
+        "key": "tri-125",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "neutral"
+        },
+        "errorCode": null,
+        "latencyMs": 1180.1577390000457,
+        "inputTokens": 1323,
+        "needsReview": false,
+        "outputTokens": 68,
+        "estCostMicros": 567,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    },
+    {
+      "suite": "triage",
+      "failed": false,
+      "result": {
+        "got": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive",
+          "confidence": 1
+        },
+        "key": "tri-122",
+        "calls": 1,
+        "model": "gemini-3.5-flash-lite",
+        "status": "succeeded",
+        "expected": {
+          "category": "other",
+          "language": "en",
+          "priority": "low",
+          "sentiment": "positive"
+        },
+        "errorCode": null,
+        "latencyMs": 1034.9130369999998,
+        "inputTokens": 1330,
+        "needsReview": false,
+        "outputTokens": 64,
+        "estCostMicros": 559,
+        "providerErrors": [],
+        "categoryCorrect": true,
+        "priorityCorrect": true
+      }
+    }
+  ]
+}

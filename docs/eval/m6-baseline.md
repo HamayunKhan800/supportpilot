@@ -111,6 +111,13 @@ specific category.
 4. **Priority and sentiment are the weakest triage outputs** (73% and 75% exact). Priority is almost
    never far off (99.3% within one level).
 
+   **Action taken:** triage prompt v2, frozen before this run, was then measured on the same 150
+   tickets in a separate triage-only run (`75a705fc`). Under the rule fixed in the plan it was
+   adopted: priority 91.3% (p < 0.001 against v1), category 94.0% (p = 0.031, not enough on its
+   own), sentiment 87.3%. The 0.95 threshold was rechecked and kept. The rates in the table above
+   remain v1's, because that is what this run measured. See
+   [`triage-v1-v2.md`](triage-v1-v2.md).
+
 ## Limits
 
 - **Small and synthetic.** 35 help articles for a made-up company, with questions and labels

@@ -17,8 +17,8 @@ import { runConfig, triagePromptOf } from "../../scripts/lib/eval-runner";
 import { createMockEmbedder } from "@/server/modules/kb/embedder";
 
 /**
- * Triage prompt v2 (M6 D6): the labelling rubric's rules, offered for evaluation only. The app
- * keeps v1 until step 6 measures v2 as better.
+ * Triage prompt v2 (M6 D6): the labelling rubric's rules. Written and frozen in step 3, measured
+ * against v1 on Gemini in step 6, and the app's prompt since then (docs/eval/triage-v1-v2.md).
  */
 
 const input = (over: Partial<TriageInput> = {}): TriageInput => ({
@@ -32,10 +32,18 @@ const sha256 = (text: string) => createHash("sha256").update(text).digest("hex")
 const v2 = (over: Partial<TriageInput> = {}) => buildTriagePrompt(input(over), "triage.v2").system;
 
 describe("prompt versions", () => {
-  it("keeps the app on v1", () => {
-    expect(TRIAGE_PROMPT_VERSION).toBe("triage.v1");
-    expect(buildTriagePrompt(input())).toEqual(buildTriagePrompt(input(), "triage.v1"));
-    expect(buildTriagePrompt(input()).version).toBe("triage.v1");
+  it("puts the app on v2, the version that measured better (step 6)", () => {
+    expect(TRIAGE_PROMPT_VERSION).toBe("triage.v2");
+    expect(buildTriagePrompt(input())).toEqual(buildTriagePrompt(input(), "triage.v2"));
+    expect(buildTriagePrompt(input()).version).toBe("triage.v2");
+  });
+
+  it("never edits v2 in place: its instructions are exactly those measured on Gemini", () => {
+    // sha256 of the v2 system prompt for the default categories, frozen in step 3 (ee49e4a)
+    // and measured in step 6 (run 75a705fc). A change is v3, measured on tickets it hasn't seen.
+    expect(sha256(buildTriagePrompt(input(), "triage.v2").system)).toBe(
+      "0a94b6e96fdc507c830a2368a19195f9bf687148033d5807871cd78f2f962e28",
+    );
   });
 
   it("never edits v1 in place: its instructions are exactly those M5 measured", () => {
@@ -128,10 +136,13 @@ describe("choosing the prompt in pnpm eval", () => {
   it("records the chosen prompt in the run settings, and reads it back from there", () => {
     const app = runConfig({ provider: "mock", models, embedder });
     const other = runConfig({ provider: "mock", models, embedder, triagePrompt: "triage.v2" });
-    expect(app.promptVersions).toMatchObject({ triage: "triage.v1" });
+    const v1 = runConfig({ provider: "mock", models, embedder, triagePrompt: "triage.v1" });
+    expect(app.promptVersions).toMatchObject({ triage: "triage.v2" });
+    expect(v1.promptVersions).toMatchObject({ triage: "triage.v1" });
     expect(other.promptVersions).toMatchObject({ triage: "triage.v2" });
-    expect(triagePromptOf(app)).toBe("triage.v1");
-    expect(triagePromptOf(other)).toBe("triage.v2");
+    expect(triagePromptOf(app)).toBe("triage.v2");
+    expect(triagePromptOf(v1)).toBe("triage.v1");
+    // Runs from before the version was recorded used v1, whatever the app uses now.
     expect(triagePromptOf({})).toBe("triage.v1");
     expect(() => triagePromptOf({ promptVersions: { triage: "triage.v9" } })).toThrow(
       'Unknown triage prompt "triage.v9".',

@@ -98,7 +98,7 @@ describe("evaluation runner", () => {
     expect(result.run.stopReason).toBeNull();
     expect(result.run.datasetHash).toMatch(/^[0-9a-f]{64}$/);
     expect(result.run.config).toMatchObject({
-      promptVersions: { triage: "triage.v1", draft: "draft.v1" },
+      promptVersions: { triage: "triage.v2", draft: "draft.v1" },
       models: { triage: "mock-llm", draft: "mock-llm" },
       topK: 5,
     });
@@ -266,17 +266,19 @@ describe("evaluation runner", () => {
     expect(await totalCalls()).toBe(before);
   });
   it("measures the chosen triage prompt, and --resume continues the run with the same settings (D6)", async () => {
-    const v2config = runConfig({
+    // The app's prompt (v2 since M6 step 6) is the default; v1 is chosen explicitly.
+    expect(config.promptVersions).toMatchObject({ triage: "triage.v2" });
+    const v1config = runConfig({
       provider: "mock",
       models: { triage: "mock-llm", draft: "mock-llm", draftFallback: null, grade: "mock-llm" },
       embedder,
-      triagePrompt: "triage.v2",
+      triagePrompt: "triage.v1",
     });
-    expect(v2config.promptVersions).toMatchObject({ triage: "triage.v2" });
+    expect(v1config.promptVersions).toMatchObject({ triage: "triage.v1" });
 
     // Both stop before triage; the v2 run is the newer one.
-    const v1 = await runEval(options(metered(0)));
-    const v2 = await runEval(options(metered(0), { config: v2config }));
+    const v1 = await runEval(options(metered(0), { config: v1config }));
+    const v2 = await runEval(options(metered(0)));
     expect([v1.run.status, v2.run.status]).toEqual(["stopped", "stopped"]);
 
     const capturing = () => {
@@ -288,15 +290,15 @@ describe("evaluation runner", () => {
       return { m, systems };
     };
 
-    // Plain --resume with v1 settings continues the v1 run, not the newer v2 one.
+    // --resume with v1 settings continues the older v1 run, not the newer v2 one.
     const a = capturing();
-    const resumedV1 = await runEval(options(a.m, { resume: true }));
+    const resumedV1 = await runEval(options(a.m, { resume: true, config: v1config }));
     expect(resumedV1.run.id).toBe(v1.run.id);
     expect(a.systems).toHaveLength(dataset.triage.length);
     expect(a.systems.every((s) => !s.includes("Go down this list"))).toBe(true);
 
     const b = capturing();
-    const resumedV2 = await runEval(options(b.m, { resume: true, config: v2config }));
+    const resumedV2 = await runEval(options(b.m, { resume: true }));
     expect(resumedV2.run.id).toBe(v2.run.id);
     expect(b.systems).toHaveLength(dataset.triage.length);
     expect(b.systems.every((s) => s.includes("Go down this list and use the first rule"))).toBe(true);

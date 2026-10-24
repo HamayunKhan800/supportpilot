@@ -26,8 +26,13 @@ export type TriagePromptVersion = (typeof TRIAGE_PROMPT_VERSIONS)[number];
 export const isTriagePromptVersion = (value: string): value is TriagePromptVersion =>
   (TRIAGE_PROMPT_VERSIONS as readonly string[]).includes(value);
 
-/** The version the app uses. v2 is only for evaluation until step 6 shows it is better (D6). */
-export const TRIAGE_PROMPT_VERSION: TriagePromptVersion = "triage.v1";
+/**
+ * The version the app uses: v2 since M6 step 6. On the same 150 Gemini-labelled tickets it was
+ * right on priority far more often than v1 (91.3% vs 73.3%, exact McNemar p < 0.001) and not worse
+ * on category (94.0% vs 87.3%, p = 0.031), which meets the rule fixed before any data (D6a;
+ * docs/eval/triage-v1-v2.md). v1 stays available for evaluation.
+ */
+export const TRIAGE_PROMPT_VERSION: TriagePromptVersion = "triage.v2";
 
 /** D11: what the model sees of a conversation. */
 export const TRIAGE_CONTEXT = { maxMessages: 6, maxChars: 8_000 } as const;

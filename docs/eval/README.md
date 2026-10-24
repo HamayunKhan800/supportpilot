@@ -64,6 +64,7 @@ Loading checks every field, never deletes anything, and keeps whichever copy of 
 | [spot-check-2026-10-23.md](spot-check-2026-10-23.md) | The M6 spot-check of the test data: what was checked, by whom (person or AI, each labelled), and what changed. |
 | [unanswerable-check.md](unanswerable-check.md)       | The three-way check that the 30 unanswerable questions really have no answer in the help centre.               |
 | [refusal-threshold.md](refusal-threshold.md)         | How the retrieval score floor (0.62) was chosen.                                                               |
+| [triage-v1-v2.md](triage-v1-v2.md)                   | Triage prompt v1 vs v2 on Gemini: the pre-registered test, why v2 was adopted, the threshold recheck.          |
 | [retrieval-baseline.md](retrieval-baseline.md)       | The M4 retrieval measurement.                                                                                  |
 | [ai-smoke-2026-10-23.md](ai-smoke-2026-10-23.md)     | The first, budgeted Gemini check of the AI features (20 triage calls, 20 drafts, 20 attacks).                  |
 | [m6-baseline.md](m6-baseline.md)                     | **The full Gemini baseline (420 items):** every number, its interval, findings and limits.                     |

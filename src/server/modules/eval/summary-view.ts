@@ -237,3 +237,17 @@ export function runLabels(config: unknown): { prompts: string[]; models: string[
       : [];
   return { prompts: strings(at(config, "promptVersions")), models: strings(at(config, "models")) };
 }
+
+/**
+ * The run the dashboard leads with: the newest complete run, so a newer partial run (one still
+ * in progress, or a triage-only comparison such as M6's prompt v2 run) doesn't replace full
+ * results; the newest run when none is complete. `newer` is the newest run when it isn't the
+ * one shown, so the page can say it exists. All runs still appear in the trend.
+ */
+export function headlineRun<T extends { status: string }>(
+  runs: readonly T[],
+): { run: T; newer: T | null } | null {
+  const run = runs.find((r) => r.status === "completed") ?? runs[0];
+  if (!run) return null;
+  return { run, newer: run === runs[0] ? null : runs[0]! };
+}

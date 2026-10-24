@@ -117,7 +117,8 @@ export function runConfig(options: {
  */
 export function triagePromptOf(config: Record<string, unknown>): TriagePromptVersion {
   const value = (config.promptVersions as { triage?: unknown } | undefined)?.triage;
-  if (value === undefined) return TRIAGE_PROMPT_VERSION;
+  // Runs from before the version was recorded all used v1 (the app's prompt until M6 step 6).
+  if (value === undefined) return "triage.v1";
   if (!TRIAGE_PROMPT_VERSIONS.includes(value as TriagePromptVersion)) {
     throw new Error(`Unknown triage prompt ${JSON.stringify(value)}.`);
   }
