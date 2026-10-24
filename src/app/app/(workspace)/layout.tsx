@@ -121,7 +121,10 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
         <DesktopSidebar {...shell} />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader {...shell} />
-          <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-10">
+          <main
+            id="main"
+            className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 has-[[data-wide]]:max-w-7xl sm:px-6 lg:px-10 has-[[data-wide=xl]]:2xl:max-w-[100rem]"
+          >
             {children}
           </main>
         </div>

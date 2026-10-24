@@ -40,9 +40,10 @@ test("AI triage labels new requests and agents review its suggestions", async ({
   await expect(results.filter({ hasText: "A quick question" })).toContainText("Needs review");
   await expect(results.filter({ hasText: "Charged twice" })).not.toContainText("Needs review");
   await expect(results.filter({ hasText: "Charged twice" })).toContainText("billing");
-  await page.getByLabel("Only AI suggestions that need review").check();
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  const quick = page.getByRole("navigation", { name: "Quick filters" });
+  await quick.getByRole("link", { name: "Needs review" }).click();
   await expect(page).toHaveURL(/needsReview=true/);
+  await expect(quick.getByRole("link", { name: "Needs review" })).toHaveAttribute("aria-current", "true");
   await expect(results).toHaveCount(1);
   await audit(page, "/app/tickets (needs review)");
 

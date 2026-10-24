@@ -61,6 +61,26 @@ test("agent works a ticket end to end", async ({ page, browser, playwright, base
   await page.getByRole("link", { name: "Clear filters" }).click();
   await expect(results).toHaveCount(2);
 
+  // Keyboard: j/k move through the list and Enter opens; on a ticket, j/k step through the same list.
+  await page.getByRole("heading", { level: 1, name: "Tickets" }).click();
+  await page.keyboard.press("j");
+  await expect(results.nth(0).getByRole("link")).toBeFocused();
+  await page.keyboard.press("j");
+  await expect(results.nth(1).getByRole("link")).toBeFocused();
+  await page.keyboard.press("k");
+  await expect(results.nth(0).getByRole("link")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/app\/tickets\/2$/); // newest first
+  await expect(page.getByText("1 of 2")).toBeVisible();
+  await page.getByRole("heading", { level: 1 }).click();
+  await page.keyboard.press("j");
+  await expect(page).toHaveURL(/\/app\/tickets\/1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Refund for duplicate charge");
+  await page.getByRole("link", { name: "Previous ticket" }).click();
+  await expect(page).toHaveURL(/\/app\/tickets\/2$/);
+  await page.getByRole("link", { name: "All tickets" }).click();
+  await expect(results).toHaveCount(2);
+
   // Ticket page: public reply, then an internal note.
   await page.getByRole("link", { name: /Refund for duplicate charge/ }).click();
   await expect(page).toHaveURL(/\/app\/tickets\/1$/);

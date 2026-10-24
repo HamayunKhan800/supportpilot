@@ -135,13 +135,24 @@ describe("source code", () => {
   // contrast-tested and do not switch with the theme. Status, brand and neutral tokens cover
   // every case (bg-warning-subtle, text-danger-strong, text-muted-foreground, …).
   const RAW_PALETTE =
-    /(?<![\w-])(?:[a-z-]+:)*(?:text|bg|border|ring|fill|stroke|outline|divide|from|via|to|decoration|shadow|accent|caret)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|white|black)(?:-\d{2,3})?(?:\/\d+)?(?![\w-])/g;
+    /(?<![\w-])(?:[a-z-]+:)*(?:text|bg|border(?:-[lrtbxyse])?|ring(?:-offset)?|fill|stroke|outline|divide|from|via|to|decoration|shadow|inset-shadow|accent|caret|placeholder)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|white|black)(?:-\d{2,3})?(?:\/\d+)?(?![\w-])/g;
 
   function files(dir: string): string[] {
     return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
       e.isDirectory() ? files(join(dir, e.name)) : /\.(tsx?|css)$/.test(e.name) ? [join(dir, e.name)] : [],
     );
   }
+
+  it("the raw-palette guard catches side and state variants, not tokens", () => {
+    const hits = (text: string) => [...text.matchAll(RAW_PALETTE)].map((m) => m[0]);
+    expect(hits("border-l-4 border-l-blue-700")).toEqual(["border-l-blue-700"]);
+    expect(hits("hover:border-t-slate-200 dark:ring-offset-black")).toEqual([
+      "hover:border-t-slate-200",
+      "dark:ring-offset-black",
+    ]);
+    expect(hits("bg-white/80 text-red-600")).toEqual(["bg-white/80", "text-red-600"]);
+    expect(hits("border-l-brand-strong border-x bg-warning-subtle text-muted-foreground")).toEqual([]);
+  });
 
   it("uses design tokens instead of raw palette colours", () => {
     const root = resolve(import.meta.dirname, "../../src");

@@ -59,7 +59,7 @@ export default async function TrackingPage({ params }: PageProps<"/t/[token]">) 
         <ol className="flex flex-col gap-3">
           {ticket.messages.map((m) => (
             <li key={m.id}>
-              <Card className={m.from === "support" ? "border-l-4 border-l-blue-700" : undefined}>
+              <Card className={m.from === "support" ? "border-l-brand-strong border-l-4" : undefined}>
                 <CardContent className="flex flex-col gap-2">
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
                     <span className="font-medium">

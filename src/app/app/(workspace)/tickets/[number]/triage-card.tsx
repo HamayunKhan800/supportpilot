@@ -83,7 +83,7 @@ function Suggestion({
         <dd>{SENTIMENT_LABEL[triage.sentiment ?? ""] ?? "Unknown"}</dd>
         <dt className="text-muted-foreground">Language</dt>
         <dd>{triage.language ? languageName(triage.language) : "Unknown"}</dd>
-        <dt className="text-muted-foreground">Confidence</dt>
+        <dt className="text-muted-foreground">Self-rated confidence</dt>
         <dd>{confidence}%</dd>
       </dl>
       {triage.reason && (
