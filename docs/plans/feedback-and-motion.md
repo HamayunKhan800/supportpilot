@@ -1,0 +1,66 @@
+# Plan: feedback, loading states and motion (design step 8)
+
+Status: **proposed, waiting for the owner's approval.** No application code until it is approved.
+
+## 1. Why
+
+The owner tried the app on a phone (2026-10-24, mock AI, Cloudflare Quick Tunnel) and found it "very static,
+boring, not dynamic, live or smooth: no animations, loading spinner, errors, placeholders, toasts".
+
+An audit of the code confirms it:
+
+| Area                 | Today                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Moving between pages | Pages are rendered on the server per request, and nothing happens on screen until the new page arrives. On a phone network this reads as "frozen".                        |
+| Loading placeholders | None. A route `loading.tsx` was tried and removed: React streamed a chart part as `<svg style="display:none">`, which the strict nonce CSP blocks (docs/design/pages.md). |
+| Toasts               | A Base UI toaster exists, but only the Members page uses it. Approve & send, uploads, status changes and settings saves give no confirmation.                             |
+| Pending states       | 15 components show pending text on their own button ("Saving…"). One spinner (knowledge status), one pulse.                                                               |
+| Motion               | Colour transitions, the mobile drawer slide and the toast slide. Menus, dialogs, new list items and new replies appear instantly.                                         |
+| Live data            | None. A new ticket or customer reply appears only after a manual reload.                                                                                                  |
+
+## 2. What the research says (and what we take from it)
+
+- **Feedback must match the wait** (Nielsen Norman Group): under 0.1 s, show nothing; 0.1–1 s, at most a subtle sign;
+  1–10 s, a spinner or skeleton; over 10 s, progress with an explanation. Skeletons fit full-page loads, and spinners fit
+  one module. Sources: nngroup.com/articles/response-times-3-important-limits, /articles/progress-indicators,
+  /articles/skeleton-screens.
+- **Motion needs a purpose, must be fast, and frequent actions get none** (Emil Kowalski, Vercel and Linear design
+  engineer, author of Sonner): UI animations under 300 ms, ease-out for things entering, and no animation for
+  keyboard-triggered actions or anything seen hundreds of times a day. Press feedback 100–160 ms, popovers
+  125–200 ms, dialogs and drawers 200–500 ms. Sources: emilkowal.ski/ui/you-dont-need-animations,
+  /ui/7-practical-animation-tips, github.com/emilkowalski/skills.
+- **Feel instant by not waiting** (Linear): changes apply on screen first and sync in the background; libraries or
+  React's own tools get close with optimistic updates. Source: performance.dev/how-is-linear-so-fast-a-technical-breakdown.
+- **Next.js tools for this** (official docs): `useLinkStatus` gives a link's pending state; delay the hint by about
+  100 ms so fast navigations don't flicker. Source: nextjs.org/docs/app/api-reference/functions/use-link-status.
+- **Respect "reduce motion"** in the operating system: every animation turns off with `prefers-reduced-motion`.
+
+## 3. Rules for this step
+
+- No new dependencies: CSS transitions, Base UI's `data-starting-style` and `data-ending-style`, React `useOptimistic`
+  and `useTransition`, and Next.js `useLinkStatus`. No animation library.
+- CSP stays strict: no inline styles and no `unsafe-inline`. Zero CSP violations in the E2E check.
+- Calm, not flashy: no bouncing, no animated charts, no fade-up on every section. Nothing blocks input.
+- Accessibility: status changes are announced (polite live regions; errors assertive); motion off under
+  reduced motion; axe 0 violations in both themes.
+- Honest: a spinner or skeleton only while something is really happening, and no fake progress percentages.
+
+## 4. Steps (one at a time, each committed locally)
+
+| Step                    | Delivers                                                                                                                                                                                                                                                                                          | Proof                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 8.1 Navigation feedback | A thin ink progress bar at the top whenever a page is loading (appears only after ~120 ms, so fast pages don't flicker); the tapped sidebar item, tab or ticket row shows it is loading. Investigate route skeletons safely: only if the CSP problem can be solved without loosening the policy   | E2E: bar appears on a slowed navigation and is gone after; CSP check; reduced-motion check |
+| 8.2 Toasts for actions  | Short confirmations with an action where useful: "Reply sent to Casey", "Status changed to Pending · Undo", "Upload queued", "Settings saved", "Invite link copied", "Suggestion accepted". Errors show a clear message and a Retry where it makes sense                                          | E2E per action; screen-reader announcement checked                                         |
+| 8.3 Instant updates     | Status, priority, category and assignee change on screen immediately (optimistic), and roll back with an error toast if the server refuses                                                                                                                                                        | E2E for success and for a forced failure (rollback)                                        |
+| 8.4 Live data           | The inbox, ticket page and knowledge list refresh themselves while the tab is visible (every ~15 s, paused in background tabs): a "2 new tickets" pill, new customer replies appearing in the conversation, document status moving from Processing to Ready                                       | E2E: a portal request appears in an open inbox without reload                              |
+| 8.5 Motion polish       | Menus, popovers and dialogs fade and scale in (150–200 ms, ease-out); buttons give press feedback; new list items, replies and the AI draft fade in; skeleton lines while a draft starts and while test search runs; sidebar collapse animates. Command palette and keyboard actions stay instant | Visual baselines; reduced-motion E2E; no layout shift                                      |
+| 8.6 Error and offline   | One consistent error panel with Retry; an "You're offline" banner when the connection drops; form errors inline and focused                                                                                                                                                                       | E2E with the network cut                                                                   |
+| 8.7 Proof and showcase  | Full test run, axe in both themes, Lighthouse not worse, fresh screenshots, and a short screen recording (GIF) for the README so employers can see it moving                                                                                                                                      | All gates green                                                                            |
+
+## 5. Not doing (and why)
+
+- A Linear-style local database and sync engine: a large architecture change for a portfolio app; optimistic updates
+  get most of the feel.
+- Page-transition animations between routes and animated charts: they slow people down and hinder reading data.
+- WebSockets for live data: polling every 15 s while visible is simpler, fits the current hosting plan (M8), and can be
+  swapped for server-sent events later.
