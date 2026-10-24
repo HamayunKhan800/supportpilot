@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Coins, Cpu, Inbox, MessageSquareText, Send, Tags } from "lucide-react";
+import { Coins, Cpu, Inbox, MessageSquareText, Send, Tags, ThumbsDown, ThumbsUp } from "lucide-react";
 import { BarChart } from "@/components/charts/bar-chart";
 import { ChangeNote, Sparkline } from "@/components/charts/sparkline";
 import { StackedBar, type StackedSegment } from "@/components/charts/stacked-bar";
@@ -237,7 +237,20 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
             />
             <SmallStat
               label="Agent feedback"
-              value={`👍 ${drafts.feedback.up} · 👎 ${drafts.feedback.down}`}
+              value={
+                <span className="inline-flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1">
+                    <ThumbsUp aria-hidden="true" className="text-muted-foreground size-4" />
+                    {drafts.feedback.up}
+                    <span className="sr-only"> helpful,</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <ThumbsDown aria-hidden="true" className="text-muted-foreground size-4" />
+                    {drafts.feedback.down}
+                    <span className="sr-only"> not helpful</span>
+                  </span>
+                </span>
+              }
               detail={
                 drafts.feedback.up + drafts.feedback.down
                   ? `${formatRatio(drafts.feedback.up, drafts.feedback.up + drafts.feedback.down)} positive`
@@ -422,7 +435,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
 }
 
 /** A smaller labelled number inside a section (the page's key numbers use the larger Stat tiles). */
-function SmallStat({ label, value, detail }: { label: string; value: string; detail?: string }) {
+function SmallStat({ label, value, detail }: { label: string; value: React.ReactNode; detail?: string }) {
   return (
     <div className="flex flex-col gap-0.5">
       <dt className="text-muted-foreground text-xs">{label}</dt>

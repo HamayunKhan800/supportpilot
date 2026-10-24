@@ -1,5 +1,6 @@
 "use client";
 
+import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { useId, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { FEEDBACK_REASONS } from "./draft-labels";
 
 type Reason = (typeof FEEDBACK_REASONS)[number]["value"];
 
-/** 👍/👎 with an optional reason (FR-AI6). Works for any finished draft, refused ones included. */
+/** Helpful / not helpful, with an optional reason (FR-AI6). Works for any finished draft, refused ones included. */
 export function DraftFeedback({ draft, onSaved }: { draft: ApiDraft; onSaved: (d: ApiDraft) => void }) {
   const ids = useId();
   const [rating, setRating] = useState(draft.feedback?.rating ?? null);
@@ -55,7 +56,7 @@ export function DraftFeedback({ draft, onSaved }: { draft: ApiDraft; onSaved: (d
           disabled={pending}
           onClick={() => save("up")}
         >
-          <span aria-hidden="true">👍</span> Helpful
+          <ThumbsUp aria-hidden="true" /> Helpful
         </Button>
         <Button
           type="button"
@@ -70,7 +71,7 @@ export function DraftFeedback({ draft, onSaved }: { draft: ApiDraft; onSaved: (d
             setAskReason(true);
           }}
         >
-          <span aria-hidden="true">👎</span> Not helpful
+          <ThumbsDown aria-hidden="true" /> Not helpful
         </Button>
       </div>
       {askReason && (

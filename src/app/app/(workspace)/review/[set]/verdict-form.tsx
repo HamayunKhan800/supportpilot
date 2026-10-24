@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
@@ -54,11 +55,7 @@ export function VerdictForm(props: Props) {
   }
 
   const current =
-    props.verdict === "agree"
-      ? `✅ ${props.agreeLabel}`
-      : props.verdict === "disagree"
-        ? `❌ ${props.disagreeLabel}`
-        : null;
+    props.verdict === "agree" ? props.agreeLabel : props.verdict === "disagree" ? props.disagreeLabel : null;
 
   return (
     <div className="flex flex-col gap-4 border-t pt-4">
@@ -93,7 +90,7 @@ export function VerdictForm(props: Props) {
           disabled={saving !== null}
           onClick={() => answer("agree")}
         >
-          <span aria-hidden="true">✅</span> {saving === "agree" ? "Saving…" : props.agreeLabel}
+          <Check aria-hidden="true" /> {saving === "agree" ? "Saving…" : props.agreeLabel}
         </Button>
         <Button
           type="button"
@@ -104,7 +101,7 @@ export function VerdictForm(props: Props) {
           disabled={saving !== null}
           onClick={() => answer("disagree")}
         >
-          <span aria-hidden="true">❌</span> {saving === "disagree" ? "Saving…" : props.disagreeLabel}
+          <X aria-hidden="true" /> {saving === "disagree" ? "Saving…" : props.disagreeLabel}
         </Button>
       </div>
       <p aria-live="polite" className="sr-only">

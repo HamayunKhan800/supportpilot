@@ -533,7 +533,7 @@ export const AI_DRAFT_STATUSES = [
   "discarded",
 ] as const;
 export const DRAFT_FEEDBACK = ["up", "down"] as const;
-/** Why a draft got 👎 (FR-AI6), for the M6 evaluation. */
+/** Why a draft was rated not helpful (FR-AI6), for the M6 evaluation. */
 export const DRAFT_FEEDBACK_REASONS = ["incorrect", "incomplete", "wrong_sources", "tone", "other"] as const;
 
 export const aiDraft = pgTable(

@@ -80,15 +80,15 @@ test("a listed reviewer checks items with one tap each", async ({ page }, info) 
   await expect(page.getByTestId("review-position")).toHaveText("Item 3 of 22 · 2 of 22 checked");
 
   // Answers persist and can be revisited.
-  await page.getByRole("link", { name: "← Previous" }).click();
-  await expect(page.getByTestId("current-verdict")).toHaveText("Your answer: ❌ No, something's wrong");
+  await page.getByRole("link", { name: "Previous" }).click();
+  await expect(page.getByTestId("current-verdict")).toHaveText("Your answer: No, something's wrong");
   await expect(page.getByLabel(/Note/)).toHaveValue("The passage is fine, but the question sounds made up.");
   await expect(page.getByRole("button", { name: "No, something's wrong" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
 
-  await page.getByRole("link", { name: "← All reviews" }).click();
+  await page.getByRole("link", { name: "All reviews" }).click();
   await expect(page.getByText("2 of 22 checked · 1 marked correct")).toBeVisible();
 });
 

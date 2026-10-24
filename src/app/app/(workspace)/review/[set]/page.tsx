@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
@@ -10,8 +11,7 @@ import { VerdictForm } from "./verdict-form";
 
 export const metadata: Metadata = { title: "Review" };
 
-const linkClass =
-  "hover:bg-muted inline-flex h-11 items-center rounded-md px-3 text-sm underline-offset-4 hover:underline";
+const linkClass = "hover:bg-muted inline-flex h-11 items-center gap-1 rounded-md px-3 text-sm";
 
 export default async function ReviewSetPage({ params, searchParams }: PageProps<"/app/review/[set]">) {
   await requireAppWorkspace();
@@ -29,9 +29,10 @@ export default async function ReviewSetPage({ params, searchParams }: PageProps<
       <div className="flex flex-col gap-2">
         <Link
           href="/app/review"
-          className="text-muted-foreground w-fit text-sm underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
         >
-          ← All reviews
+          <ChevronLeft aria-hidden="true" className="size-4" />
+          All reviews
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>
         <p className="text-muted-foreground text-sm">{page.description}</p>
@@ -115,14 +116,16 @@ export default async function ReviewSetPage({ params, searchParams }: PageProps<
       <nav aria-label="Items in this set" className="flex justify-between gap-2">
         {page.prevKey ? (
           <Link href={href(page.prevKey)} className={linkClass}>
-            ← Previous
+            <ChevronLeft aria-hidden="true" className="size-4" />
+            Previous
           </Link>
         ) : (
           <span />
         )}
         {page.nextKey ? (
           <Link href={href(page.nextKey)} className={linkClass}>
-            Next →
+            Next
+            <ChevronRight aria-hidden="true" className="size-4" />
           </Link>
         ) : null}
       </nav>

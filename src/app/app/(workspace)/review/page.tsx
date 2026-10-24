@@ -20,7 +20,7 @@ export default async function ReviewPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Review"
-        description="The human check in the evaluation plan. The test data was written with AI help, so a person checks a sample of it. Your answers are exported to the repository and every ❌ gets fixed. Only reviewers listed in the server settings see this page."
+        description="The human check in the evaluation plan. The test data was written with AI help, so a person checks a sample of it. Your answers are exported to the repository and every item marked wrong gets fixed. Only reviewers listed in the server settings see this page."
         actions={
           <p
             className="bg-muted rounded-md px-2.5 py-1 text-sm font-medium tabular-nums"

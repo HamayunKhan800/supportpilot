@@ -4,7 +4,17 @@ import { IntervalBar, IntervalLegend } from "@/components/charts/interval-bar";
 import { TrendLine } from "@/components/charts/trend-line";
 import { Forbidden } from "@/components/forbidden";
 import { TableScroll } from "@/components/table-scroll";
-import { Bot, Check, Coins, FlaskConical, Info, ListChecks, Minus, TriangleAlert, X } from "lucide-react";
+import {
+  Activity,
+  Check,
+  Coins,
+  FlaskConical,
+  Info,
+  ListChecks,
+  Minus,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { EmptyState, Section, Stat, StatGrid } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { formatCount, formatDateTime, formatMs, formatShare, formatUsd } from "@/lib/format";
@@ -74,7 +84,6 @@ function MetricRow({ m }: { m: MetricValue }) {
           {def.label}
           {def.key === "groundedness" && (
             <Badge variant="outline" className="border-info-border text-info-strong gap-1 font-normal">
-              <Bot aria-hidden="true" />
               AI-graded
             </Badge>
           )}
@@ -186,7 +195,7 @@ function LatestRun({ run }: { run: EvalRunListing }) {
             note={`${unmeasured ? `${unmeasured} more not measured yet. ` : ""}Targets are hypotheses to test (docs/04), not promises.`}
           />
           <Stat label="Items measured" value={formatCount(itemsMeasured(summary))} icon={FlaskConical} />
-          <Stat label="AI requests" value={formatCount(run.calls)} icon={Bot} />
+          <Stat label="AI requests" value={formatCount(run.calls)} icon={Activity} />
           <Stat
             label="Estimated cost"
             value={formatUsd(numberAt(summary, "cost.estCostUsd"))}

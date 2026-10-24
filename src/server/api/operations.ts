@@ -237,7 +237,7 @@ export const operations = {
     id: "rateDraft",
     method: "POST",
     path: "/api/v1/drafts/{id}/feedback",
-    summary: "Rate a draft 👍/👎",
+    summary: "Rate a draft as helpful or not helpful",
     description:
       "Sets the draft's rating, with an optional reason (thumbs-down only) and note. Rating again replaces " +
       "it. Any finished draft can be rated, including refused ones; 409 while it is still being written.",

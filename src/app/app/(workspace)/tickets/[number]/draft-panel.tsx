@@ -1,6 +1,6 @@
 "use client";
 
-import { BookX, ShieldAlert, Sparkles, Square } from "lucide-react";
+import { BookX, PenLine, ShieldAlert, Square } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -92,7 +92,7 @@ export function DraftPanel({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <span className="bg-brand-subtle text-brand-strong inline-flex size-6 items-center justify-center rounded-md">
-            <Sparkles aria-hidden="true" className="size-3.5" />
+            <PenLine aria-hidden="true" className="size-3.5" />
           </span>
           <h2 id="draft-heading" className="text-sm font-semibold">
             AI draft
@@ -129,7 +129,6 @@ export function DraftPanel({
               it; nothing is sent until you approve it.
             </p>
             <Button type="button" size="lg" onClick={generate} className="shrink-0">
-              <Sparkles aria-hidden="true" />
               Generate draft
             </Button>
           </div>

@@ -1,4 +1,14 @@
-import { ArrowRight, BookOpen, CircleDot, Clock, ExternalLink, Inbox, Sparkles, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  CircleDot,
+  Clock,
+  ExternalLink,
+  Eye,
+  Inbox,
+  PenLine,
+  Users,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -76,7 +86,7 @@ export default async function OverviewPage() {
             value={reviewLabel}
             href="/app/tickets?needsReview=true"
             srSuffix="tickets that need review"
-            icon={Sparkles}
+            icon={Eye}
             tone={reviewCount > 0 ? "warning" : "neutral"}
             note="Low-confidence or sensitive triage"
           />
@@ -140,7 +150,7 @@ export default async function OverviewPage() {
                   )}
                   {t.draftReady && (
                     <Badge className="bg-brand-subtle text-brand-strong h-5 shrink-0 gap-1 px-1.5 text-[11px]">
-                      <Sparkles aria-hidden="true" className="size-3" />
+                      <PenLine aria-hidden="true" className="size-3" />
                       AI draft ready
                     </Badge>
                   )}

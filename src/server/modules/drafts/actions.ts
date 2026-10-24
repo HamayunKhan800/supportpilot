@@ -92,7 +92,7 @@ export async function discardDraft(headers: Headers, rawId: string): Promise<Api
   return load(ctx.workspace.id, draftId);
 }
 
-/** 👍/👎 with an optional reason and note; a second rating replaces the first. */
+/** Helpful / not helpful, with an optional reason and note; a second rating replaces the first. */
 export async function rateDraft(headers: Headers, rawId: string, rawInput: unknown): Promise<ApiDraft> {
   const ctx = await requireWorkspace(headers, { draft: ["generate"] });
   const draftId = parseId(rawId);

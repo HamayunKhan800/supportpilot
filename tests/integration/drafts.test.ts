@@ -741,7 +741,7 @@ describe("approving, discarding and rating (FR-AI5, FR-AI6)", () => {
     expect(send.json.detail).toMatch(/discarded/);
   });
 
-  it("stores 👍/👎 with a reason; a new rating replaces the old one", async () => {
+  it("stores a helpful / not helpful rating with a reason; a new rating replaces the old one", async () => {
     const { draft } = await readyDraft();
     const down = await call("rateDraft", {
       as: agent,
@@ -760,7 +760,7 @@ describe("approving, discarding and rating (FR-AI5, FR-AI6)", () => {
       params: { id: draft.id },
       body: { rating: "up", reason: "tone" },
     });
-    expect(up.json.feedback).toEqual({ rating: "up", reason: null, note: null }); // a reason only goes with 👎
+    expect(up.json.feedback).toEqual({ rating: "up", reason: null, note: null }); // a reason only goes with "not helpful"
     const row = await rowOf(draft.id);
     const agentUser = (await getAuth().api.getSession({ headers: agent.headers }))!.user;
     expect(row).toMatchObject({ feedbackBy: agentUser.id, feedbackAt: expect.any(Date) });
