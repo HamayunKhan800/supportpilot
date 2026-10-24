@@ -44,6 +44,9 @@ function themesFor(project: string): Theme[] {
 }
 
 test("public pages look as designed", async ({ page, baseURL }, info) => {
+  // The landing page's live demo plays by itself; with reduced motion it waits at its opening
+  // state, so the picture doesn't depend on timing.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   for (const theme of themesFor(info.project.name)) {
     await setTheme(page, baseURL!, theme);
     await page.goto("/");

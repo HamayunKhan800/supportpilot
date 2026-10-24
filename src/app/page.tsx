@@ -6,7 +6,7 @@ import { Logo } from "@/components/logo";
 import { CustomerSide } from "@/components/marketing/landing/customer-side";
 import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
-import { HeroDemo } from "@/components/marketing/landing/hero-demo";
+import { HeroLive } from "@/components/marketing/landing/hero-live";
 import { Reveal } from "@/components/marketing/landing/reveal";
 import { PaletteScene } from "@/components/marketing/landing/team-tools";
 import { WORKFLOW_STEPS } from "@/components/marketing/landing/workflow-scenes";
@@ -240,14 +240,9 @@ export default async function Home() {
               </p>
             </div>
 
-            <figure className="mt-14 sm:mt-16">
-              <HeroDemo />
-              <figcaption className="text-muted-foreground mt-4 text-sm">
-                The agent&apos;s workspace with demo data: the inbox, a ticket with a cited AI draft and its
-                automatic checks, the AI triage, the passages the draft may cite, and a live notice for a new
-                request.
-              </figcaption>
-            </figure>
+            <div className="mt-14 sm:mt-16">
+              <HeroLive />
+            </div>
 
             <div className="flex flex-col gap-4 border-t py-10 sm:flex-row sm:items-center sm:gap-10">
               <p className="text-muted-foreground shrink-0 text-sm">Built with</p>
