@@ -1,12 +1,12 @@
 "use client";
 
+import { TriangleAlert, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField, useFocusFirstInvalid } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { postForm } from "@/lib/api-client";
 import { KB_MAX_UPLOAD_BYTES } from "@/server/modules/kb/limits";
 import { ACCEPT, formatBytes } from "./labels";
@@ -67,26 +67,34 @@ export function UploadForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>Add a document</h2>
-        </CardTitle>
-        <CardDescription>
-          Help articles as Markdown, plain text or PDF, up to {MAX_LABEL} each. Text is extracted, split into
-          passages and indexed for search. Scanned PDFs (images of text) are not supported.{" "}
-          <strong className="text-foreground font-semibold">
-            Demo: do not upload confidential or personal documents.
-          </strong>{" "}
-          Passages may be sent to an external AI provider to be indexed.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <section aria-labelledby="upload-heading" className="bg-card rounded-xl border">
+      <div className="flex items-start gap-3 border-b px-4 py-3">
+        <span className="bg-brand-subtle text-brand-strong inline-flex size-8 shrink-0 items-center justify-center rounded-lg">
+          <Upload aria-hidden="true" className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <h2 id="upload-heading" className="text-sm font-semibold">
+            Add a document
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            Markdown, plain text or PDF, up to {MAX_LABEL} each. Text is extracted, split into passages and
+            indexed for search. Scanned PDFs (images of text) are not supported.
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 p-4">
+        <p className="border-warning-border bg-warning-subtle text-warning-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
+          <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <strong className="font-semibold">Demo: do not upload confidential or personal documents.</strong>{" "}
+            Passages may be sent to an external AI provider to be indexed.
+          </span>
+        </p>
         <form
           ref={formRef}
           onSubmit={onSubmit}
           noValidate
-          className="flex flex-col gap-4 sm:flex-row sm:items-end"
+          className="flex flex-col gap-4 sm:flex-row sm:items-start"
         >
           <div className="flex-1">
             <FormField
@@ -97,21 +105,22 @@ export function UploadForm() {
               accept={ACCEPT}
               hint=".md, .txt or .pdf"
               error={fieldError}
-              className="h-10 py-1.5"
+              className="h-10 cursor-pointer border-dashed py-1.5 file:mr-3 file:cursor-pointer"
             />
           </div>
-          <Button type="submit" size="lg" className="h-10" disabled={pending}>
+          <Button type="submit" size="lg" className="h-10 sm:mt-6" disabled={pending}>
+            <Upload aria-hidden="true" />
             {pending ? "Uploading…" : "Upload"}
           </Button>
         </form>
         <FormAlert message={error} />
         {existingId && (
-          <Link href={`/app/knowledge/${existingId}`} className="text-sm font-medium underline">
+          <Link href={`/app/knowledge/${existingId}`} className="text-primary text-sm font-medium underline">
             Open the existing document
           </Link>
         )}
         <FormAlert message={success} tone="success" />
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

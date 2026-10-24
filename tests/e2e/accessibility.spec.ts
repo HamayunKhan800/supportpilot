@@ -84,7 +84,7 @@ test("customer portal and tracking pages have no serious accessibility violation
   await audit(page, "/app/tickets/{number}");
 });
 
-test("knowledge pages have no serious accessibility violations", async ({ page }) => {
+test("knowledge pages have no serious accessibility violations", async ({ page, baseURL }) => {
   const project = test.info().project.name;
   const who = email(`a11y-kb-${project}`);
   await signUp(page, "Ada Access", who);
@@ -131,4 +131,22 @@ test("knowledge pages have no serious accessibility violations", async ({ page }
   await main.getByRole("button", { name: "Search" }).click();
   await expect(main.getByRole("heading", { name: /for “How do I invite my team\?”/ })).toBeVisible();
   await audit(page, "/app/knowledge/search (results)");
+
+  // The same pages in the dark theme, with content (design step 4).
+  await page.context().addCookies([{ name: "sp_theme", value: "dark", url: baseURL! }]);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await main.getByLabel("Question").fill("How do I invite my team?");
+  await main.getByRole("button", { name: "Search" }).click();
+  await expect(main.getByText(/^Best similarity/)).toBeVisible();
+  await audit(page, "/app/knowledge/search (dark, results)");
+  await page.goto("/app/knowledge");
+  await expect(row.getByText("Ready")).toBeVisible();
+  await audit(page, "/app/knowledge (dark, with a document)");
+  await row.getByRole("link", { name: "getting started" }).click();
+  await expect(main.getByRole("heading", { name: /Passages/ })).toBeVisible();
+  await audit(page, "/app/knowledge/{id} (dark)");
+  await page.goto("/app");
+  await expect(main.getByRole("heading", { name: "Latest active tickets" })).toBeVisible();
+  await audit(page, "/app (dark, no tickets)");
 });

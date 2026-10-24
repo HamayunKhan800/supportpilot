@@ -78,6 +78,11 @@ test("an owner adds, checks, searches and deletes a help article", async ({ page
   await expect(first.getByRole("link", { name: "billing refunds" })).toBeVisible();
   await expect(first.getByText(/^Meaning #1/)).toBeVisible();
   await expect(first.getByText(/^Keywords #1/)).toBeVisible();
+  // The best score is shown against the refusal floor drafts use (the mock embedder's own floor here),
+  // and the question's words are highlighted in the passage.
+  await expect(main.getByText(/^Best similarity \d\.\d\d is at or above the offline floor/)).toBeVisible();
+  await expect(first.getByText(/≥ floor 0\.15$/)).toBeVisible();
+  await expect(first.locator("mark").first()).toHaveText(/^refunds?$/i);
 
   // Delete, keyboard only: the confirmation takes focus, Cancel returns it.
   await first.getByRole("link", { name: "billing refunds" }).click();

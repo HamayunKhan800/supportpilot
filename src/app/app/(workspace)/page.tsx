@@ -1,117 +1,195 @@
+import { ArrowRight, BookOpen, CircleDot, Clock, ExternalLink, Inbox, Sparkles, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState, PageHeader, Section, Stat, StatGrid } from "@/components/page";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { listKbDocuments } from "@/server/modules/kb/service";
-import { getTicketCounts } from "@/server/modules/tickets/service";
+import { getTicketCounts, listTicketsForAgent } from "@/server/modules/tickets/service";
 import { can } from "@/server/platform/auth/permissions";
+import { Age, StatusIcon } from "./tickets/ticket-bits";
 import { requireAppWorkspace } from "./workspace-context";
 
 export const metadata: Metadata = { title: "Overview" };
 
+const requestTime = () => Date.now();
+const linkClass = "text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline";
+
 export default async function OverviewPage() {
   const { ctx } = await requireAppWorkspace();
   const manage = can(ctx.role, { invitation: ["create"] });
+  const writeKb = can(ctx.role, { kb: ["write"] });
   const h = await headers();
-  const [counts, kb] = await Promise.all([getTicketCounts(h), listKbDocuments(h)]);
+  const now = requestTime();
+  const [counts, kb, recent, review] = await Promise.all([
+    getTicketCounts(h),
+    listKbDocuments(h),
+    listTicketsForAgent(h, { status: "open,pending", limit: 5 }),
+    listTicketsForAgent(h, { status: "open,pending", needsReview: "true", limit: 100 }),
+  ]);
   const kbCount = (...statuses: string[]) => kb.items.filter((d) => statuses.includes(d.status)).length;
-  const knowledge = [
-    { label: "Ready to cite", value: kbCount("ready") },
-    { label: "Processing", value: kbCount("pending", "processing") },
-    { label: "Failed", value: kbCount("failed") },
-  ];
-  const queue = [
-    { view: "open", label: "Open", value: counts.open },
-    { view: "pending", label: "Waiting for customer", value: counts.pending },
-  ];
+  const processing = kbCount("pending", "processing");
+  const failed = kbCount("failed");
+  const reviewCount = review.items.length;
+  const reviewLabel = review.nextCursor ? "100+" : String(reviewCount);
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{ctx.workspace.name}</h1>
-        <p className="text-muted-foreground">
-          Signed in as {ctx.user.name} · {ctx.role}
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="sm:col-span-2">
-          <CardHeader>
-            <CardTitle>
-              <h2>Tickets</h2>
-            </CardTitle>
-            <CardDescription>Requests that need attention.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <dl className="grid grid-cols-2 gap-4 sm:max-w-md">
-              {queue.map((q) => (
-                <div key={q.view} className="flex flex-col-reverse gap-1">
-                  <dt className="text-muted-foreground text-sm">{q.label}</dt>
-                  <dd className="text-3xl font-semibold tabular-nums">
-                    <Link href={`/app/tickets?view=${q.view}`} className="hover:underline">
-                      {q.value}
-                      <span className="sr-only"> {q.label.toLowerCase()} tickets</span>
+      <PageHeader
+        title={ctx.workspace.name}
+        description={
+          <>
+            Signed in as {ctx.user.name} · {ctx.role}
+          </>
+        }
+        actions={
+          <Link href="/app/tickets" className={buttonVariants({ variant: "outline" })}>
+            <Inbox aria-hidden="true" />
+            Open the inbox
+          </Link>
+        }
+      />
+
+      <section aria-labelledby="at-a-glance">
+        <h2 id="at-a-glance" className="sr-only">
+          At a glance
+        </h2>
+        <StatGrid>
+          <Stat
+            label="Open"
+            value={counts.open}
+            href="/app/tickets?view=open"
+            srSuffix="open tickets"
+            icon={CircleDot}
+            tone="brand"
+          />
+          <Stat
+            label="Waiting for customer"
+            value={counts.pending}
+            href="/app/tickets?view=pending"
+            srSuffix="tickets waiting for customer"
+            icon={Clock}
+          />
+          <Stat
+            label="Needs review"
+            value={reviewLabel}
+            href="/app/tickets?needsReview=true"
+            srSuffix="tickets that need review"
+            icon={Sparkles}
+            tone={reviewCount > 0 ? "warning" : "neutral"}
+            note="Low-confidence or sensitive triage"
+          />
+          <Stat
+            label="Articles ready to cite"
+            value={kbCount("ready")}
+            href="/app/knowledge"
+            srSuffix="help articles ready"
+            icon={BookOpen}
+            tone={failed > 0 ? "danger" : "success"}
+            note={
+              processing || failed
+                ? [processing && `${processing} processing`, failed && `${failed} failed`]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "None processing or failed"
+            }
+          />
+        </StatGrid>
+      </section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Section
+          id="recent"
+          title="Latest active tickets"
+          description="Open or waiting, newest first."
+          className="self-start lg:col-span-2"
+          bodyClassName="p-0"
+          actions={
+            <Link href="/app/tickets" className={linkClass}>
+              View all
+              <ArrowRight aria-hidden="true" className="size-3.5" />
+            </Link>
+          }
+        >
+          {recent.items.length === 0 ? (
+            <EmptyState icon={Inbox} title="No active tickets" className="m-4">
+              New customer requests from the portal show up here.
+            </EmptyState>
+          ) : (
+            <ul className="divide-y">
+              {recent.items.map((t) => (
+                <li key={t.id} className="hover:bg-muted/50 relative flex items-center gap-3 px-4 py-2.5">
+                  <StatusIcon status={t.status} className="size-4 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/app/tickets/${t.number}`}
+                      className="block truncate text-sm font-medium after:absolute after:inset-0 hover:underline"
+                    >
+                      <span className="text-muted-foreground mr-1.5 font-normal tabular-nums">
+                        #{t.number}
+                      </span>
+                      {t.subject}
                     </Link>
-                  </dd>
-                </div>
+                    <p className="text-muted-foreground truncate text-xs">{t.customerName}</p>
+                  </div>
+                  {t.needsReview && (
+                    <Badge className="bg-warning-subtle text-warning-strong h-5 shrink-0 px-1.5 text-[11px]">
+                      Needs review
+                    </Badge>
+                  )}
+                  {t.draftReady && (
+                    <Badge className="bg-brand-subtle text-brand-strong h-5 shrink-0 gap-1 px-1.5 text-[11px]">
+                      <Sparkles aria-hidden="true" className="size-3" />
+                      AI draft ready
+                    </Badge>
+                  )}
+                  <Age date={t.createdAt} now={now} prefix="Opened" className="shrink-0 text-xs" />
+                </li>
               ))}
-            </dl>
-            <Link href="/app/tickets" className="text-sm font-medium underline">
-              Open the inbox
+            </ul>
+          )}
+        </Section>
+
+        <div className="flex flex-col gap-6">
+          <Section id="kb" title="Knowledge base" description="Help articles that AI drafts will cite.">
+            {kb.items.length === 0 ? (
+              <p className="text-muted-foreground mb-3 text-sm">
+                No articles yet. Drafts can only cite what you upload.
+              </p>
+            ) : (
+              <p className="text-muted-foreground mb-3 text-sm">
+                {kb.items.length} {kb.items.length === 1 ? "document" : "documents"} uploaded.
+              </p>
+            )}
+            <Link href="/app/knowledge" className={linkClass}>
+              {kb.items.length === 0 && writeKb ? "Add your first document" : "Open the knowledge base"}
+              <ArrowRight aria-hidden="true" className="size-3.5" />
             </Link>
-          </CardContent>
-        </Card>
-        <Card className="sm:col-span-2">
-          <CardHeader>
-            <CardTitle>
-              <h2>Knowledge base</h2>
-            </CardTitle>
-            <CardDescription>Help articles that AI drafts will cite.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <dl className="grid grid-cols-3 gap-4 sm:max-w-md">
-              {knowledge.map((k) => (
-                <div key={k.label} className="flex flex-col-reverse gap-1">
-                  <dt className="text-muted-foreground text-sm">{k.label}</dt>
-                  <dd className="text-3xl font-semibold tabular-nums">{k.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <Link href="/app/knowledge" className="text-sm font-medium underline">
-              {kb.items.length === 0 && can(ctx.role, { kb: ["write"] })
-                ? "Add your first document"
-                : "Open the knowledge base"}
-            </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <h2>Customer portal</h2>
-            </CardTitle>
-            <CardDescription>
-              Share this page with your customers so they can send requests. Requests arrive in Tickets.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <Link href={`/p/${ctx.workspace.slug}`} className="text-sm font-medium break-all underline">
+          </Section>
+          <Section
+            id="portal"
+            title="Customer portal"
+            description="Share this page with your customers so they can send requests. Requests arrive in Tickets."
+          >
+            <Link href={`/p/${ctx.workspace.slug}`} className={`${linkClass} break-all`}>
               /p/{ctx.workspace.slug}
+              <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
             </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <h2>Team</h2>
-            </CardTitle>
-            <CardDescription>
-              {manage ? "Invite teammates and manage their roles." : "See who is in this workspace."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/app/members" className="text-sm font-medium underline">
+          </Section>
+          <Section
+            id="team"
+            title="Team"
+            description={
+              manage ? "Invite teammates and manage their roles." : "See who is in this workspace."
+            }
+          >
+            <Link href="/app/members" className={linkClass}>
+              <Users aria-hidden="true" className="size-3.5" />
               Go to members
             </Link>
-          </CardContent>
-        </Card>
+          </Section>
+        </div>
       </div>
     </div>
   );

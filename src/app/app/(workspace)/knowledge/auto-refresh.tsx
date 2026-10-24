@@ -37,7 +37,8 @@ export function AutoRefresh({ inProgress, noun = "document" }: { inProgress: num
         : "";
 
   return (
-    <p role="status" className="text-muted-foreground min-h-5 text-sm">
+    // Takes no space while empty, but stays in the accessibility tree so later text is announced.
+    <p role="status" className="text-muted-foreground text-sm empty:sr-only">
       {text}
     </p>
   );

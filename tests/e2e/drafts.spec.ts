@@ -198,4 +198,12 @@ test("an agent drafts, checks, edits and approves an AI reply", async ({
   const sheet = page.getByRole("dialog", { name: "Keyboard shortcuts" });
   await expect(sheet.getByRole("heading", { name: "On a ticket" })).toBeVisible();
   await audit(page, "shortcut sheet (dark)");
+
+  // The overview lists the ticket with its ready draft (dark theme, design step 4).
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  await page.goto("/app");
+  const latest = page.getByRole("main").getByRole("listitem").filter({ hasText: "#3" });
+  await expect(latest.getByText("AI draft ready")).toBeVisible();
+  await audit(page, "/app (dark, with tickets)");
 });

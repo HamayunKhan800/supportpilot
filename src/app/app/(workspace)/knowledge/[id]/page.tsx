@@ -1,8 +1,9 @@
+import { ArrowLeft, CircleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { Section } from "@/components/page";
 import { ingestErrorMessage } from "@/server/modules/kb/ingest-errors";
 import { getKbDocument } from "@/server/modules/kb/service";
 import { can } from "@/server/platform/auth/permissions";
@@ -11,7 +12,8 @@ import { dateFormat } from "../../tickets/labels";
 import { requireAppWorkspace } from "../../workspace-context";
 import { AutoRefresh } from "../auto-refresh";
 import { DocumentActions } from "../document-actions";
-import { formatBytes, isInProgress, STATUS_CLASS, STATUS_LABEL, typeLabel } from "../labels";
+import { formatBytes, isInProgress, typeLabel } from "../labels";
+import { DocumentStatusBadge } from "../status-badge";
 
 export const metadata: Metadata = { title: "Document" };
 
@@ -63,46 +65,47 @@ export default async function DocumentPage({ params }: PageProps<"/app/knowledge
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/app/knowledge" className="text-sm underline">
-        ← Knowledge base
+      <Link
+        href="/app/knowledge"
+        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
+      >
+        <ArrowLeft aria-hidden="true" className="size-4" />
+        Knowledge base
       </Link>
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight break-words">{d.title}</h1>
-          <Badge variant="outline" className={STATUS_CLASS[d.status]}>
-            <span className="sr-only">Status: </span>
-            {STATUS_LABEL[d.status]}
-          </Badge>
+          <DocumentStatusBadge status={d.status} />
         </div>
         <AutoRefresh inProgress={isInProgress(d.status) ? 1 : 0} />
       </div>
 
       {d.status === "failed" && (
-        <div className="border-danger-border bg-danger-subtle text-danger-strong rounded-lg border p-4 text-sm">
-          <p className="font-medium">This document could not be processed.</p>
-          <p>{ingestErrorMessage(d.errorCode)}</p>
+        <div className="border-danger-border bg-danger-subtle text-danger-strong flex gap-3 rounded-xl border p-4 text-sm">
+          <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-medium">This document could not be processed.</p>
+            <p>{ingestErrorMessage(d.errorCode)}</p>
+          </div>
         </div>
       )}
 
       {manage && <DocumentActions id={d.id} title={d.title} canRetry={d.status === "failed"} />}
 
-      <section aria-labelledby="details-heading" className="flex flex-col gap-3">
-        <h2 id="details-heading" className="text-lg font-semibold">
-          Details
-        </h2>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border p-4 text-sm sm:grid-cols-3">
+      <Section id="details" title="Details">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
           {facts.map(([label, value]) => (
             <div key={label} className="flex flex-col gap-0.5">
-              <dt className="text-muted-foreground">{label}</dt>
+              <dt className="text-muted-foreground text-xs">{label}</dt>
               <dd className="tabular-nums">{value}</dd>
             </div>
           ))}
         </dl>
-      </section>
+      </Section>
 
       <section aria-labelledby="passages-heading" className="flex flex-col gap-3">
-        <h2 id="passages-heading" className="text-lg font-semibold">
+        <h2 id="passages-heading" className="text-base font-semibold">
           Passages <span className="text-muted-foreground font-normal tabular-nums">({chunks.length})</span>
         </h2>
         <p className="text-muted-foreground text-sm">
@@ -110,15 +113,15 @@ export default async function DocumentPage({ params }: PageProps<"/app/knowledge
           work with these passages, exactly as shown.
         </p>
         {chunks.length === 0 ? (
-          <p className="text-muted-foreground rounded-lg border p-6 text-sm">
+          <p className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
             {d.status === "ready" ? "No passages." : "Passages appear here once processing has finished."}
           </p>
         ) : (
           <ol className="flex flex-col gap-3">
             {chunks.map((c) => (
-              <li key={c.id} className="flex flex-col gap-2 rounded-lg border p-4">
+              <li key={c.id} className="bg-card flex flex-col gap-2 rounded-xl border p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="font-medium">
+                  <h3 className="text-sm font-medium">
                     Passage {c.ordinal + 1}
                     {c.headingPath && (
                       <span className="text-muted-foreground font-normal"> · {c.headingPath}</span>
@@ -129,7 +132,9 @@ export default async function DocumentPage({ params }: PageProps<"/app/knowledge
                   </span>
                 </div>
                 {/* Untrusted text: rendered as text by React, never as HTML. */}
-                <p className="text-sm break-words whitespace-pre-wrap">{c.content}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed break-words whitespace-pre-wrap">
+                  {c.content}
+                </p>
               </li>
             ))}
           </ol>

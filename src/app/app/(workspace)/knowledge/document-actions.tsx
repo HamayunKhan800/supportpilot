@@ -1,5 +1,6 @@
 "use client";
 
+import { RotateCw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
@@ -53,13 +54,14 @@ export function DocumentActions({ id, title, canRetry }: { id: string; title: st
         <div
           role="group"
           aria-labelledby="confirm-delete-text"
-          className="border-danger-border flex flex-col gap-3 rounded-lg border p-4"
+          className="border-danger-border bg-danger-subtle flex flex-col gap-3 rounded-xl border p-4"
         >
           <p id="confirm-delete-text" className="text-sm">
             Delete “{title}”? Its passages stop appearing in search immediately. This cannot be undone.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button ref={confirmRef} variant="destructive" onClick={remove} disabled={pending !== null}>
+              <Trash2 aria-hidden="true" />
               {pending === "delete" ? "Deleting…" : "Yes, delete"}
             </Button>
             <Button variant="outline" onClick={() => setConfirming(false)} disabled={pending !== null}>
@@ -71,6 +73,7 @@ export function DocumentActions({ id, title, canRetry }: { id: string; title: st
         <div className="flex flex-wrap gap-2">
           {canRetry && (
             <Button onClick={retry} disabled={pending !== null}>
+              <RotateCw aria-hidden="true" />
               {pending === "retry" ? "Retrying…" : "Retry processing"}
             </Button>
           )}
@@ -80,6 +83,7 @@ export function DocumentActions({ id, title, canRetry }: { id: string; title: st
             onClick={() => setConfirming(true)}
             disabled={pending !== null}
           >
+            <Trash2 aria-hidden="true" />
             Delete document
           </Button>
         </div>
