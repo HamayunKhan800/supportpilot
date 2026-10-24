@@ -230,10 +230,18 @@ export interface TicketListItem extends Ticket {
   assigneeName: string | null;
   /** The AI's triage suggestion is waiting for an agent. */
   needsReview: boolean;
+  /** An AI reply draft is waiting for an agent (same rule as drafts' findOpenDraftId). */
+  draftReady: boolean;
 }
 
 /** Uses the partial index ticket_triage_open_review_idx. */
 const openReview = sql<boolean>`EXISTS (SELECT 1 FROM ticket_triage tt WHERE tt.workspace_id = ${ticket.workspaceId} AND tt.ticket_id = ${ticket.id} AND tt.needs_review AND tt.reviewed_at IS NULL)`;
+
+/**
+ * The ticket's newest draft is ready (not sent, discarded, refused or superseded) and the ticket
+ * is not closed, matching what the ticket page shows. Uses the index ai_draft_ticket_created_idx.
+ */
+const draftReady = sql<boolean>`(${ticket.status} <> 'closed' AND COALESCE((SELECT d.status = 'ready' FROM ai_draft d WHERE d.workspace_id = ${ticket.workspaceId} AND d.ticket_id = ${ticket.id} ORDER BY d.created_at DESC, d.id DESC LIMIT 1), false))`;
 
 export async function listTickets(workspaceId: string, opts: ListTicketsOptions) {
   const conditions: (SQL | undefined)[] = [eq(ticket.workspaceId, workspaceId)];
@@ -266,7 +274,7 @@ export async function listTickets(workspaceId: string, opts: ListTicketsOptions)
 
   const order = newest ? [desc(ticket.createdAt), desc(ticket.id)] : [asc(ticket.createdAt), asc(ticket.id)];
   const rows = await getDb()
-    .db.select({ ...ticketColumns, assigneeName: user.name, needsReview: openReview })
+    .db.select({ ...ticketColumns, assigneeName: user.name, needsReview: openReview, draftReady })
     .from(ticket)
     .leftJoin(user, eq(ticket.assigneeId, user.id))
     .where(and(...conditions))

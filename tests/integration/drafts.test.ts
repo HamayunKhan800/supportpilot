@@ -692,6 +692,44 @@ describe("approving, discarding and rating (FR-AI5, FR-AI6)", () => {
     expect((await messagesOf(ticketId)).filter((m) => m.authorType === "agent")).toHaveLength(0);
   });
 
+  it("the ticket list marks a ticket while its newest draft is ready (draftReady)", async () => {
+    const listed = async (ticketId: string): Promise<boolean> => {
+      const res = await call("listTickets", {
+        as: agent,
+        query: { status: "open,pending,resolved,closed", limit: "100" },
+      });
+      expect(res.status, JSON.stringify(res.json)).toBe(200);
+      const item = res.json.items.find((i: { id: string }) => i.id === ticketId);
+      expect(item, "ticket in the list").toBeDefined();
+      return item.draftReady;
+    };
+    const plain = await newTicket(acmeId, ...REFUND_QUESTION);
+    expect(await listed(plain.id)).toBe(false); // never drafted
+
+    const discarded = await readyDraft();
+    expect(await listed(discarded.ticketId)).toBe(true);
+    await call("discardDraft", { as: agent, params: { id: discarded.draft.id } });
+    expect(await listed(discarded.ticketId)).toBe(false);
+
+    const sent = await readyDraft();
+    await call("sendDraft", { as: agent, params: { id: sent.draft.id }, body: { body: sent.draft.body } });
+    expect(await listed(sent.ticketId)).toBe(false);
+
+    // A newer draft (here still generating) hides an older ready one, as on the ticket page.
+    const superseded = await readyDraft();
+    await insertDraft(db(), acmeId, {
+      ticketId: superseded.ticketId,
+      requestedBy: (await getAuth().api.getSession({ headers: owner.headers }))!.user.id,
+      promptVersion: "draft.v1",
+    });
+    expect(await listed(superseded.ticketId)).toBe(false);
+
+    // Closed tickets get no draft panel, so no marker either.
+    const closed = await readyDraft();
+    await db().update(ticket).set({ status: "closed" }).where(eq(ticket.id, closed.ticketId));
+    expect(await listed(closed.ticketId)).toBe(false);
+  });
+
   it("discarding closes the draft for sending", async () => {
     const { draft } = await readyDraft();
     const res = await call("discardDraft", { as: agent, params: { id: draft.id } });

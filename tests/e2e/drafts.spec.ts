@@ -145,6 +145,13 @@ test("an agent drafts, checks, edits and approves an AI reply", async ({
   await expect(panel.getByTestId("draft-text")).toContainText("refund", { timeout: 15_000 });
   await page.reload();
   await expect(panel.getByTestId("draft-text")).toContainText("refund");
+  // The ticket list shows which tickets have a draft waiting.
+  const rows = page.getByRole("region", { name: "Results" }).getByRole("listitem");
+  await page.goto("/app/tickets");
+  await expect(rows.filter({ hasText: "AI draft ready" })).toHaveCount(1);
+  await rows.filter({ hasText: "AI draft ready" }).getByRole("link").click();
+  await expect(page).toHaveURL(/\/app\/tickets\/3$/);
+  await expect(panel.getByTestId("draft-text")).toContainText("refund");
   // Regenerate (R focuses it, Enter confirms) replaces the draft with a new one.
   await panel.getByRole("heading", { name: "AI draft" }).click();
   await page.keyboard.press("r");
@@ -158,6 +165,9 @@ test("an agent drafts, checks, edits and approves an AI reply", async ({
   await expect(panel.getByTestId("draft-outcome")).toHaveText("Draft discarded.");
   await page.reload();
   await expect(panel.getByRole("button", { name: "Generate draft" })).toBeVisible();
+  await page.goto("/app/tickets");
+  await expect(rows.first()).toBeVisible();
+  await expect(rows.filter({ hasText: "AI draft ready" })).toHaveCount(0);
 
   // The audit log shows who approved AI-written text.
   await page.goto("/app/audit");

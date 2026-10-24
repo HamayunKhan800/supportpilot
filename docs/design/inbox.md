@@ -1,7 +1,7 @@
 # Inbox, ticket page and AI draft card
 
-Design system step 3 (`docs/plans/design-system.md`). The backend is unchanged: every view is
-built from the existing list, ticket and draft endpoints.
+Design system step 3 (`docs/plans/design-system.md`). The backend is unchanged except for one
+field (`draftReady`, below). Every view is built from the existing list, ticket and draft endpoints.
 
 ## Ticket list (`src/app/app/(workspace)/tickets/page.tsx`)
 
@@ -19,8 +19,11 @@ built from the existing list, ticket and draft endpoints.
   ("Any priority").
 - **Empty states** explain the situation: no requests yet (link to the portal), no matches (link to the whole tab),
   or an empty tab.
-- **Not built:** an "AI draft ready" marker on rows. The list endpoint has no draft field, and this step leaves the
-  backend unchanged.
+- **"AI draft ready" tag** (added after step 3 with the owner's approval, the one backend change): the list
+  endpoint returns `draftReady`. It is true when the ticket's newest draft is ready (not sent, discarded or replaced by a newer
+  one) and the ticket isn't closed. That is the same rule the ticket page uses to restore a draft after a reload. One
+  subquery uses the existing index `ai_draft_ticket_created_idx`, with no migration. It is tested in
+  `tests/integration/drafts.test.ts` and `drafts.spec.ts`.
 
 ## Ticket page (`tickets/[number]/page.tsx`)
 

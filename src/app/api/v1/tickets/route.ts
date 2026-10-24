@@ -10,7 +10,11 @@ export const GET = apiRoute(operations.listTickets, async ({ req }) => {
   const rawQuery = Object.fromEntries(new URL(req.url).searchParams);
   const page = await listTicketsForAgent(req.headers, rawQuery);
   return {
-    items: page.items.map((t) => ({ ...apiTicket(t, t.assigneeName), needsReview: t.needsReview })),
+    items: page.items.map((t) => ({
+      ...apiTicket(t, t.assigneeName),
+      needsReview: t.needsReview,
+      draftReady: t.draftReady,
+    })),
     nextCursor: page.nextCursor,
   };
 });

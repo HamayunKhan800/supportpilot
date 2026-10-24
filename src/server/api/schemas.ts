@@ -78,6 +78,9 @@ export const Message = z
 
 export const TicketListItem = Ticket.extend({
   needsReview: z.boolean().describe("The AI's triage suggestion is waiting for an agent."),
+  draftReady: z
+    .boolean()
+    .describe("An AI reply draft is ready for an agent to review: not yet sent or discarded."),
 }).register(apiRegistry, { id: "TicketListItem" });
 
 export const TicketList = z

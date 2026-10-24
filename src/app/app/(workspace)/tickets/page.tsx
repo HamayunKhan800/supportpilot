@@ -1,4 +1,4 @@
-import { Check, Inbox, Search, SearchX } from "lucide-react";
+import { Check, Inbox, Search, SearchX, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -195,6 +195,12 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                       {t.needsReview && (
                         <Badge className="bg-warning-subtle text-warning-strong h-5 px-1.5 text-[11px]">
                           Needs review
+                        </Badge>
+                      )}
+                      {t.draftReady && (
+                        <Badge className="bg-brand-subtle text-brand-strong h-5 gap-1 px-1.5 text-[11px]">
+                          <Sparkles aria-hidden="true" className="size-3" />
+                          AI draft ready
                         </Badge>
                       )}
                       <span className="inline-flex items-center gap-1 md:hidden">
