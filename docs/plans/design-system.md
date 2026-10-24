@@ -1,6 +1,6 @@
 # Plan: design system and UX overhaul ("M6.5")
 
-Status: **approved 2026-10-23** (accent Iris; theme follows the device, with a switch). Step 1 (foundations) done: see `docs/design/tokens.md`. Step 2 (app shell) done: see `docs/design/app-shell.md`. Step 3 (inbox, ticket page, AI draft card) done: see `docs/design/inbox.md`. Step 4 (workspace pages) done: see `docs/design/pages.md`. Step 5 (public pages) done: see `docs/design/public-pages.md`. Step 6 checks (visual regression, keyboard walkthrough, Lighthouse) done: see `docs/design/quality.md`; new screenshots and the README follow.
+Status: **approved 2026-10-23** (accent Iris; theme follows the device, with a switch). Step 1 (foundations) done: see `docs/design/tokens.md`. Step 2 (app shell) done: see `docs/design/app-shell.md`. Step 3 (inbox, ticket page, AI draft card) done: see `docs/design/inbox.md`. Step 4 (workspace pages) done: see `docs/design/pages.md`. Step 5 (public pages) done: see `docs/design/public-pages.md`. Step 6 checks (visual regression, keyboard walkthrough, Lighthouse) done: see `docs/design/quality.md`; new screenshots (`docs/screenshots/app/`, from the production build) and the rewritten README done (2026-10-24).
 
 ## 1. Why
 

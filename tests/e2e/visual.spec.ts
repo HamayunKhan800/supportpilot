@@ -115,6 +115,9 @@ test("the agent and customer screens look as designed", async ({ page, playwrigh
     await setTheme(page, baseURL!, theme);
     await page.goto("/app/tickets/1");
     await expect(page.getByTestId("draft-text")).toContainText("Annual plans can be refunded");
+    // State checked as text too: the 1% pixel tolerance let "Applied automatically" → "Needs
+    // review" pass unnoticed once (finding #127). One keyword → mock confidence 0.75 < 0.95.
+    await expect(page.getByTestId("triage-card")).toContainText("Not applied automatically");
     await snap(page, `ticket-${theme}`);
     await page.goto("/app/tickets");
     await expect(page.getByRole("link", { name: /Refund for annual plan/ }).first()).toBeVisible();

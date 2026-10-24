@@ -1,81 +1,217 @@
 # SupportPilot
 
-AI-assisted customer support with **grounded, cited answers** and a **human in the loop**.
+AI-assisted customer support. SupportPilot triages new tickets and drafts replies that **cite the help-centre articles they are based on**. **A person approves every reply** before a customer sees it.
 
-> 🚧 **Status: M0–M5 complete:** accounts, workspaces and roles, ticketing, a knowledge base, and AI triage and cited reply drafts, tested against real Gemini models. M6 in progress: the evaluation runner, tracing and error monitoring, and an analytics dashboard are built; the full Gemini baseline report is next. See the [roadmap](docs/00-research-and-plan.md#5-implementation-roadmap-one-verifiable-milestone-at-a-time).
+[![CI](https://github.com/HamayunKhan800/supportpilot/actions/workflows/ci.yml/badge.svg)](https://github.com/HamayunKhan800/supportpilot/actions/workflows/ci.yml)
+[![Security](https://github.com/HamayunKhan800/supportpilot/actions/workflows/security.yml/badge.svg)](https://github.com/HamayunKhan800/supportpilot/actions/workflows/security.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+> **Status:** open-source portfolio project, built one tested milestone at a time. Milestones M0–M5 are complete and M6 (evaluation and monitoring) is being finished. **It is not deployed yet**: a public demo is planned for milestone M8. Until then it runs locally with a few commands ([Quick start](#quick-start-local)). A built-in mock AI means it works fully offline, with no API key.
+
+![A ticket in SupportPilot: the conversation, an AI draft citing two help articles, and the AI triage card waiting for review](docs/screenshots/app/ticket-light.png)
+
+<sub>An agent's view of a ticket. The AI draft cites two help articles, and every citation was checked against the passages the model was given. The triage card on the right was **not** applied automatically: the model's confidence (75%) is below this workspace's threshold (95%), so it waits for a person. Screenshots use the offline mock AI. Results from real Gemini models are under [Evaluation](#evaluation-real-gemini-models).</sub>
+
+## Contents
+
+- [What it does](#what-it-does)
+- [Engineering highlights](#engineering-highlights)
+- [Screenshots](#screenshots)
+- [Evaluation (real Gemini models)](#evaluation-real-gemini-models)
+- [Architecture](#architecture)
+- [Tech stack](#tech-stack)
+- [Security](#security)
+- [Testing and CI](#testing-and-ci)
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
+- [Quick start (local)](#quick-start-local) · [Scripts](#scripts) · [Configuration](#configuration) · [API](#operational-endpoints)
+- [Documentation](#documentation)
+
+## What it does
+
+| Who                     | What they get                                                                                                                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Customers**           | A support form for each company (`/p/{slug}`) with no account needed, and a private tracking link to follow the conversation and reply.                                                                                          |
+| **Agents**              | An inbox with search, filters and keyboard shortcuts. Each new ticket gets an AI category and priority. A cited AI draft can be edited, previewed exactly as the customer will see it, and sent only when the agent approves it. |
+| **Admins and owners**   | A knowledge base (Markdown, text or PDF) that drafts are grounded in. AI settings for an on/off switch, a monthly budget, the auto-apply threshold and categories. Also members, roles, invites and an audit log.                |
+| **The team running it** | Usage analytics, an evaluation dashboard with 95% uncertainty ranges, structured logs, OpenTelemetry traces and Sentry error reports. None of these contain customer text.                                                       |
+
+## Engineering highlights
+
+- **Grounded or refused.** A draft is built only from the 5 best-matching help-centre passages. Every `[n]` citation is checked against the passages the model was actually given, and invalid ones are removed before an agent sees the draft. If nothing relevant exists, the draft is **refused**: either with no AI call at all (no passage scores high enough) or by the model itself.
+- **Human in the loop by design.** Nothing is sent automatically. Triage applies a label only when the model is confident enough **and** no person has set that field, so it never overwrites a human. Everything else is marked _Needs review_.
+- **Decisions from measurements.** A 420-item evaluation on real Gemini models reports 95% intervals, and the defaults follow the data. One example: at the old auto-apply threshold of 0.7, all 19 wrong triage categories were applied automatically. The default is now 0.95, where 13 of the 19 are caught ([finding 1](docs/eval/m6-baseline.md#findings)). Other examples: hybrid search was dropped because vector search alone ranked better, and the refusal score was set at 0.62.
+- **One gateway for every model call.** It enforces a per-workspace budget, a deployment-wide daily cap (one atomic database update, so parallel workers can't overshoot it), timeouts and a circuit breaker per model. It switches to a fallback model when the draft model is overloaded, but never reroutes a 429, so rate limits are respected. Tokens, estimated cost and latency are recorded for every call; prompts and answers are never logged.
+- **Prompt-injection defences** (OWASP LLM Top 10 2026). Ticket text and articles are treated as untrusted data: hidden characters are stripped and flagged, and output is rendered as plain text. Unknown links and leaked prompt text are flagged. A 20-case attack set (12 in tickets, 8 in poisoned help articles) runs in CI.
+- **Multi-tenant and secure by default.** Roles (owner / admin / agent) are checked on the server for every action, and every route has cross-workspace access tests. Other defences: a per-request nonce Content Security Policy, rate limits, and conflict detection for concurrent edits.
+- **Designed, accessible and fast.** It has a small design system built on its own tokens (light and dark, following the device setting) and keyboard-first navigation with a command palette. axe finds **0 violations** on every page in both themes. The landing page scores **100** in all four Lighthouse categories on desktop (mobile: performance 89, others 100).
+
+## Screenshots
+
+| Agent inbox                                                        | Inbox, dark theme                                                     |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| ![Agent inbox](docs/screenshots/app/inbox-light.png)               | ![Agent inbox in the dark theme](docs/screenshots/app/inbox-dark.png) |
+| **Triage applied automatically (confidence 97%)**                  | **Ticket with a cited draft, dark theme**                             |
+| ![Triage applied](docs/screenshots/app/ticket-applied-light.png)   | ![Ticket in the dark theme](docs/screenshots/app/ticket-dark.png)     |
+| **Evaluation dashboard (real Gemini run)**                         | **Usage analytics**                                                   |
+| ![Evaluation dashboard](docs/screenshots/app/evaluation-light.png) | ![Usage analytics](docs/screenshots/app/analytics-light.png)          |
+| **Knowledge base**                                                 | **AI settings and this month's usage**                                |
+| ![Knowledge base](docs/screenshots/app/knowledge-light.png)        | ![AI settings](docs/screenshots/app/settings-light.png)               |
+| **Command palette (Ctrl/⌘ K)**                                     | **Landing page**                                                      |
+| ![Command palette](docs/screenshots/app/palette-light.png)         | ![Landing page](docs/screenshots/app/landing-light.png)               |
+| **Customer support form**                                          | **Customer tracking page**                                            |
+| ![Support form](docs/screenshots/app/portal-light.png)             | ![Tracking page](docs/screenshots/app/tracking-light.png)             |
+
+| Inbox on a phone                                          | Ticket on a phone                                           | Landing page on a phone                                       |
+| --------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| ![Inbox on a phone](docs/screenshots/app/inbox-phone.png) | ![Ticket on a phone](docs/screenshots/app/ticket-phone.png) | ![Landing on a phone](docs/screenshots/app/landing-phone.png) |
+
+## Evaluation (real Gemini models)
+
+One complete run of 420 test items on the Gemini free tier, finished on 24 October 2026. It used `gemini-3.5-flash-lite` for triage and grading, and `gemini-3.8-flash` for drafts with `gemini-3.5-flash-lite` as the fallback. The ranges are 95% Wilson intervals. Full report, method and raw results: [`docs/eval/m6-baseline.md`](docs/eval/m6-baseline.md).
+
+| What is measured                                                            | Result        | 95% range               | Items | Target |
+| --------------------------------------------------------------------------- | ------------- | ----------------------- | ----- | ------ |
+| Right article in the top 5 search results (recall@5)                        | 99.1%         | 95.0–99.8%              | 110   | ≥ 90%  |
+| Triage category correct                                                     | 87.3%         | 81.1–91.7%              | 150   | ≥ 85%  |
+| Triage priority exact / within one level                                    | 73.3% / 99.3% | 65.7–79.8% / 96.3–99.9% | 150   | none   |
+| Citations pointing at a passage the model was given                         | 100%          | 97.2–100%               | 133   | 100%   |
+| Unanswerable questions declined                                             | 100%          | 88.6–100%               | 30    | ≥ 90%  |
+| Answerable questions wrongly declined                                       | 1.8%          | 0.5–6.4%                | 110   | ≤ 10%  |
+| Prompt-injection attacks resisted                                           | 100%          | 83.9–100%               | 20    | 100%   |
+| Draft supported by its sources (**AI-graded, not checked against a human**) | 99.1%         | 94.8–99.8%              | 106   | none   |
+
+| Speed                       | Typical (p50) | Slow (p95) |
+| --------------------------- | ------------- | ---------- |
+| Triage                      | 1.3 s         | 17.5 s     |
+| Draft, first text on screen | 0.9 s         | 9.3 s      |
+| Draft, complete             | 13.7 s        | 28.5 s     |
+
+**Cost:** about **$0.18 for the whole run** at paid-tier prices (roughly $0.0005 per draft and $0.0003 per triage), and $0 on the free tier.
+
+**Read with care.** Every point estimate meets its target. For three of them, though, the lower end of the range is below target: triage (81.1 vs 85), refusals (88.6 vs 90) and injection (83.9 vs 100). The samples are small, and the data is synthetic (a 35-article help centre for a made-up company). The main draft model often timed out or was overloaded on the free tier, so the fallback model wrote 132 of the 140 drafts. More caveats are under [Limitations](#limitations). CI runs the same evaluation on every push with the deterministic mock AI, and fails if a result drops below its floor. The Gemini run is started by hand, behind a protected GitHub environment.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  CU["Customer<br/>support form + tracking link"] --> WEB
+  AG["Agent / admin<br/>workspace app"] --> WEB
+  subgraph IMG["One Docker image, two processes"]
+    WEB["web: Next.js 16<br/>UI, REST API, auth"]
+    WK["worker: pg-boss<br/>triage, document ingestion"]
+    GW["AI gateway<br/>budget, daily cap, timeouts,<br/>circuit breaker, fallback, cost log"]
+  end
+  WEB --> DB[("PostgreSQL 17 + pgvector<br/>data, job queue, vectors")]
+  WK --> DB
+  WEB --> GW
+  WK --> GW
+  GW --> LLM[["Gemini API<br/>or offline mock"]]
+  WEB -.-> OBS[["Sentry, OpenTelemetry"]]
+  WK -.-> OBS
+```
+
+- **A modular monolith:** one codebase and one image, with a `web` process and a `worker` process. Module boundaries come from the folder structure and lint rules (route handlers call services and may not import the database layer). There are no network hops between modules.
+- **PostgreSQL does three jobs:** application data, the job queue (pg-boss) and vector search (pgvector). That leaves one system to run and back up.
+- **How a draft is made:**
+  1. An agent clicks _Generate draft_.
+  2. The top 5 passages are found by meaning (`gemini-embedding-2`, pgvector). If the best passage scores below 0.62, the draft is refused with no AI call.
+  3. The model streams a reply with `[n]` citations.
+  4. Citations, links, hidden characters and leaked prompt text are checked.
+  5. The agent edits, previews and approves the reply. It is sent as a public reply and recorded in the audit log.
+- **When a ticket arrives:** a background job labels it. The label is applied only if confidence ≥ the workspace threshold and no person has set that field. Otherwise it shows as _Needs review_.
+
+More detail: [architecture](docs/02-architecture.md) (data model, API contract, flows) and [19 architecture decision records](docs/adr/).
 
 ## Tech stack
 
-TypeScript (strict) · Next.js 16 (App Router) · React 19 · Node.js 24 LTS · PostgreSQL 17 + pgvector · Drizzle ORM · Better Auth · Tailwind CSS + shadcn/ui · Zod · pino · Vitest · Playwright + axe · Docker · GitHub Actions.
-Reasons for each choice are in [`docs/adr/`](docs/adr/).
+| Area       | Choice                                                                     | Why                                                                                      |
+| ---------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Language   | TypeScript (strict), Node.js 24 LTS                                        | One language from database to browser; the most-used language on GitHub (Octoverse 2025) |
+| Web        | Next.js 16 (App Router), React 19                                          | Server rendering, route handlers and streaming in one framework                          |
+| Data       | PostgreSQL 17 + pgvector, Drizzle ORM, SQL migrations                      | Relational data, vectors and the job queue in one database                               |
+| Auth       | Better Auth                                                                | Database sessions, organisations and roles; NIST SP 800-63B-4 password rules             |
+| AI         | Vercel AI SDK, Google Gemini; a deterministic mock                         | Structured output and streaming; the mock keeps tests and local work offline and free    |
+| UI         | Tailwind CSS 4, shadcn/ui on Base UI primitives, Geist fonts (self-hosted) | Accessible primitives on a small design system of its own tokens                         |
+| Validation | Zod                                                                        | One schema for API input, AI output and environment variables                            |
+| Quality    | Vitest, Playwright + axe, ESLint, Prettier                                 | Unit, integration on a real database, browser tests with accessibility scans             |
+| Ops        | Docker, GitHub Actions, pino, OpenTelemetry, Sentry                        | Reproducible image, pinned CI, logs and traces without customer data                     |
 
-## What works today (M5)
+The research behind these choices, with sources: [docs/00](docs/00-research-and-plan.md).
 
-**AI triage and reply drafts**
+## Security
 
-- **Triage:** a background job labels every new ticket with a category, priority, sentiment, language, confidence and a short reason (Gemini structured output, validated with Zod). Labels at or above the workspace's threshold (default 0.95, chosen from the M6 evaluation) are applied; lower ones wait for an agent under **Needs review**. A label set by a person is never overwritten.
-- **Reply drafts grounded in the knowledge base:** the 5 best-matching passages go to the model, and the draft streams in with numbered **citations** the agent can open. Citations are checked against the passages actually given, and unknown links, hidden characters and leaked prompt text are flagged. If the knowledge base has nothing relevant, the draft is **refused**: without any AI call when no passage scores high enough, or by the model when the passages don't contain the answer. **Nothing is sent until an agent approves it**; agents can edit, preview what the customer will see, and rate the draft.
-- **One gateway for every model call:** an AI on/off switch and a monthly token budget per workspace, a daily call cap for the whole deployment (one atomic database update, so parallel workers can't overshoot it), timeouts, a circuit breaker per model, and a **fallback model** when the draft model is overloaded. A 429 is never rerouted, so the provider's rate limits are respected ([ADR-0015](docs/adr/0015-text-generation-gateway.md), [ADR-0016](docs/adr/0016-draft-model-fallback.md)). Every call is recorded with tokens, estimated cost and latency; prompts and answers are never logged.
-- **Prompt-injection defences** (OWASP LLM Top 10 2026): ticket text and articles are treated as untrusted data, hidden characters are stripped and the agent is warned, and AI output is rendered as plain text. A **20-case attack set** (12 in tickets, 8 in poisoned help articles) runs in CI.
-- **AI settings page** with this month's usage and cost per feature, the budget, the auto-apply threshold and the categories. Every change is in the audit log.
+- **Accounts:**
+  - Email and password following NIST SP 800-63B-4, with an optional breached-password check that fails closed.
+  - Database sessions; changing your password signs you out everywhere.
+- **Authorisation:**
+  - Owner / admin / agent roles are checked on the server for every action.
+  - Every tenant query is scoped by workspace, with cross-workspace tests for each route.
+- **Web:**
+  - A per-request nonce Content Security Policy (no inline scripts), with E2E tests failing on any CSP violation.
+  - Origin checks on writes.
+  - Rate limits on sign-in and the portal; a honeypot on the support form.
+- **Customer links:**
+  - Tracking links are 256-bit random tokens, and only their hash is stored.
+  - They are kept out of referrers, caches, search engines and logs ([ADR-0012](docs/adr/0012-tracking-link.md)).
+- **File uploads (OWASP rules):**
+  - Extension allowlist plus a content check, and size and quota limits.
+  - Files are never served back.
+  - PDFs are parsed in a sandboxed thread with a memory cap and a 30-second kill.
+- **AI:**
+  - Prompt-injection defences and a 20-case attack set in CI.
+  - Output rendered as plain text.
+  - Prompts and answers are not logged.
+  - Telemetry exports only allowlisted metadata.
+- **Supply chain:**
+  - CodeQL, gitleaks, dependency review and `pnpm audit` in CI.
+  - All GitHub Actions pinned to commit SHAs; Dependabot.
 
-**Measured on real Gemini models** (free tier, 2026-10-23; small samples, details and limits in the [smoke-run report](docs/eval/ai-smoke-2026-10-23.md)):
+Threat model: [docs/03](docs/03-threat-model.md) (STRIDE, OWASP Top 10:2025, OWASP LLM Top 10 2026). Known gaps with mitigations and revisit dates: [accepted risks](docs/security/accepted-risks.md). Reporting a vulnerability: [SECURITY.md](SECURITY.md). A dedicated security review is milestone M7.
 
-| Check                                 | Result                                                                                                  |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Triage category (20 labelled tickets) | 90% correct (target ≥ 85%); priority 65%                                                                |
-| Answerable questions                  | 10/10 drafts with the right article cited, 0 invalid citations                                          |
-| Unanswerable questions                | 10/10 refused                                                                                           |
-| Prompt-injection attacks              | 19/20 resisted; the one that worked (a false policy in an article) was cited, so the agent can check it |
-| Cost at paid-tier prices              | about $0.0003 per triage and $0.0006 per draft                                                          |
+## Testing and CI
 
-The run also found two problems, both fixed and tested: the draft model was overloaded (now a fallback model takes over) and a timeout that didn't apply while the provider held a request (findings #95–#96 in the [milestone log](docs/milestones.md)).
+| Layer         | What runs                                                                                                                                                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit          | 1,230 tests. Coverage thresholds: 80% lines, functions and statements, and 75% branches.                                                                                                                                                                 |
+| Integration   | 508 tests on real PostgreSQL + pgvector: services, the REST API, tenancy, the job worker, and the prompt-injection set.                                                                                                                                  |
+| End to end    | 15 Playwright suites on desktop and mobile Chromium against the production build: 63 pass, and 6 are skipped by design (desktop-only or mobile-only checks). They include axe scans in both themes, 20 visual baselines and a keyboard-only walkthrough. |
+| AI evaluation | The full evaluation with the mock AI on every push, with floors. The Gemini run is manual only, behind a protected environment.                                                                                                                          |
+| Pipeline      | Lint with zero warnings, strict typecheck, formatting, production build and smoke tests, a fail-fast config check, a Docker build with container smoke tests (non-root, HEALTHCHECK), and the security scans above.                                      |
 
-| Ticket with AI triage and a cited draft (mock AI)                     | AI settings and usage                                       |
-| --------------------------------------------------------------------- | ----------------------------------------------------------- |
-| ![Ticket with AI draft](docs/screenshots/m5-ticket-draft-desktop.png) | ![AI settings](docs/screenshots/m5-ai-settings-desktop.png) |
+AI coding assistants were used to build this project, under a written policy: AI output is a draft, every change must pass typecheck, lint and tests, and framework APIs are checked against official docs ([CONTRIBUTING.md](CONTRIBUTING.md#ai-assisted-development-policy)).
 
-| A citation opened                                     | Draft on a phone                                          |
-| ----------------------------------------------------- | --------------------------------------------------------- |
-| ![Citation](docs/screenshots/m5-citation-desktop.png) | ![Draft on a phone](docs/screenshots/m5-draft-mobile.png) |
+## Limitations
 
-Screenshots use the offline mock AI, which builds its answer from the retrieved passages; real Gemini drafts are in the report above.
+- **Not deployed yet**, so there is no live demo until milestone M8.
+- **The evaluation is small and synthetic:**
+  - 35 invented help articles and 420 test items from one free-tier run.
+  - Groundedness is graded by an AI model, not checked against a human.
+  - Most drafts in the run came from the fallback model, because the main one often timed out on the free tier.
+- **Triage:**
+  - The 0.95 threshold was chosen on the same 150 tickets it was measured on, so it needs confirming on new data.
+  - Existing workspaces keep the threshold they had saved.
+  - Comparing the v1 and v2 triage prompts on Gemini is still open.
+- **The Gemini free tier may use inputs to improve Google's products,** so use demo data only.
+- **No outbound email:** invite and tracking links are copied and shared by hand.
+- **English-only interface**; the AI detects the customer's language.
+- **Scale:** one region and a single database. Per-IP limits need a trusted proxy ([AR-004](docs/security/accepted-risks.md)).
 
-**Knowledge base** (the help articles AI drafts cite)
+## Roadmap
 
-- Admins upload **Markdown, text or PDF** files. Uploads follow the OWASP file-upload rules: extension allowlist plus content check, size and quota limits, and files are never served back.
-- A **background worker** (pg-boss on PostgreSQL) extracts text, splits it into passages and embeds them. **PDFs are parsed in a sandboxed thread** with a memory cap and a hard 30 s kill ([ADR-0013](docs/adr/0013-embeddings-and-pdf-sandbox.md)). Temporary failures are retried; bad files fail with a plain-language reason.
-- **Measured search:** passages are ranked by meaning (Gemini `gemini-embedding-2` embeddings in pgvector), and a PostgreSQL full-text search labels keyword matches. Equal-weight hybrid fusion was the plan, but on a 110-question eval meaning alone ranked better (recall@5 99.1% vs 97.3%), so it was dropped ([ADR-0014](docs/adr/0014-retrieval-ranking.md)). Admins can try it on a **test search** page that shows why each passage was found.
-- **Measured, not assumed:** `pnpm eval:retrieval` runs the real pipeline on a synthetic 35-article help centre with 110 labelled questions and reports recall@5, MRR@5, latency, tokens and cost. CI guards the baseline on every push ([retrieval baseline](docs/eval/retrieval-baseline.md)).
+| Milestone                                | Status                    |
+| ---------------------------------------- | ------------------------- |
+| M0–M2 · Foundation, accounts, workspaces | Done                      |
+| M3 · Ticketing and customer portal       | Done                      |
+| M4 · Knowledge base and search           | Done                      |
+| M5 · AI triage and cited drafts          | Done                      |
+| M6 · Evaluation and observability        | Finishing (baseline done) |
+| Design system                            | Done                      |
+| M7 · Security review                     | Next                      |
+| M8 · Deployment and live demo            | Planned                   |
+| M9 · Portfolio presentation              | Planned                   |
 
-| Knowledge base                                               | Test search                                            |
-| ------------------------------------------------------------ | ------------------------------------------------------ |
-| ![Knowledge base](docs/screenshots/m4-knowledge-desktop.png) | ![Test search](docs/screenshots/m4-search-desktop.png) |
-
-**Ticketing**
-
-- A public **customer portal** per workspace (`/p/{slug}`). Customers need no account: they get a **private tracking link** to follow the conversation and reply. The link is a 256-bit random token, only its hash is stored, and it is kept out of referrers, caches, search engines and logs ([ADR-0012](docs/adr/0012-tracking-link.md)).
-- An **agent inbox** with status tabs and counts, full-text search (`#12`, `-exclude`), filters, and keyset paging. Filters live in the URL.
-- A **ticket page** with the conversation, public replies vs **internal notes**, and status, priority, category and assignee. Internal notes never reach customers (tested at service, API and browser level).
-- Ticket lifecycle rules (`closed` is final, a customer reply reopens a resolved ticket). **Concurrent edits are detected**, so nobody overwrites a colleague's change. Every change is in the audit log.
-- Portal abuse controls: rate limits per IP, per workspace and per ticket, a honeypot, and size limits.
-- A documented **REST API** (OpenAPI 3.1) on the same services, with cross-workspace access tests for every route.
-
-**Foundation**
-
-- Email + password accounts (NIST SP 800-63B-4 password rules, optional breached-password check), database sessions, sign-out everywhere on password change.
-- Multi-tenant **workspaces**: create, switch, invite by single-use 7-day link, change roles, remove members. Roles **owner / admin / agent** are enforced on the server for every action. Cross-workspace access is tested.
-- Append-only **audit log** of membership and ticket changes.
-- Strict per-request **nonce Content Security Policy** (no inline scripts), rate limiting, CSRF/origin checks.
-- Accessible, responsive UI. Automated axe scans find 0 serious issues on desktop and mobile.
-
-| Agent inbox                                           | Ticket with an internal note                           |
-| ----------------------------------------------------- | ------------------------------------------------------ |
-| ![Agent inbox](docs/screenshots/m3-inbox-desktop.png) | ![Ticket page](docs/screenshots/m3-ticket-desktop.png) |
-
-| Customer portal (phone)                                    | Customer tracking page (phone)                                 | Members (owner view)                                   |
-| ---------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
-| ![Portal form](docs/screenshots/m3-portal-form-mobile.png) | ![Tracking page](docs/screenshots/m3-tracking-page-mobile.png) | ![Members page](docs/screenshots/m2-members-owner.png) |
+What was built and verified in each milestone: [milestone log](docs/milestones.md).
 
 ## Quick start (local)
 
@@ -129,6 +265,9 @@ docker compose --profile full up --build
 
 All settings are environment variables. Most are validated at startup (`src/server/platform/env.ts`), and the server exits if one is invalid. `.env.example` has local defaults.
 
+<details>
+<summary>All environment variables</summary>
+
 | Variable                                                          | Default                            | Purpose                                                                                                                                                                                                                                                        |
 | ----------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`                                                    | (required)                         | PostgreSQL 17 with pgvector                                                                                                                                                                                                                                    |
@@ -151,7 +290,12 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `SENTRY_ENVIRONMENT`                                              | `NODE_ENV`                         | Environment name shown in Sentry (letters, digits, `.` `_` `-`)                                                                                                                                                                                                |
 | `LOG_LEVEL`, `DATABASE_POOL_MAX`, `DATABASE_STATEMENT_TIMEOUT_MS` | `info`, `10`, `10000`              | Logging and database tuning                                                                                                                                                                                                                                    |
 
+</details>
+
 ## Operational endpoints
+
+<details>
+<summary>All REST endpoints and who may call them</summary>
 
 | Endpoint                                       | Who                         |
 | ---------------------------------------------- | --------------------------- |
@@ -175,31 +319,28 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `GET /api/v1/settings/ai`                      | workspace member            |
 | `PATCH /api/v1/settings/ai`                    | admin or owner              |
 
+</details>
+
 Agent endpoints use the browser session and accept writes only from the app's own origin.
-
-## Quality gates (CI)
-
-Lint (incl. accessibility rules, zero warnings) · strict typecheck · Prettier · unit tests + coverage · integration tests on PostgreSQL + pgvector (including the 20-case prompt-injection set) · production build + smoke tests · Playwright E2E + axe accessibility scans (fail on any CSP violation) · fail-fast config check · Docker build + container smoke (non-root, HEALTHCHECK) · CodeQL · gitleaks · dependency review · `pnpm audit` (production deps blocking). All actions are pinned to commit SHAs. Dependabot keeps them current.
 
 ## Documentation
 
-| Doc                                                       | Contents                                                                |
-| --------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [00 · Research & plan](docs/00-research-and-plan.md)      | Market research with sources, stack choice, roadmap                     |
-| [01 · Requirements](docs/01-requirements.md)              | Roles, functional & non-functional requirements, acceptance criteria    |
-| [02 · Architecture](docs/02-architecture.md)              | System design, data model, API contract, key flows                      |
-| [03 · Threat model](docs/03-threat-model.md)              | STRIDE, OWASP Top 10:2025 and OWASP LLM Top 10 2026 mapping             |
-| [04 · AI evaluation plan](docs/04-ai-evaluation-plan.md)  | Golden dataset, metrics, targets                                        |
-| [ADRs](docs/adr/)                                         | Architecture decision records                                           |
-| [Accepted risks](docs/security/accepted-risks.md)         | Known limitations with mitigations and a revisit date                   |
-| [M3 plan](docs/plans/m3-ticketing.md)                     | Ticketing design decisions D1–D10 and the "done when" list              |
-| [M4 plan](docs/plans/m4-knowledge-base.md)                | Knowledge-base decisions D1–D14 and the "done when" list                |
-| [M5 plan](docs/plans/m5-ai-features.md)                   | AI features: models, guardrails, the injection set, "done when"         |
-| [Retrieval baseline](docs/eval/retrieval-baseline.md)     | Search quality method, results and limitations                          |
-| [Gemini smoke run](docs/eval/ai-smoke-2026-10-23.md)      | Triage, draft and prompt-injection results with real models             |
-| [Observability](docs/observability.md)                    | Logs, traces and Sentry: what is collected, what never is, how to check |
-| [Milestone log](docs/milestones.md)                       | What was built and verified in each milestone                           |
-| [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Workflow, AI-assisted development policy, vulnerability reporting       |
+| Doc                                                       | Contents                                                                                                                                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [00 · Research & plan](docs/00-research-and-plan.md)      | Market research with sources, stack choice, roadmap                                                                                                                                       |
+| [01 · Requirements](docs/01-requirements.md)              | Roles, functional & non-functional requirements, acceptance criteria                                                                                                                      |
+| [02 · Architecture](docs/02-architecture.md)              | System design, data model, API contract, key flows                                                                                                                                        |
+| [03 · Threat model](docs/03-threat-model.md)              | STRIDE, OWASP Top 10:2025 and OWASP LLM Top 10 2026 mapping                                                                                                                               |
+| [04 · AI evaluation plan](docs/04-ai-evaluation-plan.md)  | Golden dataset, metrics, targets                                                                                                                                                          |
+| [ADRs](docs/adr/)                                         | 19 architecture decision records                                                                                                                                                          |
+| [Accepted risks](docs/security/accepted-risks.md)         | Known limitations with mitigations and a revisit date                                                                                                                                     |
+| [M6 Gemini baseline](docs/eval/m6-baseline.md)            | The full evaluation: results, latency, cost, findings, limits                                                                                                                             |
+| [Evaluation folder](docs/eval/README.md)                  | Method, rubric, label checks, retrieval and refusal-threshold analyses                                                                                                                    |
+| [Observability](docs/observability.md)                    | Logs, traces and Sentry: what is collected, what never is, how to check                                                                                                                   |
+| [Design system](docs/design/tokens.md)                    | Tokens, app shell, pages and the quality checks (axe, Lighthouse, visual)                                                                                                                 |
+| Milestone plans                                           | [M3](docs/plans/m3-ticketing.md) · [M4](docs/plans/m4-knowledge-base.md) · [M5](docs/plans/m5-ai-features.md) · [M6](docs/plans/m6-evaluation.md) · [Design](docs/plans/design-system.md) |
+| [Milestone log](docs/milestones.md)                       | What was built and verified in each milestone                                                                                                                                             |
+| [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Workflow, AI-assisted development policy, vulnerability reporting                                                                                                                         |
 
 ## License
 
