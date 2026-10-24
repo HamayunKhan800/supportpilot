@@ -37,6 +37,7 @@
     "eval:ai": "tsx scripts/eval-ai-smoke.ts",
     "eval:review": "tsx scripts/eval-review.ts",
     "eval:state": "tsx scripts/eval-state.ts",
+    "eval:compare": "tsx scripts/eval-compare.ts",
     "design:tokens": "tsx scripts/design-tokens.ts",
     "kb:reembed": "tsx scripts/kb-reembed.ts",
     "otel:capture": "tsx scripts/otel-capture.ts",
