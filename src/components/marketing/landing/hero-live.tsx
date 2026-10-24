@@ -80,10 +80,9 @@ function useReducedMotion() {
 }
 
 /**
- * `compact` is for narrower, shorter places (the sign-in page's side panel): a lower window. The
- * columns follow the container's width either way (container queries), not the screen's.
+ * The columns follow the container's width (container queries), not the screen's.
  */
-export function HeroLive({ compact = false }: { compact?: boolean }) {
+export function HeroLive() {
   const [state, dispatch] = useReducer(heroReducer, undefined, () => initialHeroState("auto"));
   const reduced = useReducedMotion();
   const [visible, setVisible] = useState(false);
@@ -160,7 +159,7 @@ export function HeroLive({ compact = false }: { compact?: boolean }) {
         <div
           className={cn(
             "grid grid-cols-1",
-            compact ? "h-[34rem]" : "h-[38rem]",
+            "h-[38rem]",
             "@min-[44rem]:grid-cols-[minmax(0,1fr)_14rem] @min-[56rem]:grid-cols-[17rem_minmax(0,1fr)_14rem] @min-[68rem]:grid-cols-[11rem_17.5rem_minmax(0,1fr)_14rem]",
           )}
         >

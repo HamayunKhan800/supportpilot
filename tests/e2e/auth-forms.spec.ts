@@ -52,14 +52,14 @@ test("sign-up checks fields when they are left, and measures the password length
   await expect(page.getByText("Use at least 15 characters.")).toBeHidden();
 });
 
-test("wide screens show the live demo beside the form", async ({ page }) => {
+test("wide screens show the form alone in a centred column", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/sign-in");
-  const aside = page.getByRole("complementary", { name: "About SupportPilot" });
-  await expect(
-    aside.getByRole("group", { name: /^Interactive demo of the SupportPilot inbox/ }),
-  ).toBeVisible();
-  // The form comes first for the keyboard: the demo is after it.
+  // One column, like the sign-in pages of established products: no side panel.
+  await expect(page.getByRole("complementary")).toHaveCount(0);
+  const email = await page.getByLabel("Email").boundingBox();
+  expect(email).not.toBeNull();
+  expect(Math.abs(email!.x + email!.width / 2 - 720)).toBeLessThan(40);
   await page.getByLabel("Email").focus();
   await page.keyboard.press("Tab");
   await expect(page.getByLabel("Password")).toBeFocused();

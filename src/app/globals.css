@@ -564,3 +564,9 @@ html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
     filter: none;
   }
 }
+
+/* Design step 10.3: the sign-in pages' backdrop is centred on the form, not on the top edge. */
+.land-grid.auth-backdrop,
+.hero-field.auth-backdrop {
+  mask-image: radial-gradient(ellipse 60% 65% at 50% 48%, #000 15%, transparent 100%);
+}
