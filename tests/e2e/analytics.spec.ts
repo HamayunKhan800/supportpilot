@@ -95,10 +95,13 @@ test("usage: a triaged request appears, periods switch, charts have a table", as
     page.getByRole("navigation", { name: "Analytics" }).getByRole("link", { name: "Usage" }),
   ).toHaveAttribute("aria-current", "page");
 
-  // Key numbers: the first tile is tickets created, with its trend against the earlier half of the period.
-  const keyNumbers = page.getByRole("region", { name: /^Key numbers, last 30 days/ });
-  await expect(keyNumbers.getByRole("definition").first()).toHaveText("1"); // Tickets created
-  await expect(keyNumbers).toContainText("Last 15 days: 1, none in the 15 before");
+  // Key numbers are tabs over one chart (as on Vercel): tickets created is chosen first, with its
+  // trend against the earlier half of the period.
+  const keyNumbers = page.getByRole("tablist", { name: /^Key numbers, last 30 days/ });
+  const ticketsTab = keyNumbers.getByRole("tab", { name: /^Tickets created/ });
+  await expect(ticketsTab).toHaveAttribute("aria-selected", "true");
+  await expect(ticketsTab).toHaveAccessibleName(/^Tickets created\s*1(?!\d)/);
+  await expect(ticketsTab).toContainText("Last 15 days: 1, none in the 15 before");
   // Statuses are a coloured bar whose legend names each part with its count and share.
   const tickets = page.getByRole("region", { name: "Tickets", exact: true });
   await expect(
@@ -111,6 +114,12 @@ test("usage: a triaged request appears, periods switch, charts have a table", as
   // The chart is an image with a sentence for screen readers, and its data is a real table.
   await expect(page.getByRole("img", { name: /^Tickets created per day, .*: 1 in total/ })).toBeVisible();
   await audit(page, "analytics usage");
+  // Another tab switches the chart, also from the keyboard.
+  await ticketsTab.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(keyNumbers.getByRole("tab", { name: /^AI tokens/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("img", { name: /^AI tokens per day, / })).toBeVisible();
+  await keyNumbers.getByRole("tab", { name: /^Tickets created/ }).click();
 
   const period = page.getByRole("navigation", { name: "Period" });
   await expect(period.getByRole("link", { name: "Last 30 days" })).toHaveAttribute("aria-current", "true");

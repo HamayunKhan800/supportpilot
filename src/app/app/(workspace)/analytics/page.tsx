@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { MessageSquareText, Tags, ThumbsDown, ThumbsUp } from "lucide-react";
-import { BarChart } from "@/components/charts/bar-chart";
-import { ChangeNote, Sparkline } from "@/components/charts/sparkline";
+import { MetricTabs } from "@/components/charts/metric-tabs";
+import { changeSummary } from "@/components/charts/scale";
 import { StackedBar, type StackedSegment } from "@/components/charts/stacked-bar";
 import { Forbidden } from "@/components/forbidden";
 import { MeterBar } from "@/components/meter";
-import { EmptyState, Section, Stat, StatGrid } from "@/components/page";
+import { EmptyState, Section } from "@/components/page";
 import { TableScroll } from "@/components/table-scroll";
 import {
   formatCount,
@@ -87,9 +87,10 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
   const costSeries = ai.daily.map((d) => d.costMicros);
   const sent = drafts.byStatus.sent ?? 0;
   const tokenDays = ai.daily.map((d) => ({ key: d.day, label: formatDay(d.day), value: d.tokens }));
+  const costDays = ai.daily.map((d) => ({ key: d.day, label: formatDay(d.day), value: d.costMicros }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-wide className="flex flex-col gap-6">
       <AnalyticsHeader
         current="usage"
         intro="How this workspace and its AI features are being used. Counts only: no ticket text. Days are UTC."
@@ -107,37 +108,43 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
         <h2 id="key-numbers" className="sr-only">
           Key numbers, last {days} days
         </h2>
-        <StatGrid>
-          <Stat
-            label="Tickets created"
-            value={formatCount(tickets.created)}
-            tone="brand"
-            note={<ChangeNote values={ticketSeries} format={formatCount} />}
-            chart={<Sparkline values={ticketSeries} />}
-          />
-          <Stat
-            label="Draft acceptance"
-            value={formatRatio(sent, decided)}
-            tone="success"
-            note={
-              decided
-                ? `${sent} sent of ${decided} decided (sent or discarded)`
-                : "None sent or discarded yet"
-            }
-          />
-          <Stat
-            label="AI tokens"
-            value={formatCount(totalTokens)}
-            note={<ChangeNote values={tokenSeries} format={formatCount} />}
-            chart={<Sparkline values={tokenSeries} />}
-          />
-          <Stat
-            label="Estimated cost"
-            value={formatMicros(totalCost)}
-            note={<ChangeNote values={costSeries} format={formatMicros} />}
-            chart={<Sparkline values={costSeries} />}
-          />
-        </StatGrid>
+        <MetricTabs
+          label={`Key numbers, last ${days} days`}
+          metrics={[
+            {
+              id: "tickets",
+              label: "Tickets created",
+              value: formatCount(tickets.created),
+              change: changeSummary(ticketSeries, formatCount),
+              chart: {
+                title: "Tickets created per day",
+                data: ticketDays,
+                valueHeader: "Tickets",
+                unit: "tickets",
+              },
+            },
+            {
+              id: "tokens",
+              label: "AI tokens",
+              value: formatCount(totalTokens),
+              change: changeSummary(tokenSeries, formatCount),
+              chart: { title: "AI tokens per day", data: tokenDays, valueHeader: "Tokens", unit: "tokens" },
+            },
+            {
+              id: "cost",
+              label: "Estimated cost",
+              value: formatMicros(totalCost),
+              change: changeSummary(costSeries, formatMicros),
+              chart: {
+                title: "Estimated AI cost per day",
+                data: costDays,
+                valueHeader: "Estimated cost",
+                unit: "estimated cost",
+                format: "usd-micros",
+              },
+            },
+          ]}
+        />
       </section>
 
       <Section
@@ -155,12 +162,6 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
             value: tickets.byStatus[st] ?? 0,
             tone: STATUS_TONE[st],
           }))}
-        />
-        <BarChart
-          title="Tickets created per day"
-          data={ticketDays}
-          formatValue={formatCount}
-          valueHeader="Tickets"
         />
         {tickets.byCategory.length > 0 ? (
           <TableScroll label="Tickets by category">
@@ -222,6 +223,15 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
         >
           <dl className="grid grid-cols-2 gap-4">
             <SmallStat label="Drafts" value={formatCount(generated)} />
+            <SmallStat
+              label="Accepted"
+              value={formatRatio(sent, decided)}
+              detail={
+                decided
+                  ? `${sent} sent of ${decided} decided (sent or discarded)`
+                  : "none sent or discarded yet"
+              }
+            />
             <SmallStat
               label="Median edit before sending"
               value={formatShare(drafts.edited.median)}
@@ -386,13 +396,6 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
             </tbody>
           </table>
         </TableScroll>
-        <BarChart
-          title="AI tokens per day"
-          data={tokenDays}
-          formatValue={formatCount}
-          valueHeader="Tokens"
-          tone={2}
-        />
         {ai.byModel.length > 0 && (
           <TableScroll label="AI calls by model">
             <table className="w-full text-sm">

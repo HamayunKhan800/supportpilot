@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   barLayout,
+  changeSummary,
   lineSegments,
   niceMax,
   periodChange,
@@ -269,6 +270,34 @@ describe("periodChange", () => {
   it("needs at least two days", () => {
     expect(periodChange([])).toBeNull();
     expect(periodChange([5])).toBeNull();
+  });
+});
+
+describe("changeSummary", () => {
+  const f = (n: number) => String(n);
+  it("says how the newer half compares with the older half, with the direction", () => {
+    expect(changeSummary([1, 1, 2, 2], f)).toEqual({
+      text: "Last 2 days: up 100% vs the 2 before",
+      trend: "up",
+    });
+    expect(changeSummary([4, 0, 1, 1], f)).toEqual({
+      text: "Last 2 days: down 50% vs the 2 before",
+      trend: "down",
+    });
+    expect(changeSummary([20, 21, 21, 22], f)?.text).toBe("Last 2 days: up 4.9% vs the 2 before");
+  });
+  it("words the cases without a percentage", () => {
+    expect(changeSummary(Array(29).fill(0).concat(1), f)).toEqual({
+      text: "Last 15 days: 1, none in the 15 before",
+      trend: "up",
+    });
+    expect(changeSummary([0, 0, 0, 0], f)).toEqual({ text: "None in this period", trend: "flat" });
+    expect(changeSummary([1, 2, 2, 1], f)).toEqual({
+      text: "Last 2 days: same as the 2 before",
+      trend: "flat",
+    });
+    expect(changeSummary([1, 0], f)?.text).toBe("Last day: down 100% vs the day before");
+    expect(changeSummary([5], f)).toBeNull();
   });
 });
 

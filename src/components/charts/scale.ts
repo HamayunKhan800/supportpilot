@@ -114,3 +114,28 @@ export function sparkPoints(
     y: top > 0 ? box.height - (Math.max(v, 0) / top) * box.height : box.height,
   }));
 }
+
+export type Trend = "up" | "down" | "flat";
+
+/**
+ * "Last 15 days: up 23% vs the 15 before": the newer half of the period against the older half.
+ * Null when the period is too short to split.
+ */
+export function changeSummary(
+  values: readonly number[],
+  format: (n: number) => string,
+): { text: string; trend: Trend } | null {
+  const change = periodChange(values);
+  if (!change) return null;
+  const { recent, prior, days, ratio } = change;
+  const last = days === 1 ? "Last day" : `Last ${days} days`;
+  const before = days === 1 ? "the day before" : `the ${days} before`;
+  if (recent === 0 && prior === 0) return { text: "None in this period", trend: "flat" };
+  if (recent === prior) return { text: `${last}: same as ${before}`, trend: "flat" };
+  if (ratio === null) return { text: `${last}: ${format(recent)}, none in ${before}`, trend: "up" };
+  const pct = Math.abs(ratio) * 100;
+  return {
+    text: `${last}: ${ratio > 0 ? "up" : "down"} ${pct < 10 ? pct.toFixed(1) : Math.round(pct)}% vs ${before}`,
+    trend: ratio > 0 ? "up" : "down",
+  };
+}

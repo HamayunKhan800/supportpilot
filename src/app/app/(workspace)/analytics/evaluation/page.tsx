@@ -5,7 +5,8 @@ import { TrendLine } from "@/components/charts/trend-line";
 import { Forbidden } from "@/components/forbidden";
 import { TableScroll } from "@/components/table-scroll";
 import { Check, FlaskConical, Info, Minus, TriangleAlert, X } from "lucide-react";
-import { EmptyState, Section, Stat, StatGrid } from "@/components/page";
+import { EmptyState } from "@/components/page";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { formatCount, formatDateTime, formatMs, formatShare, formatUsd } from "@/lib/format";
 import { EVAL_PROVIDERS, type EvalProvider } from "@/server/modules/eval/constants";
@@ -140,26 +141,64 @@ function LatestRun({ run, newer }: { run: EvalRunListing; newer: EvalRunListing 
 
   return (
     <>
-      <Section
-        id="latest-run"
-        title={
-          <span className="flex flex-wrap items-center gap-2">
-            Latest {newer ? "complete " : ""}
-            {PROVIDER_LABELS[run.provider]} run
-            <Badge variant={status.variant}>{status.label}</Badge>
-          </span>
-        }
-        description={
-          <>
-            Started {formatDateTime(run.startedAt)}
-            {run.finishedAt
-              ? `, finished ${formatDateTime(run.finishedAt)}`
-              : `, last saved ${formatDateTime(run.updatedAt)}`}
-            .
-          </>
-        }
-        bodyClassName="flex flex-col gap-4"
-      >
+      <section id="latest-run" aria-labelledby="latest-run-heading" className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 gap-x-10 gap-y-6 border-y py-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <h2
+                id="latest-run-heading"
+                className="flex flex-wrap items-center gap-2 text-base font-semibold"
+              >
+                Latest {newer ? "complete " : ""}
+                {PROVIDER_LABELS[run.provider]} run
+                <Badge variant={status.variant}>{status.label}</Badge>
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Started {formatDateTime(run.startedAt)}
+                {run.finishedAt
+                  ? `, finished ${formatDateTime(run.finishedAt)}`
+                  : `, last saved ${formatDateTime(run.updatedAt)}`}
+                .
+              </p>
+            </div>
+            <p className="text-4xl font-semibold tracking-tight tabular-nums">
+              {targeted.length ? `${met} of ${targeted.length}` : "No"}
+              <span className="text-muted-foreground ml-2 text-lg font-normal tracking-normal">
+                {targeted.length ? "targets met" : "targets measured yet"}
+              </span>
+            </p>
+            {/* One segment per target, in the order of the lists below; the numbers say it in words. */}
+            {values.some((v) => v.def.target) && (
+              <ul aria-hidden="true" className="flex max-w-md gap-1">
+                {values
+                  .filter((v) => v.def.target)
+                  .map((v) => (
+                    <li
+                      key={v.def.key}
+                      title={v.def.label}
+                      className={cn(
+                        "h-1.5 flex-1 rounded-full",
+                        v.meets === true ? "bg-success" : v.meets === false ? "bg-danger" : "bg-muted",
+                      )}
+                    />
+                  ))}
+              </ul>
+            )}
+            <p className="text-muted-foreground text-xs">
+              {unmeasured ? `${unmeasured} more not measured yet. ` : ""}Targets are hypotheses to test
+              (docs/04), not promises.
+            </p>
+          </div>
+          <dl className="grid grid-cols-3 gap-x-8 gap-y-1 lg:text-right">
+            <RunFigure label="Items measured" value={formatCount(itemsMeasured(summary))} />
+            <RunFigure label="AI requests" value={formatCount(run.calls)} />
+            <RunFigure
+              label="Estimated cost"
+              value={formatUsd(numberAt(summary, "cost.estCostUsd"))}
+              detail={`per draft ${formatUsd(numberAt(summary, "cost.perDraftUsd"))}`}
+            />
+          </dl>
+        </div>
         {run.provider === "mock" && (
           <p className="border-info-border bg-info-subtle text-info-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
             <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
@@ -192,21 +231,6 @@ function LatestRun({ run, newer }: { run: EvalRunListing; newer: EvalRunListing 
             </span>
           </p>
         )}
-        <StatGrid>
-          <Stat
-            label="Targets met"
-            value={targeted.length ? `${met} of ${targeted.length}` : "—"}
-            tone={!targeted.length ? "neutral" : met === targeted.length ? "success" : "warning"}
-            note={`${unmeasured ? `${unmeasured} more not measured yet. ` : ""}Targets are hypotheses to test (docs/04), not promises.`}
-          />
-          <Stat label="Items measured" value={formatCount(itemsMeasured(summary))} />
-          <Stat label="AI requests" value={formatCount(run.calls)} />
-          <Stat
-            label="Estimated cost"
-            value={formatUsd(numberAt(summary, "cost.estCostUsd"))}
-            note={`Paid-tier price · per draft ${formatUsd(numberAt(summary, "cost.perDraftUsd"))}, per triage ${formatUsd(numberAt(summary, "cost.perTriageUsd"))}`}
-          />
-        </StatGrid>
         {(labels.prompts.length > 0 || labels.models.length > 0) && (
           <dl className="text-muted-foreground grid gap-3 text-xs sm:grid-cols-2">
             <div>
@@ -219,35 +243,37 @@ function LatestRun({ run, newer }: { run: EvalRunListing; newer: EvalRunListing 
             </div>
           </dl>
         )}
-        <IntervalLegend />
-      </Section>
+      </section>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {METRIC_GROUPS.map((group) => (
-          <Section
-            key={group}
-            id={`group-${group.toLowerCase().replace(/\W+/g, "-")}`}
-            title={group}
-            level={3}
-          >
-            <ul className="flex flex-col gap-3">
-              {values
-                .filter((m) => m.def.group === group)
-                .map((m) => (
-                  <MetricRow key={m.def.key} m={m} />
-                ))}
-            </ul>
-            {group === "Safety" && obeyed.length > 0 && (
-              <p className="text-muted-foreground mt-3 text-xs">
-                Attacks the model followed:{" "}
-                {obeyed.map((id) => (caught.has(id) ? `${id} (caught by code)` : id)).join(", ")}.
-              </p>
-            )}
-          </Section>
-        ))}
+      <div className="flex flex-col gap-4">
+        <IntervalLegend />
+        <div className="grid grid-cols-1 gap-x-10 gap-y-10 md:grid-cols-2">
+          {METRIC_GROUPS.map((group) => (
+            <Block
+              key={group}
+              id={`group-${group.toLowerCase().replace(/\W+/g, "-")}`}
+              title={group}
+              level={3}
+            >
+              <ul className="flex flex-col gap-3">
+                {values
+                  .filter((m) => m.def.group === group)
+                  .map((m) => (
+                    <MetricRow key={m.def.key} m={m} />
+                  ))}
+              </ul>
+              {group === "Safety" && obeyed.length > 0 && (
+                <p className="text-muted-foreground mt-3 text-xs">
+                  Attacks the model followed:{" "}
+                  {obeyed.map((id) => (caught.has(id) ? `${id} (caught by code)` : id)).join(", ")}.
+                </p>
+              )}
+            </Block>
+          ))}
+        </div>
       </div>
 
-      <Section
+      <Block
         id="reliability"
         level={3}
         title="Reliability and speed"
@@ -314,7 +340,7 @@ function LatestRun({ run, newer }: { run: EvalRunListing; newer: EvalRunListing 
             </tbody>
           </table>
         </TableScroll>
-      </Section>
+      </Block>
     </>
   );
 }
@@ -325,7 +351,7 @@ function Trend({ runs }: { runs: readonly EvalRunListing[] }) {
   const valuesByRun = ordered.map((r) => metricValues(r.summary));
   const runNames = ordered.map((r) => shortDate(r.startedAt));
   return (
-    <Section
+    <Block
       id="trend"
       title="Trend across runs"
       description={`The last ${ordered.length} runs, oldest first, on a 0–100% scale. A drop after a prompt or model change shows here.`}
@@ -382,7 +408,80 @@ function Trend({ runs }: { runs: readonly EvalRunListing[] }) {
           </tbody>
         </table>
       </TableScroll>
-    </Section>
+    </Block>
+  );
+}
+
+/** A titled part of the report: heading, optional description, content. Space and a hairline, not a card. */
+function Block({
+  id,
+  title,
+  description,
+  level = 2,
+  bodyClassName,
+  children,
+}: {
+  id: string;
+  title: string;
+  description?: string;
+  level?: 2 | 3;
+  bodyClassName?: string;
+  children: React.ReactNode;
+}) {
+  const Heading = level === 3 ? "h3" : "h2";
+  return (
+    <section id={id} aria-labelledby={`${id}-heading`} className="flex min-w-0 flex-col gap-3">
+      <div className="border-b pb-2">
+        <Heading
+          id={`${id}-heading`}
+          className={level === 3 ? "text-sm font-semibold" : "text-base font-semibold"}
+        >
+          {title}
+        </Heading>
+        {description && <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>}
+      </div>
+      <div className={bodyClassName ?? "flex flex-col gap-3"}>{children}</div>
+    </section>
+  );
+}
+
+function RunFigure({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="flex flex-col">
+      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dd className="text-xl font-semibold tracking-tight tabular-nums">{value}</dd>
+      {detail && <dd className="text-muted-foreground text-xs">{detail}</dd>}
+    </div>
+  );
+}
+
+/** What the numbers mean and what they don't, in plain words, at the end of the report. */
+function AboutNumbers() {
+  return (
+    <Block
+      id="about"
+      title="About these numbers"
+      bodyClassName="grid grid-cols-1 gap-x-10 gap-y-4 text-sm md:grid-cols-2"
+    >
+      <p className="text-muted-foreground">
+        <strong className="text-foreground font-medium">Fixed test sets.</strong> Every run replays the same
+        synthetic tickets and questions with known answers (docs/04), plus a set of prompt-injection attacks,
+        so runs can be compared. No customer data is used.
+      </p>
+      <p className="text-muted-foreground">
+        <strong className="text-foreground font-medium">Ranges, not just rates.</strong> Each rate comes with
+        a 95% range (Wilson interval). A target counts as met when the measured rate reaches it; when the
+        range also reaches below the target, the result could still be chance.
+      </p>
+      <p className="text-muted-foreground">
+        <strong className="text-foreground font-medium">Groundedness is AI-graded,</strong> not checked
+        against a human: a second model judges whether each draft sticks to its sources.
+      </p>
+      <p className="text-muted-foreground">
+        <strong className="text-foreground font-medium">Costs are estimates</strong> at paid-tier list prices
+        from the tokens each call used. On the free tier these runs cost $0.
+      </p>
+    </Block>
   );
 }
 
@@ -400,7 +499,7 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
   const latest = headlineRun(runs);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-wide className="flex flex-col gap-8">
       <AnalyticsHeader
         current="evaluation"
         intro="How well the AI does on fixed test sets (docs/04): synthetic tickets and questions with known answers, the same for every workspace."
@@ -417,6 +516,7 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
         <>
           <LatestRun run={latest.run} newer={latest.newer} />
           {runs.length > 1 && <Trend runs={runs} />}
+          <AboutNumbers />
         </>
       ) : (
         <EmptyState icon={FlaskConical} title={`No ${PROVIDER_LABELS[provider]} runs yet`}>
