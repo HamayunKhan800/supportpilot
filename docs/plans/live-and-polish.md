@@ -14,11 +14,11 @@ The owner's feedback after testing the live demo:
 
 ### Outlines (measured with Playwright on a Pixel 7 profile and a 1440 px desktop)
 
-| Element                         | Today                                                                | Problem                                       |
-| ------------------------------- | -------------------------------------------------------------------- | --------------------------------------------- |
-| Text fields and text areas      | Blue border plus a 3 px pale-blue glow on every tap or click         | The stock shadcn look; blue is off the Ink brand, heavy on a phone |
-| Native selects (Status, Priority, filters) | The browser's own `outline: auto` in a 50 % blue           | A doubled outline that matches nothing else   |
-| Buttons and links               | A third style (`ring-3 ring/50`)                                     | Three focus styles in one product             |
+| Element                                    | Today                                                        | Problem                                                            |
+| ------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Text fields and text areas                 | Blue border plus a 3 px pale-blue glow on every tap or click | The stock shadcn look; blue is off the Ink brand, heavy on a phone |
+| Native selects (Status, Priority, filters) | The browser's own `outline: auto` in a 50 % blue             | A doubled outline that matches nothing else                        |
+| Buttons and links                          | A third style (`ring-3 ring/50`)                             | Three focus styles in one product                                  |
 
 Linear and Vercel: a field that is clicked only darkens its border (with a faint neutral halo);
 the strong ring is for keyboard focus. WCAG 2.2 (2.4.7, 2.4.11, 2.4.13) asks for a visible
@@ -32,13 +32,13 @@ toasts and live updates; keyboard shortcuts and a command palette.
 
 Where they still look like a generic admin form rather than Linear, Plain or Intercom:
 
-| Page      | Today                                                       | In the references                                                     |
-| --------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
-| Ticket    | Status, Priority, Category, Assignee are native selects     | Property rows: icon + value buttons that open a small menu (Linear, Plain) |
-| Inbox     | A row of selects plus an "Apply filters" button             | Filters apply instantly; chips show what is active and clear with one click |
-| All pages | A large title and a sentence of description at the top      | A compact top bar (title, count, breadcrumb, actions); help text lower down |
-| Knowledge | The browser's "Choose File / No file chosen" control        | A drop zone: drag a file or pick one, with progress                    |
-| Settings  | One long form with a Save button at the very bottom         | Grouped sections; a bar appears when there are unsaved changes        |
+| Page      | Today                                                   | In the references                                                           |
+| --------- | ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Ticket    | Status, Priority, Category, Assignee are native selects | Property rows: icon + value buttons that open a small menu (Linear, Plain)  |
+| Inbox     | A row of selects plus an "Apply filters" button         | Filters apply instantly; chips show what is active and clear with one click |
+| All pages | A large title and a sentence of description at the top  | A compact top bar (title, count, breadcrumb, actions); help text lower down |
+| Knowledge | The browser's "Choose File / No file chosen" control    | A drop zone: drag a file or pick one, with progress                         |
+| Settings  | One long form with a Save button at the very bottom     | Grouped sections; a bar appears when there are unsaved changes              |
 
 ### Sign-in and sign-up
 
@@ -49,18 +49,18 @@ inline errors on leaving a field.
 
 ### Fonts (read from each live site's computed styles, 24 Oct 2026)
 
-| Product  | Headings                  | Text              | Code / mono       |
-| -------- | ------------------------- | ----------------- | ----------------- |
-| Linear   | Inter Variable            | Inter Variable    | Berkeley Mono     |
-| Vercel   | Geist                     | Geist             | Geist Mono        |
-| Plain    | ABC Favorit (paid)        | ABC Favorit       | Geist Mono        |
-| Intercom | Saans (paid)              | Saans             | Saans Mono        |
-| Pylon    | Die Grotesk (paid)        | Die Grotesk       | Geist Mono        |
-| Resend   | Domaine (paid serif)      | Inter             | Commit Mono       |
-| Stripe   | Söhne (paid)              | Söhne             |                   |
-| Notion   | Inter (custom cut)        | Inter             |                   |
-| GitHub   | Mona Sans (free, OFL)     | Mona Sans         | Mona Sans Mono    |
-| Supabase | Manrope                   | Inter             | Source Code Pro   |
+| Product  | Headings              | Text           | Code / mono     |
+| -------- | --------------------- | -------------- | --------------- |
+| Linear   | Inter Variable        | Inter Variable | Berkeley Mono   |
+| Vercel   | Geist                 | Geist          | Geist Mono      |
+| Plain    | ABC Favorit (paid)    | ABC Favorit    | Geist Mono      |
+| Intercom | Saans (paid)          | Saans          | Saans Mono      |
+| Pylon    | Die Grotesk (paid)    | Die Grotesk    | Geist Mono      |
+| Resend   | Domaine (paid serif)  | Inter          | Commit Mono     |
+| Stripe   | Söhne (paid)          | Söhne          |                 |
+| Notion   | Inter (custom cut)    | Inter          |                 |
+| GitHub   | Mona Sans (free, OFL) | Mona Sans      | Mona Sans Mono  |
+| Supabase | Manrope               | Inter          | Source Code Pro |
 
 Geist is a sound choice: it is what Vercel uses, and Plain and Pylon use Geist Mono. The more
 "premium" brands use paid typefaces, which our rules exclude. The free alternatives in this
