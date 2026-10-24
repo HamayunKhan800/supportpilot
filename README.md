@@ -56,6 +56,8 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 | Agent inbox                                                        | Inbox, dark theme                                                     |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------- |
 | ![Agent inbox](docs/screenshots/app/inbox-light.png)               | ![Agent inbox in the dark theme](docs/screenshots/app/inbox-dark.png) |
+| **Overview: today's requests, what needs you, recent activity**    | **Sign-in**                                                           |
+| ![Overview](docs/screenshots/app/overview-light.png)               | ![Sign-in](docs/screenshots/app/sign-in-light.png)                    |
 | **Triage applied automatically (confidence 97%)**                  | **Ticket with a cited draft, dark theme**                             |
 | ![Triage applied](docs/screenshots/app/ticket-applied-light.png)   | ![Ticket in the dark theme](docs/screenshots/app/ticket-dark.png)     |
 | **Evaluation dashboard (real Gemini run)**                         | **Usage analytics**                                                   |

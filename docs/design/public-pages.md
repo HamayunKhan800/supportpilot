@@ -1,43 +1,49 @@
 # Public pages
 
-Design system step 5 (`docs/plans/design-system.md` §7): the landing page, sign-in and sign-up,
+Design system step 5 (`docs/plans/design-system.md` §7), revised in design step 10
+(`docs/plans/premium-polish.md`): the landing page, sign-in and sign-up,
 workspace setup, invitations, the customer portal, the private tracking page and the 404 page.
 
 ## Inspiration, and what was not copied
 
-- **Linear**: one headline and one supporting line; the product shown as real interface fragments
-  rather than a screenshot or an illustration.
-- **Plain**: small capital section labels, one plain heading and one paragraph per section.
-- **Vercel (Geist)**: split sign-in layout, forms on the page rather than inside a card.
+Measured on the live sites (October 2026) before each change; ideas were adapted, nothing copied.
+
+- **Linear**: a left-aligned headline whose words arrive blur-to-sharp, over the working product;
+  a translucent, blurred header.
+- **Vercel / Clerk / Resend**: a living background behind the hero (they use WebGL or canvas; ours
+  is a 2D canvas dot field). Sign-in as one narrow, centred column.
+- **Plain / Attio**: frosted (blurred, translucent) panels and menus, used where something floats
+  over content.
 - **Intercom / hosted help centres**: the customer portal carries the support team's name, with
   "Powered by" in the footer.
 
-Not copied: customer logos, testimonials, invented numbers, decorative grids or gradients, window
-"traffic light" dots, or any third-party asset. The logo is an original SVG (a reply bubble with a
-check, for "a reply a person approved").
+Not copied: customer logos, testimonials, invented numbers, third-party assets or paid fonts. The
+logo ("Handoff": a circle passing to a square) is an original SVG.
 
-## Landing page (`src/app/page.tsx`)
+## Landing page (`src/app/page.tsx`, `components/marketing/landing/`)
 
-- **Hero**: what the product does, then a muted second sentence for the human-approval rule. Calls
-  to action: create a workspace and read the code.
-- **Product preview** (`components/marketing/product-preview.tsx`): static HTML built from the
-  app's own tokens and labels, with demo content from the Nimbus help centre (the refund policy and
-  cancellation articles it cites exist in `eval/corpus/nimbus/`). It is `aria-hidden` and described
-  by a caption. It is HTML rather than an image because `next/image` adds inline styles, which the
-  CSP blocks.
-- **How it works**: four numbered steps (triage, retrieve, draft, approve).
-- **Evaluation**: four numbers from the latest Gemini run (`src/lib/landing.ts`), each with its
-  sample size and 95% confidence interval, and a note with the rest of the story (the refusal and
-  injection results, and that most drafts came from the fallback model). Source:
-  `docs/eval/m6-baseline.md`; update `landing.ts` when a new baseline is written.
-- **Engineering**: six claims, each one checkable in the repository. No test counts and no claim of
-  a finished security review.
+- **Hero**: the headline, word by word (blur to sharp, 300 ms each, staggered; no opacity change,
+  so the largest paint is not delayed). Behind it, `hero-field.tsx`: a canvas of dots on the
+  grid that brighten and lift around the pointer (a slow drift without one) and a few lights
+  travelling along the grid lines. It starts when the browser is idle, pauses off screen and in
+  background tabs, draws nothing with reduced motion, and is hidden from assistive technology.
+  Below it, `hero-live.tsx` plays the real inbox flow and lets the visitor take over.
+- **Sections** (how it works, guardrails, the customer's side, team tools, evaluation,
+  engineering): each a working fragment of the product rather than a screenshot. Section headings
+  sharpen from a blur as they scroll in; the main cards carry a soft light on the border that
+  follows the mouse (`spotlight.tsx`, mouse only).
+- **Evaluation numbers** come only from `src/lib/landing.ts` (the latest Gemini baseline,
+  `docs/eval/m6-baseline.md`), each with its sample size and 95% interval.
+- **Glass**: the header and floating panels use the `glass` / `glass-bar` utilities in
+  `globals.css` (translucent with a backdrop blur, solid where blur is unsupported). The header is
+  88% opaque so its links keep their contrast over light sections.
 
 ## Sign-in, sign-up, setup, invitations (`components/auth-shell.tsx`)
 
-The form on the left; on wide screens a muted panel with a compact product preview and one sentence
-("Every AI reply cites its sources and waits for a person's approval"). Workspace setup shows the
-portal address as you type the workspace address, and who is signed in.
+One narrow, centred column on a frosted card, over a quiet version of the landing page's dot field
+(no travelling lights). On a phone the card frame is dropped and the form uses the full width. No
+demo or marketing beside the form, as on Linear, Vercel, Resend, Plain, Attio and Clerk. Workspace
+setup shows the portal address as you type the workspace address, and who is signed in.
 
 ## Customer portal and tracking page (`components/portal/portal-frame.tsx`)
 
