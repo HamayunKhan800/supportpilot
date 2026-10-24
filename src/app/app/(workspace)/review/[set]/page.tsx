@@ -81,9 +81,7 @@ export default async function ReviewSetPage({ params, searchParams }: PageProps<
           <dl className="flex flex-col gap-3">
             {content.fields.map((f, i) => (
               <div key={`${f.label}-${i}`} className="flex flex-col gap-1">
-                <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  {f.label}
-                </dt>
+                <dt className="text-muted-foreground text-sm font-medium">{f.label}</dt>
                 <dd>
                   {f.kind === "quote" ? (
                     <blockquote dir="auto" className="border-l-4 pl-3 text-sm whitespace-pre-wrap">

@@ -30,17 +30,31 @@ export function PageHeader({
   );
 }
 
-/** A grid of stat tiles. It is a <dl>, so each tile is a term (label) and a definition (value). */
+/**
+ * A row of stats in one bordered strip with hairline dividers (as on Vercel's and Stripe's
+ * dashboards), not separate cards with icon tiles (design step 7). It is a <dl>, so each stat is
+ * a term (label) and a definition (value).
+ */
 export function StatGrid({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <dl className={cn("grid grid-cols-2 gap-3 lg:grid-cols-4", className)}>{children}</dl>;
+  return (
+    <dl
+      className={cn(
+        "bg-border grid grid-cols-2 gap-px overflow-hidden rounded-xl border lg:grid-cols-4",
+        className,
+      )}
+    >
+      {children}
+    </dl>
+  );
 }
 
-const TONE: Record<"neutral" | "brand" | "success" | "warning" | "danger", string> = {
-  neutral: "bg-muted text-muted-foreground",
-  brand: "bg-brand-subtle text-brand-strong",
-  success: "bg-success-subtle text-success-strong",
-  warning: "bg-warning-subtle text-warning-strong",
-  danger: "bg-danger-subtle text-danger-strong",
+/** A small status dot before the label when the number carries a meaning; the label says it in words. */
+const TONE: Record<"neutral" | "brand" | "success" | "warning" | "danger", string | null> = {
+  neutral: null,
+  brand: null,
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-danger",
 };
 
 export function Stat({
@@ -48,7 +62,6 @@ export function Stat({
   value,
   href,
   srSuffix,
-  icon: Icon,
   tone = "neutral",
   note,
   chart,
@@ -58,7 +71,6 @@ export function Stat({
   /** Makes the number a link (with `srSuffix` read after it, e.g. "open tickets"). */
   href?: string;
   srSuffix?: string;
-  icon?: LucideIcon;
   tone?: keyof typeof TONE;
   /** One short line under the number. */
   note?: React.ReactNode;
@@ -66,20 +78,16 @@ export function Stat({
   chart?: React.ReactNode;
 }) {
   return (
-    <div className="bg-card relative flex flex-col gap-1.5 rounded-xl border p-4">
+    <div className="bg-card relative flex flex-col gap-1.5 p-4">
       <dt className="text-muted-foreground flex items-center gap-2 text-sm">
-        {Icon && (
-          <span className={cn("inline-flex size-6 items-center justify-center rounded-md", TONE[tone])}>
-            <Icon aria-hidden="true" className="size-3.5" />
-          </span>
-        )}
+        {TONE[tone] && <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", TONE[tone])} />}
         {label}
       </dt>
       <dd className="text-2xl font-semibold tracking-tight tabular-nums">
         {href ? (
           <Link
             href={href}
-            className="focus-visible:ring-ring rounded-xl after:absolute after:inset-0 after:rounded-xl hover:underline focus-visible:outline-none focus-visible:after:ring-2"
+            className="focus-visible:after:ring-ring after:absolute after:inset-0 hover:underline focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset"
           >
             {value}
             {srSuffix && <span className="sr-only"> {srSuffix}</span>}
@@ -143,7 +151,7 @@ export function Section({
   );
 }
 
-/** An empty state: icon, one line, optional explanation and next action. */
+/** An empty state: a plain icon (no tile), one line, optional explanation and next action. */
 export function EmptyState({
   icon: Icon,
   title,
@@ -164,9 +172,7 @@ export function EmptyState({
         className,
       )}
     >
-      <span className="bg-muted text-muted-foreground inline-flex size-10 items-center justify-center rounded-full">
-        <Icon aria-hidden="true" className="size-5" />
-      </span>
+      <Icon aria-hidden="true" className="text-muted-foreground size-5" />
       <p className="font-medium">{title}</p>
       {children && <div className="text-muted-foreground max-w-sm text-sm">{children}</div>}
       {action && <div className="pt-1">{action}</div>}

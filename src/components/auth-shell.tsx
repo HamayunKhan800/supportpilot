@@ -27,9 +27,6 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         className="bg-muted/40 hidden min-w-0 flex-col justify-center gap-8 border-l px-12 py-16 lg:flex xl:px-20"
       >
         <div className="flex max-w-lg flex-col gap-3">
-          <p className="text-muted-foreground font-mono text-xs font-medium tracking-wider uppercase">
-            Human in the loop
-          </p>
           <p className="text-2xl font-semibold tracking-tight text-balance">
             Every AI reply cites its sources and waits for a person&apos;s approval.
           </p>

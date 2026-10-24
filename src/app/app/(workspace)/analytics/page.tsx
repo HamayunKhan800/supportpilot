@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Coins, Cpu, Inbox, MessageSquareText, Send, Tags, ThumbsDown, ThumbsUp } from "lucide-react";
+import { MessageSquareText, Tags, ThumbsDown, ThumbsUp } from "lucide-react";
 import { BarChart } from "@/components/charts/bar-chart";
 import { ChangeNote, Sparkline } from "@/components/charts/sparkline";
 import { StackedBar, type StackedSegment } from "@/components/charts/stacked-bar";
@@ -111,7 +111,6 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
           <Stat
             label="Tickets created"
             value={formatCount(tickets.created)}
-            icon={Inbox}
             tone="brand"
             note={<ChangeNote values={ticketSeries} format={formatCount} />}
             chart={<Sparkline values={ticketSeries} />}
@@ -119,7 +118,6 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
           <Stat
             label="Draft acceptance"
             value={formatRatio(sent, decided)}
-            icon={Send}
             tone="success"
             note={
               decided
@@ -130,14 +128,12 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/app/an
           <Stat
             label="AI tokens"
             value={formatCount(totalTokens)}
-            icon={Cpu}
             note={<ChangeNote values={tokenSeries} format={formatCount} />}
             chart={<Sparkline values={tokenSeries} />}
           />
           <Stat
             label="Estimated cost"
             value={formatMicros(totalCost)}
-            icon={Coins}
             note={<ChangeNote values={costSeries} format={formatMicros} />}
             chart={<Sparkline values={costSeries} />}
           />

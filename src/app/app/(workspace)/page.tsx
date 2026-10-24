@@ -1,14 +1,4 @@
-import {
-  ArrowRight,
-  BookOpen,
-  CircleDot,
-  Clock,
-  ExternalLink,
-  Eye,
-  Inbox,
-  PenLine,
-  Users,
-} from "lucide-react";
+import { ArrowRight, ExternalLink, Inbox, PenLine, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -72,7 +62,6 @@ export default async function OverviewPage() {
             value={counts.open}
             href="/app/tickets?view=open"
             srSuffix="open tickets"
-            icon={CircleDot}
             tone="brand"
           />
           <Stat
@@ -80,14 +69,12 @@ export default async function OverviewPage() {
             value={counts.pending}
             href="/app/tickets?view=pending"
             srSuffix="tickets waiting for customer"
-            icon={Clock}
           />
           <Stat
             label="Needs review"
             value={reviewLabel}
             href="/app/tickets?needsReview=true"
             srSuffix="tickets that need review"
-            icon={Eye}
             tone={reviewCount > 0 ? "warning" : "neutral"}
             note="Low-confidence or sensitive triage"
           />
@@ -96,8 +83,7 @@ export default async function OverviewPage() {
             value={kbCount("ready")}
             href="/app/knowledge"
             srSuffix="help articles ready"
-            icon={BookOpen}
-            tone={failed > 0 ? "danger" : "success"}
+            tone={failed > 0 ? "danger" : "neutral"}
             note={
               processing || failed
                 ? [processing && `${processing} processing`, failed && `${failed} failed`]

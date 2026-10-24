@@ -68,10 +68,7 @@ export function UploadForm() {
 
   return (
     <section aria-labelledby="upload-heading" className="bg-card rounded-xl border">
-      <div className="flex items-start gap-3 border-b px-4 py-3">
-        <span className="bg-brand-subtle text-brand-strong inline-flex size-8 shrink-0 items-center justify-center rounded-lg">
-          <Upload aria-hidden="true" className="size-4" />
-        </span>
+      <div className="border-b px-4 py-3">
         <div className="min-w-0">
           <h2 id="upload-heading" className="text-sm font-semibold">
             Add a document

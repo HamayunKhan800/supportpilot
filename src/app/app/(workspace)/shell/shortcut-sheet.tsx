@@ -36,7 +36,7 @@ export function ShortcutSheet({
               <section key={group.title} aria-labelledby={`shortcuts-${group.title.replaceAll(" ", "-")}`}>
                 <h3
                   id={`shortcuts-${group.title.replaceAll(" ", "-")}`}
-                  className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
+                  className="text-muted-foreground text-sm font-medium"
                 >
                   {group.title}
                 </h3>

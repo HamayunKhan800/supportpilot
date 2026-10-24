@@ -4,17 +4,7 @@ import { IntervalBar, IntervalLegend } from "@/components/charts/interval-bar";
 import { TrendLine } from "@/components/charts/trend-line";
 import { Forbidden } from "@/components/forbidden";
 import { TableScroll } from "@/components/table-scroll";
-import {
-  Activity,
-  Check,
-  Coins,
-  FlaskConical,
-  Info,
-  ListChecks,
-  Minus,
-  TriangleAlert,
-  X,
-} from "lucide-react";
+import { Check, FlaskConical, Info, Minus, TriangleAlert, X } from "lucide-react";
 import { EmptyState, Section, Stat, StatGrid } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { formatCount, formatDateTime, formatMs, formatShare, formatUsd } from "@/lib/format";
@@ -206,16 +196,14 @@ function LatestRun({ run, newer }: { run: EvalRunListing; newer: EvalRunListing 
           <Stat
             label="Targets met"
             value={targeted.length ? `${met} of ${targeted.length}` : "—"}
-            icon={ListChecks}
             tone={!targeted.length ? "neutral" : met === targeted.length ? "success" : "warning"}
             note={`${unmeasured ? `${unmeasured} more not measured yet. ` : ""}Targets are hypotheses to test (docs/04), not promises.`}
           />
-          <Stat label="Items measured" value={formatCount(itemsMeasured(summary))} icon={FlaskConical} />
-          <Stat label="AI requests" value={formatCount(run.calls)} icon={Activity} />
+          <Stat label="Items measured" value={formatCount(itemsMeasured(summary))} />
+          <Stat label="AI requests" value={formatCount(run.calls)} />
           <Stat
             label="Estimated cost"
             value={formatUsd(numberAt(summary, "cost.estCostUsd"))}
-            icon={Coins}
             note={`Paid-tier price · per draft ${formatUsd(numberAt(summary, "cost.perDraftUsd"))}, per triage ${formatUsd(numberAt(summary, "cost.perTriageUsd"))}`}
           />
         </StatGrid>

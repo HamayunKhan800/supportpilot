@@ -91,9 +91,7 @@ export function DraftPanel({
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="bg-brand-subtle text-brand-strong inline-flex size-6 items-center justify-center rounded-md">
-            <PenLine aria-hidden="true" className="size-3.5" />
-          </span>
+          <PenLine aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
           <h2 id="draft-heading" className="text-sm font-semibold">
             AI draft
           </h2>
@@ -168,9 +166,7 @@ export function DraftPanel({
 
         {state.phase === "refused" && (
           <div className="flex gap-3 rounded-lg border border-dashed p-4 text-sm" data-testid="draft-outcome">
-            <span className="bg-muted text-muted-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full">
-              <BookX aria-hidden="true" className="size-4" />
-            </span>
+            <BookX aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0" />
             <div className="flex min-w-0 flex-col gap-2">
               <p className="font-semibold">Insufficient knowledge: no reliable sources found.</p>
               <p className="text-muted-foreground">

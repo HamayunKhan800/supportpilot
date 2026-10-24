@@ -42,19 +42,12 @@ export default async function PortalPage({ params }: PageProps<"/p/[slug]">) {
           <h2 id="next-steps-heading" className="text-sm font-semibold">
             What happens next
           </h2>
-          <ol className="mt-4 flex flex-col gap-5">
-            {NEXT_STEPS.map((step, i) => (
-              <li key={step.title} className="flex gap-3">
-                <span
-                  aria-hidden="true"
-                  className="text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-xs"
-                >
-                  {i + 1}
-                </span>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <p className="text-sm font-medium">{step.title}</p>
-                  <p className="text-muted-foreground text-sm">{step.body(portal.name)}</p>
-                </div>
+          {/* An ordered list (screen readers announce the steps in order) with a plain rule, not numbered circles. */}
+          <ol className="mt-4 flex flex-col gap-4 border-l pl-4">
+            {NEXT_STEPS.map((step) => (
+              <li key={step.title} className="flex min-w-0 flex-col gap-1">
+                <p className="text-sm font-medium">{step.title}</p>
+                <p className="text-muted-foreground text-sm">{step.body(portal.name)}</p>
               </li>
             ))}
           </ol>

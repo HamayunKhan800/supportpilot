@@ -98,9 +98,7 @@ export default async function KnowledgePage({ searchParams }: PageProps<"/app/kn
                   key={d.id}
                   className="hover:bg-muted/50 relative flex items-start gap-3 px-4 py-3 sm:items-center"
                 >
-                  <span className="bg-muted text-muted-foreground mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg sm:mt-0">
-                    <Icon aria-hidden="true" className="size-4" />
-                  </span>
+                  <Icon aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0 sm:mt-0" />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <Link
                       href={`/app/knowledge/${d.id}`}

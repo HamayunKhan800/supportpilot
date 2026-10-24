@@ -47,9 +47,7 @@ export function ProductPreview({ compact = false, className }: { compact?: boole
           <div className="rounded-lg border">
             <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
               <span className="flex items-center gap-2 text-sm font-semibold">
-                <span className="bg-brand-subtle text-brand-strong inline-flex size-5 items-center justify-center rounded">
-                  <PenLine className="size-3" />
-                </span>
+                <PenLine className="text-muted-foreground size-3.5" />
                 AI draft
               </span>
               <span className="text-muted-foreground font-mono text-[11px]">gemini-3.8-flash</span>
