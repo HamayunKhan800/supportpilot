@@ -40,18 +40,22 @@ test("the workflow tabs switch scenes with the mouse and the keyboard", async ({
   const search = tabs.getByRole("tab", { name: /^Search/ });
   const review = tabs.getByRole("tab", { name: /^Review and send/ });
   await expect(triage).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel")).toContainText("Applied automatically: category and priority.");
+  await expect(page.locator("#how-it-works").getByRole("tabpanel")).toContainText(
+    "Applied automatically: category and priority.",
+  );
 
   await search.click();
   await expect(search).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel")).toContainText("Not close enough: not used");
+  await expect(page.locator("#how-it-works").getByRole("tabpanel")).toContainText(
+    "Not close enough: not used",
+  );
 
   await search.focus();
   await page.keyboard.press("End");
   await expect(review).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(review).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel")).toContainText("Sent an AI-drafted reply");
+  await expect(page.locator("#how-it-works").getByRole("tabpanel")).toContainText("Sent an AI-drafted reply");
 });
 
 test("sections below the fold reveal as they scroll into view", async ({ page }) => {
@@ -141,5 +145,83 @@ test.describe("the live demo in the hero", () => {
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
     await page.waitForTimeout(3500);
     await expect(demo(page).getByText("Can I add a second admin to our plan?")).toHaveCount(0);
+  });
+});
+
+test.describe("the live sections", () => {
+  test("the workflow tour advances by itself and stops once a tab is chosen", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("#how-it-works");
+    await section.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    const tabs = section.getByRole("tablist", { name: "Stages of a ticket" });
+    await expect(tabs.getByRole("tab", { name: /^Search/ })).toHaveAttribute("aria-selected", "true", {
+      timeout: 12_000,
+    });
+    await tabs.getByRole("tab", { name: /^Triage/ }).click();
+    await expect(tabs.getByRole("tab", { name: /^Triage/ })).toHaveAttribute("aria-selected", "true");
+    // The tour's progress line is gone: nothing moves on its own any more.
+    await expect(section.locator(".land-progress")).toHaveCount(0);
+  });
+
+  test("the citation check can be shown before and after", async ({ page }) => {
+    await page.goto("/");
+    const toggle = page.getByRole("group", { name: "Show the draft" });
+    await toggle.getByRole("button", { name: "As written" }).click();
+    await expect(toggle.getByRole("button", { name: "As written" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText(/^Showing the draft as the model wrote it/)).toBeAttached();
+    await toggle.getByRole("button", { name: "After the check" }).click();
+    await expect(page.getByText(/^Showing the draft after the check/)).toBeAttached();
+    await expect(
+      page.getByText("The AI cited sources that don't exist. Those numbers were removed."),
+    ).toBeVisible();
+  });
+
+  test("the command palette accepts typing and the keyboard", async ({ page }) => {
+    await page.goto("/");
+    const box = page.getByRole("combobox", { name: /^Try the command palette/ });
+    await box.fill("team");
+    const list = page.getByRole("listbox", { name: "Results" });
+    await expect(list.getByRole("option", { name: "Members" })).toHaveAttribute("aria-selected", "true");
+    await box.press("ArrowDown");
+    await expect(list.getByRole("option", { name: "Search tickets for “team”" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await box.press("ArrowUp");
+    await box.press("Enter");
+    await expect(page.getByText("In the app, this opens Members.")).toBeVisible();
+    await box.fill("#42");
+    await expect(list.getByRole("option", { name: "Open ticket #42" })).toBeVisible();
+  });
+
+  test("the support form sends a sample request into the inbox", async ({ page }) => {
+    await page.goto("/");
+    const form = page.getByRole("form", { name: "Demo support form" });
+    await form.getByLabel("Your name").fill("");
+    await form.getByRole("button", { name: "Send request" }).click();
+    await expect(form.getByRole("alert")).toHaveText("Fill in every field, with a valid email.");
+    await expect(form.getByLabel("Your name")).toHaveAttribute("aria-invalid", "true");
+
+    await form.getByLabel("Your name").fill("Ana Lima");
+    await form.getByLabel("Subject").fill("Export my invoices");
+    await form.getByRole("button", { name: "Send request" }).click();
+    await expect(page.getByText("Request received")).toBeVisible();
+    await expect(page.getByText("Your private tracking link")).toBeVisible();
+    const inbox = page.getByRole("group", { name: "The support team's inbox" });
+    await expect(inbox).toContainText("Export my invoices");
+    await expect(inbox).toContainText("#131 · Ana Lima");
+
+    await page.getByRole("button", { name: "Send another" }).click();
+    await expect(page.getByRole("form", { name: "Demo support form" }).getByLabel("Your name")).toBeFocused();
+  });
+
+  test("the API sample switches between JSON, curl and TypeScript", async ({ page }) => {
+    await page.goto("/");
+    const tabs = page.getByRole("tablist", { name: "Code sample" });
+    await tabs.getByRole("tab", { name: "curl" }).click();
+    await expect(page.locator("pre", { hasText: '-H "Content-Type: application/json"' })).toBeVisible();
+    await tabs.getByRole("tab", { name: "TypeScript" }).click();
+    await expect(page.locator("pre", { hasText: "await res.json()" })).toBeVisible();
   });
 });

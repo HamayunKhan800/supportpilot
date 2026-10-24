@@ -1,7 +1,8 @@
-import { CircleSlash, Coins, FileWarning, ScanText, ShieldCheck } from "lucide-react";
+import { CircleSlash, Coins, ScanText, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Chip, Cite, Initials } from "./mock";
+import { CitationCheck } from "./citation-check";
+import { Chip, Initials } from "./mock";
 
 /**
  * The guardrails bento: four tiles of different sizes, each showing the check as the app shows it
@@ -15,12 +16,15 @@ function Tile({
   body,
   children,
   className,
+  interactive = false,
 }: {
   icon: ReactNode;
   title: string;
   body: string;
   children: ReactNode;
   className?: string;
+  /** The illustration has its own controls, so it can't be hidden from assistive technology. */
+  interactive?: boolean;
 }) {
   return (
     <li
@@ -30,7 +34,10 @@ function Tile({
         className,
       )}
     >
-      <div aria-hidden="true" className="flex flex-1 items-center justify-center p-5 select-none sm:p-6">
+      <div
+        aria-hidden={interactive ? undefined : "true"}
+        className={cn("flex flex-1 items-center justify-center p-5 sm:p-6", !interactive && "select-none")}
+      >
         {children}
       </div>
       <div className="flex flex-col gap-1.5 border-t p-5 sm:p-6">
@@ -48,25 +55,13 @@ export function Guardrails() {
   return (
     <ul className="grid grid-cols-1 gap-4 lg:grid-cols-6">
       <Tile
+        interactive
         className="lg:col-span-4"
         icon={<ShieldCheck />}
         title="Citations are checked, not trusted"
         body="Every [n] in a draft must point to a passage the model was actually given. Numbers that don't are removed, and the agent is told."
       >
-        <div className="bg-background w-full max-w-xl rounded-xl border text-left text-[13px] leading-relaxed">
-          <p className="p-4">
-            Annual plans can be refunded in full within 30 days of renewal <Cite n={1} />. Refunds reach the
-            original card within 5 to 10 business days <Cite n={1} />. You can also switch to monthly billing{" "}
-            <span className="border-danger-border bg-danger-subtle text-danger-strong inline-flex h-4 min-w-4 items-center justify-center rounded px-1 align-[1px] font-mono text-[10px] font-medium line-through">
-              4
-            </span>
-            .
-          </p>
-          <p className="border-warning-border bg-warning-subtle text-warning-strong flex items-start gap-2 border-t px-4 py-2.5 text-xs">
-            <FileWarning className="mt-0.5 size-3.5 shrink-0" />
-            The AI cited sources that don&apos;t exist. Those numbers were removed.
-          </p>
-        </div>
+        <CitationCheck />
       </Tile>
 
       <Tile

@@ -411,9 +411,30 @@ html[data-theme="dark"] {
     translate: 0 12px;
   }
 
+  /* The workflow tour's timer (workflow-tabs.tsx): each tab's line fills, then the next tab opens.
+     It holds still while the pointer or focus is inside, and while the section is off screen. */
+  .land-progress {
+    transform-origin: left;
+    animation: land-progress 7s linear forwards;
+  }
+  .land-progress[data-paused],
+  .land-tour:hover .land-progress,
+  .land-tour:focus-within .land-progress {
+    animation-play-state: paused;
+  }
+  @keyframes land-progress {
+    from {
+      scale: 0 1;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .land-in,
     .land-pop {
+      animation: none;
+    }
+    .land-progress {
+      display: none;
       animation: none;
     }
     html[data-reveal] [data-reveal]:not([data-revealed]) {

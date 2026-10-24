@@ -1,8 +1,9 @@
-import { BookOpen, Check, History, KeyRound, RefreshCw, Settings2, Undo2, Users } from "lucide-react";
+import { BookOpen, Check, History, RefreshCw, Settings2, Undo2, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { ApiSample } from "@/components/marketing/landing/api-sample";
 import { CustomerSide } from "@/components/marketing/landing/customer-side";
 import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
@@ -477,55 +478,10 @@ export default async function Home() {
               </p>
             </div>
             <figure data-reveal className="flex flex-col gap-3">
-              <div
-                data-theme="dark"
-                className="land-band text-foreground land-shadow overflow-hidden rounded-xl border"
-              >
-                <div className="flex items-center gap-3 border-b px-4 py-2.5">
-                  <span className="bg-success-subtle text-success-strong rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold">
-                    POST
-                  </span>
-                  <span className="text-muted-foreground truncate font-mono text-xs">
-                    /api/v1/portal/nimbus/tickets
-                  </span>
-                  <KeyRound aria-hidden="true" className="text-muted-foreground ml-auto size-3.5 shrink-0" />
-                  <span className="text-muted-foreground font-mono text-[11px]">public</span>
-                </div>
-                <pre className="p-4 font-mono text-[12.5px] leading-6 break-words whitespace-pre-wrap">
-                  <code>
-                    <span className="text-muted-foreground">{"// Request body, validated with Zod\n"}</span>
-                    {"{\n"}
-                    {"  "}
-                    <span className="text-info-strong">&quot;name&quot;</span>
-                    {": "}
-                    <span className="text-success-strong">&quot;Priya Shah&quot;</span>
-                    {",\n  "}
-                    <span className="text-info-strong">&quot;email&quot;</span>
-                    {": "}
-                    <span className="text-success-strong">&quot;priya@example.com&quot;</span>
-                    {",\n  "}
-                    <span className="text-info-strong">&quot;subject&quot;</span>
-                    {": "}
-                    <span className="text-success-strong">&quot;Refund for my annual plan&quot;</span>
-                    {",\n  "}
-                    <span className="text-info-strong">&quot;message&quot;</span>
-                    {": "}
-                    <span className="text-success-strong">
-                      &quot;My annual plan renewed 12 days ago…&quot;
-                    </span>
-                    {"\n}\n\n"}
-                    <span className="text-muted-foreground">{"// 201 Created\n"}</span>
-                    {"{\n  "}
-                    <span className="text-info-strong">&quot;trackingUrl&quot;</span>
-                    {": "}
-                    <span className="text-success-strong">&quot;https://…/t/9f2c…&quot;</span>
-                    {"\n}"}
-                  </code>
-                </pre>
-              </div>
+              <ApiSample />
               <figcaption className="text-muted-foreground text-sm">
-                A real endpoint from the OpenAPI description: how a customer&apos;s request is created. The
-                tracking link is returned once.
+                A real endpoint from the OpenAPI description: how a customer&apos;s request is created, as
+                JSON, with curl and from TypeScript. The tracking link is returned once.
               </figcaption>
             </figure>
           </div>
