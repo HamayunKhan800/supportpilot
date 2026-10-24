@@ -168,3 +168,81 @@
     background: var(--destructive);
   }
 }
+
+/*
+ * Page-change progress bar (src/components/navigation-progress.tsx, design step 8.1).
+ * Hidden for the first 120 ms so fast page changes show nothing; then it creeps towards 90%
+ * (ease-out, so it moves most at the start), and fills and fades when the page lands.
+ * Only transform and opacity animate. Under reduced motion the global rule above makes the
+ * creep jump straight to its end: a still bar that simply appears and disappears.
+ */
+@layer components {
+  .nav-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 100;
+    height: 2px;
+    background: var(--primary);
+    transform-origin: left center;
+    transform: scaleX(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .nav-progress[data-nav-progress="loading"] {
+    animation:
+      nav-progress-show 150ms ease-out 120ms both,
+      nav-progress-creep 8s cubic-bezier(0.08, 0.7, 0.2, 1) 120ms both;
+  }
+  .nav-progress[data-nav-progress="done"] {
+    animation: nav-progress-done 320ms ease-out both;
+  }
+  @keyframes nav-progress-show {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes nav-progress-creep {
+    from {
+      transform: scaleX(0.08);
+    }
+    to {
+      transform: scaleX(0.9);
+    }
+  }
+  @keyframes nav-progress-done {
+    0% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    60% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    100% {
+      transform: scaleX(1);
+      opacity: 0;
+    }
+  }
+
+  /* The tapped sidebar item pulses gently while its page loads (useLinkStatus), after 100 ms. */
+  .nav-link-pending {
+    animation: nav-link-pulse 1s ease-in-out 100ms infinite;
+  }
+  @keyframes nav-link-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-link-pending {
+      animation: none;
+    }
+  }
+}

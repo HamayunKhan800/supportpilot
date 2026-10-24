@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { validateWorkspaceName, validateWorkspaceSlug } from "@/server/platform/auth/policy";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 function slugify(name: string) {
   return name
@@ -18,7 +18,7 @@ function slugify(name: string) {
 }
 
 export function CreateWorkspaceForm({ userName, hasWorkspace }: { userName: string; hasWorkspace: boolean }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);

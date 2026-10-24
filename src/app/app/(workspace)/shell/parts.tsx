@@ -16,13 +16,13 @@ import {
   Sun,
   Users,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { Kbd } from "@/components/ui/kbd";
 import { authClient } from "@/lib/auth-client";
 import type { NavIcon } from "@/lib/navigation";
 import { isApplePlatform } from "@/lib/preferences-client";
 import type { ThemePreference } from "@/lib/theme";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 export const NAV_ICON: Record<NavIcon, LucideIcon> = {
   overview: LayoutDashboard,
@@ -62,7 +62,7 @@ export function ModKey() {
 
 /** Ends the session, then leaves the app. Shared by the user menu and the command palette. */
 export function useSignOut() {
-  const router = useRouter();
+  const router = useProgressRouter();
   return async () => {
     await authClient.signOut();
     router.replace("/sign-in");

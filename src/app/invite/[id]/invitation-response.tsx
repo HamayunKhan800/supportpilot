@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 export function InvitationResponse({
   invitationId,
@@ -13,7 +13,7 @@ export function InvitationResponse({
   invitationId: string;
   workspaceId: string;
 }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const [error, setError] = useState("");
   const [declined, setDeclined] = useState(false);
   const [pending, setPending] = useState(false);

@@ -2,13 +2,13 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Check, CircleUser, Hash, Keyboard, LogOut, type LucideIcon, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 import { Kbd } from "@/components/ui/kbd";
 import { type Command, matchCommands, type NavItem, parseTicketNumber } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_ICON, THEME_OPTIONS, useSignOut } from "./parts";
 import { useShell } from "./shell-context";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
@@ -48,7 +48,7 @@ export function CommandPalette({
 
 /** Mounted only while open, so the query and highlight reset every time. */
 function PaletteBody({ items, close }: { items: NavItem[]; close: () => void }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const signOut = useSignOut();
   const { theme, setTheme, openShortcuts } = useShell();
   const [query, setQuery] = useState("");

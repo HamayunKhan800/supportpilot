@@ -29,7 +29,7 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testMatch: /(accessibility|drafts|settings|review|analytics|theme|shell|visual)\.spec\.ts/,
+      testMatch: /(accessibility|drafts|feedback|settings|review|analytics|theme|shell|visual)\.spec\.ts/,
     },
   ],
   webServer: [

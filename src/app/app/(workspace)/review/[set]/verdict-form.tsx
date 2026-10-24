@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, X } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { postJson } from "@/lib/api-client";
 import { REVIEW_NOTE_MAX, type ReviewSet, type ReviewVerdict } from "@/server/modules/eval-review/constants";
 import type { ReviewVerdictSaved } from "@/server/modules/eval-review/schemas";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 interface Props {
   set: ReviewSet;
@@ -27,7 +27,7 @@ interface Props {
  * for a phone; the optional note is sent with whichever answer is tapped.
  */
 export function VerdictForm(props: Props) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const noteId = useId();
   const questionId = useId();
   const [note, setNote] = useState(props.note ?? "");

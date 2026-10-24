@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { connection } from "next/server";
+import { NavigationProgress } from "@/components/navigation-progress";
 import { parseThemePreference, THEME_COOKIE, themeAttribute } from "@/lib/theme";
 import "./globals.css";
 
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to main content
         </a>
+        <NavigationProgress />
         {children}
       </body>
     </html>

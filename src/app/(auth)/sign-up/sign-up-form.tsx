@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/server/platform/auth/policy";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 export function SignUpForm({ next }: { next: string }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 

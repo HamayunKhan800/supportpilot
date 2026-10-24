@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 import { Kbd } from "@/components/ui/kbd";
@@ -228,7 +228,7 @@ function SidebarLink({
           compact && "justify-center px-0",
         )}
       >
-        <Icon aria-hidden="true" className={cn("size-4 shrink-0", state && "text-brand-strong")} />
+        <SidebarIcon Icon={Icon} active={Boolean(state)} />
         <span className={cn("truncate", compact && "sr-only")}>{item.label}</span>
         {hasBadge && !compact && (
           <span aria-hidden="true" className="text-muted-foreground ml-auto text-xs tabular-nums">
@@ -250,5 +250,16 @@ function SidebarLink({
         </span>
       )}
     </li>
+  );
+}
+
+/** The link's icon; pulses while its page loads. useLinkStatus must sit inside the <Link>. */
+function SidebarIcon({ Icon, active }: { Icon: (typeof NAV_ICON)[keyof typeof NAV_ICON]; active: boolean }) {
+  const { pending } = useLinkStatus();
+  return (
+    <Icon
+      aria-hidden="true"
+      className={cn("size-4 shrink-0", active && "text-brand-strong", pending && "nav-link-pending")}
+    />
   );
 }

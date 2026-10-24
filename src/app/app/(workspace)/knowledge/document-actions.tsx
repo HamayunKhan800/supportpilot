@@ -1,15 +1,15 @@
 "use client";
 
 import { RotateCw, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
 import { deleteResource, postEmpty } from "@/lib/api-client";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 /** Retry (failed documents only) and delete with an inline confirmation step. */
 export function DocumentActions({ id, title, canRetry }: { id: string; title: string; canRetry: boolean }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState<"retry" | "delete" | null>(null);
   const [error, setError] = useState("");

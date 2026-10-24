@@ -1,6 +1,6 @@
 # Plan: feedback, loading states and motion (design step 8)
 
-Status: **proposed, waiting for the owner's approval.** No application code until it is approved.
+Status: **approved 2026-10-24 (all seven steps; push after step 8).** Progress: 8.1 done.
 
 ## 1. Why
 
@@ -64,3 +64,13 @@ An audit of the code confirms it:
 - Page-transition animations between routes and animated charts: they slow people down and hinder reading data.
 - WebSockets for live data: polling every 15 s while visible is simpler, fits the current hosting plan (M8), and can be
   swapped for server-sent events later.
+
+## 6. Progress notes
+
+- **8.1 done.** `src/lib/navigation-progress.ts` (store and pure click/URL rules, 12 unit tests),
+  `src/components/navigation-progress.tsx` (mounted in the root layout), `src/lib/use-progress-router.ts` (used by the
+  10 places that change page from code), sidebar icon pulse via `useLinkStatus`, CSS in `globals.css`.
+  E2E `tests/e2e/feedback.spec.ts` now also runs on the mobile project. Links to `/api/` and `download` links are
+  ignored, and the bar gives up after 15 s, so it can't get stuck.
+- Build note: a stale Turbopack cache in `.next/cache` once served an old stylesheet after `globals.css` changed.
+  Delete `.next` before building when CSS changes.

@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 export function SignInForm({ next, registered }: { next: string; registered: boolean }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 

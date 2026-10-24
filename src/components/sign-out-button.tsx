@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { useProgressRouter } from "@/lib/use-progress-router";
 
 export function SignOutButton() {
-  const router = useRouter();
+  const router = useProgressRouter();
   const [pending, setPending] = useState(false);
   return (
     <Button
