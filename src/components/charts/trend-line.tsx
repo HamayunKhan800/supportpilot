@@ -40,7 +40,7 @@ export function TrendLine({
           x2={WIDTH}
           y1={HEIGHT - position(target, HEIGHT)}
           y2={HEIGHT - position(target, HEIGHT)}
-          className="stroke-destructive"
+          className="stroke-muted-foreground"
           strokeDasharray="3 2"
           vectorEffect="non-scaling-stroke"
         />
@@ -51,7 +51,7 @@ export function TrendLine({
             key={i}
             points={points.map((p) => `${p.x},${p.y}`).join(" ")}
             fill="none"
-            className="stroke-foreground"
+            className="stroke-chart-1"
             strokeWidth={2}
             vectorEffect="non-scaling-stroke"
           />
@@ -65,7 +65,7 @@ export function TrendLine({
             y={HEIGHT - position(v, HEIGHT) - 2}
             width={2}
             height={4}
-            className="fill-foreground"
+            className="fill-chart-1"
           />
         ),
       )}

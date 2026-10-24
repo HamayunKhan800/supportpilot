@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { barLayout, lineSegments, niceMax, position } from "@/components/charts/scale";
+import {
+  barLayout,
+  lineSegments,
+  niceMax,
+  periodChange,
+  position,
+  sparkPoints,
+} from "@/components/charts/scale";
 import {
   formatDay,
   formatMicros,
@@ -240,5 +247,45 @@ describe("reading stored evaluation summaries", () => {
       models: ["triage: gemini-3.5-flash-lite"],
     });
     expect(runLabels(null)).toEqual({ prompts: [], models: [] });
+  });
+});
+
+describe("periodChange", () => {
+  it("compares the newer half of the period with the older half", () => {
+    expect(periodChange([1, 1, 2, 2])).toEqual({ recent: 4, prior: 2, days: 2, ratio: 1 });
+    expect(periodChange([4, 0, 1, 1])).toEqual({ recent: 2, prior: 4, days: 2, ratio: -0.5 });
+  });
+
+  it("leaves out the oldest day when the period is odd, so both halves are equally long", () => {
+    expect(periodChange([100, 1, 2, 3, 4, 5, 6])).toEqual({ recent: 15, prior: 6, days: 3, ratio: 1.5 });
+  });
+
+  it("has no percentage when the older half is zero", () => {
+    expect(periodChange([0, 0, 3, 0])?.ratio).toBeNull();
+    expect(periodChange([0, 0, 0, 0])).toEqual({ recent: 0, prior: 0, days: 2, ratio: null });
+  });
+
+  it("needs at least two days", () => {
+    expect(periodChange([])).toBeNull();
+    expect(periodChange([5])).toBeNull();
+  });
+});
+
+describe("sparkPoints", () => {
+  it("spans the width and scales the largest value to the top", () => {
+    expect(sparkPoints([0, 5, 10], { width: 100, height: 20 })).toEqual([
+      { x: 0, y: 20 },
+      { x: 50, y: 10 },
+      { x: 100, y: 0 },
+    ]);
+  });
+
+  it("draws an all-zero series along the bottom and a single value in the middle", () => {
+    expect(sparkPoints([0, 0], { width: 10, height: 4 })).toEqual([
+      { x: 0, y: 4 },
+      { x: 10, y: 4 },
+    ]);
+    expect(sparkPoints([3], { width: 10, height: 4 })).toEqual([{ x: 5, y: 0 }]);
+    expect(sparkPoints([], { width: 10, height: 4 })).toEqual([]);
   });
 });

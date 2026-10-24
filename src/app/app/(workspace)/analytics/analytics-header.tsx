@@ -1,50 +1,35 @@
 import Link from "next/link";
+import type * as React from "react";
+import { PageHeader, TabNav } from "@/components/page";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { key: "usage", href: "/app/analytics", label: "Usage" },
-  { key: "evaluation", href: "/app/analytics/evaluation", label: "Evaluation" },
+  { value: "usage", href: "/app/analytics", label: "Usage" },
+  { value: "evaluation", href: "/app/analytics/evaluation", label: "Evaluation" },
 ] as const;
 
-/** Page heading plus the Usage / Evaluation switch, shared by both analytics pages. */
+/** Page heading plus the Usage / Evaluation tabs, shared by both analytics pages. */
 export function AnalyticsHeader({
   current,
   intro,
+  actions,
 }: {
-  current: (typeof TABS)[number]["key"];
+  current: (typeof TABS)[number]["value"];
   intro: string;
+  actions?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground">{intro}</p>
-      </div>
-      <nav aria-label="Analytics">
-        <ul className="flex gap-1 border-b">
-          {TABS.map((t) => (
-            <li key={t.key}>
-              <Link
-                href={t.href}
-                aria-current={t.key === current ? "page" : undefined}
-                className={cn(
-                  "hover:text-foreground -mb-px inline-flex h-10 items-center border-b-2 px-3 text-sm",
-                  t.key === current
-                    ? "border-foreground font-medium"
-                    : "text-muted-foreground border-transparent",
-                )}
-              >
-                {t.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <PageHeader title="Analytics" description={intro} actions={actions} />
+      <TabNav label="Analytics" tabs={[...TABS]} current={current} />
     </div>
   );
 }
 
-/** A row of links that pick one option (period, provider), the current one marked for screen readers. */
+/**
+ * A segmented control of links that pick one option (period, provider). Links, not buttons:
+ * each option is a URL that can be shared. The current one is marked for screen readers.
+ */
 export function OptionLinks({
   label,
   options,
@@ -54,15 +39,15 @@ export function OptionLinks({
 }) {
   return (
     <nav aria-label={label}>
-      <ul className="flex flex-wrap gap-1">
+      <ul className="bg-muted inline-flex flex-wrap gap-0.5 rounded-lg p-0.5">
         {options.map((o) => (
           <li key={o.href}>
             <Link
               href={o.href}
               aria-current={o.current ? "true" : undefined}
               className={cn(
-                "hover:bg-muted inline-flex h-9 items-center rounded-md border px-3 text-sm",
-                o.current && "bg-muted border-foreground font-medium",
+                "text-muted-foreground hover:text-foreground inline-flex h-8 items-center rounded-md px-3 text-sm whitespace-nowrap",
+                o.current && "bg-background text-foreground ring-border font-medium shadow-xs ring-1",
               )}
             >
               {o.label}
@@ -71,18 +56,5 @@ export function OptionLinks({
         ))}
       </ul>
     </nav>
-  );
-}
-
-/** A labelled number, as on the Overview page. */
-export function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return (
-    <div className="flex flex-col-reverse gap-1">
-      <dt className="text-muted-foreground text-sm">
-        {label}
-        {detail && <span className="block text-xs">{detail}</span>}
-      </dt>
-      <dd className="text-2xl font-semibold tabular-nums">{value}</dd>
-    </div>
   );
 }

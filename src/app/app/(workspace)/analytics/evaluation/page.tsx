@@ -4,8 +4,9 @@ import { IntervalBar, IntervalLegend } from "@/components/charts/interval-bar";
 import { TrendLine } from "@/components/charts/trend-line";
 import { Forbidden } from "@/components/forbidden";
 import { TableScroll } from "@/components/table-scroll";
+import { Bot, Check, Coins, FlaskConical, Info, ListChecks, Minus, TriangleAlert, X } from "lucide-react";
+import { EmptyState, Section, Stat, StatGrid } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCount, formatDateTime, formatMs, formatShare, formatUsd } from "@/lib/format";
 import { EVAL_PROVIDERS, type EvalProvider } from "@/server/modules/eval/constants";
 import {
@@ -25,7 +26,7 @@ import { parseProvider } from "@/server/modules/analytics/periods";
 import { getEvaluationOverview, type EvalRunListing } from "@/server/modules/analytics/service";
 import { AppError } from "@/server/platform/errors";
 import { requireAppWorkspace } from "../../workspace-context";
-import { AnalyticsHeader, OptionLinks, Stat } from "../analytics-header";
+import { AnalyticsHeader, OptionLinks } from "../analytics-header";
 
 export const metadata: Metadata = { title: "AI evaluation" };
 
@@ -43,14 +44,45 @@ const td = "px-3 py-2";
 const targetText = (t: Target) => `${t.op === "min" ? "≥" : "≤"} ${formatShare(t.value)}`;
 const shortDate = (d: Date) => d.toISOString().slice(0, 10);
 
+/**
+ * Met / Not met / No data for a metric with a target. Hidden from screen readers: the line under
+ * the number already says "target ≥ 85% · met", so this only repeats it visually.
+ */
+function TargetChip({ meets }: { meets: boolean | null | undefined }) {
+  if (meets === undefined) return null;
+  const [Icon, label, tone] =
+    meets === true
+      ? [Check, "Met", "border-success-border bg-success-subtle text-success-strong"]
+      : meets === false
+        ? [X, "Not met", "border-danger-border bg-danger-subtle text-danger-strong"]
+        : [Minus, "No data", "border-border text-muted-foreground"];
+  return (
+    <Badge aria-hidden="true" variant="outline" className={`gap-1 ${tone}`}>
+      <Icon />
+      {label}
+    </Badge>
+  );
+}
+
 function MetricRow({ m }: { m: MetricValue }) {
   const { def, value, rate, meets } = m;
   const shown = def.kind === "score" && value !== null ? value.toFixed(2) : formatShare(value);
   return (
     <li className="flex flex-col gap-1.5 border-t pt-3 first:border-t-0 first:pt-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <h4 className="font-medium">{def.label}</h4>
-        <p className="text-xl font-semibold tabular-nums">{shown}</p>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h4 className="flex flex-wrap items-center gap-2 text-sm font-medium">
+          {def.label}
+          {def.key === "groundedness" && (
+            <Badge variant="outline" className="border-info-border text-info-strong gap-1 font-normal">
+              <Bot aria-hidden="true" />
+              AI-graded
+            </Badge>
+          )}
+        </h4>
+        <div className="flex items-center gap-2">
+          <TargetChip meets={def.target ? meets : undefined} />
+          <p className="text-xl font-semibold tabular-nums">{shown}</p>
+        </div>
       </div>
       {def.kind === "rate" && (
         <IntervalBar
@@ -58,6 +90,7 @@ function MetricRow({ m }: { m: MetricValue }) {
           low={rate?.low ?? null}
           high={rate?.high ?? null}
           target={def.target?.value}
+          meets={meets}
         />
       )}
       <p className="text-muted-foreground text-xs">
@@ -70,7 +103,7 @@ function MetricRow({ m }: { m: MetricValue }) {
           <>
             {rate && " · "}target {targetText(def.target)}
             {meets !== null && (
-              <span className={meets ? "text-foreground font-medium" : "text-destructive font-medium"}>
+              <span className={meets ? "text-success-strong font-medium" : "text-danger-strong font-medium"}>
                 {meets ? " · met" : " · not met"}
               </span>
             )}
@@ -99,172 +132,176 @@ function LatestRun({ run }: { run: EvalRunListing }) {
     { label: "Draft, first text", spread: spreadAt(summary, "drafts.ttftMs") },
     { label: "Draft, start to finish", spread: spreadAt(summary, "drafts.endToEndMs") },
   ];
+  const targeted = values.filter((v) => v.def.target && v.meets !== null);
+  const met = targeted.filter((v) => v.meets).length;
+  const unmeasured = values.filter((v) => v.def.target && v.meets === null).length;
   const obeyed = stringListAt(summary, "injection.obeyed");
   const caught = new Set(stringListAt(summary, "injection.obeyedCaughtByCode"));
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2 className="flex flex-wrap items-center gap-2">
-              Latest {PROVIDER_LABELS[run.provider]} run
-              <Badge variant={status.variant}>{status.label}</Badge>
-            </h2>
-          </CardTitle>
-          <CardDescription>
+      <Section
+        id="latest-run"
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            Latest {PROVIDER_LABELS[run.provider]} run
+            <Badge variant={status.variant}>{status.label}</Badge>
+          </span>
+        }
+        description={
+          <>
             Started {formatDateTime(run.startedAt)}
             {run.finishedAt
               ? `, finished ${formatDateTime(run.finishedAt)}`
               : `, last saved ${formatDateTime(run.updatedAt)}`}
             .
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {run.provider === "mock" && (
-            <p className="bg-muted rounded-md p-3 text-sm">
+          </>
+        }
+        bodyClassName="flex flex-col gap-4"
+      >
+        {run.provider === "mock" && (
+          <p className="border-info-border bg-info-subtle text-info-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
+            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <span>
               <strong>Mock run.</strong> A scripted stand-in plays the AI, so these numbers test the pipeline
               and guard CI against regressions. They say nothing about the quality of a real model.
-            </p>
-          )}
-          {run.status !== "completed" && (
-            <p className="rounded-md border p-3 text-sm">
+            </span>
+          </p>
+        )}
+        {run.status !== "completed" && (
+          <p className="border-warning-border bg-warning-subtle text-warning-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
+            <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <span>
               <strong>Not finished.</strong> The numbers cover only the items measured so far.
               {run.stopReason && <> Stopped because: {run.stopReason.slice(0, 200)}.</>}
-            </p>
-          )}
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Stat label="Items measured" value={formatCount(itemsMeasured(summary))} />
-            <Stat label="AI requests" value={formatCount(run.calls)} />
-            <Stat
-              label="Estimated cost"
-              value={formatUsd(numberAt(summary, "cost.estCostUsd"))}
-              detail="paid-tier price"
-            />
-            <Stat
-              label="Per draft / per triage"
-              value={formatUsd(numberAt(summary, "cost.perDraftUsd"))}
-              detail={`triage ${formatUsd(numberAt(summary, "cost.perTriageUsd"))}`}
-            />
+            </span>
+          </p>
+        )}
+        <StatGrid>
+          <Stat
+            label="Targets met"
+            value={targeted.length ? `${met} of ${targeted.length}` : "—"}
+            icon={ListChecks}
+            tone={!targeted.length ? "neutral" : met === targeted.length ? "success" : "warning"}
+            note={`${unmeasured ? `${unmeasured} more not measured yet. ` : ""}Targets are hypotheses to test (docs/04), not promises.`}
+          />
+          <Stat label="Items measured" value={formatCount(itemsMeasured(summary))} icon={FlaskConical} />
+          <Stat label="AI requests" value={formatCount(run.calls)} icon={Bot} />
+          <Stat
+            label="Estimated cost"
+            value={formatUsd(numberAt(summary, "cost.estCostUsd"))}
+            icon={Coins}
+            note={`Paid-tier price · per draft ${formatUsd(numberAt(summary, "cost.perDraftUsd"))}, per triage ${formatUsd(numberAt(summary, "cost.perTriageUsd"))}`}
+          />
+        </StatGrid>
+        {(labels.prompts.length > 0 || labels.models.length > 0) && (
+          <dl className="text-muted-foreground grid gap-3 text-xs sm:grid-cols-2">
+            <div>
+              <dt className="text-foreground font-medium">Prompt versions</dt>
+              <dd className="font-mono">{labels.prompts.join(", ") || "not recorded"}</dd>
+            </div>
+            <div>
+              <dt className="text-foreground font-medium">Models</dt>
+              <dd className="font-mono break-words">{labels.models.join(", ") || "not recorded"}</dd>
+            </div>
           </dl>
-          {(labels.prompts.length > 0 || labels.models.length > 0) && (
-            <dl className="text-muted-foreground grid gap-1 text-xs sm:grid-cols-2">
-              <div>
-                <dt className="text-foreground font-medium">Prompt versions</dt>
-                <dd className="font-mono">{labels.prompts.join(", ") || "not recorded"}</dd>
-              </div>
-              <div>
-                <dt className="text-foreground font-medium">Models</dt>
-                <dd className="font-mono break-words">{labels.models.join(", ") || "not recorded"}</dd>
-              </div>
-            </dl>
-          )}
-          <IntervalLegend />
-        </CardContent>
-      </Card>
+        )}
+        <IntervalLegend />
+      </Section>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {METRIC_GROUPS.map((group) => (
-          <Card key={group}>
-            <CardHeader>
-              <CardTitle>
-                <h3>{group}</h3>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-col gap-3">
-                {values
-                  .filter((m) => m.def.group === group)
-                  .map((m) => (
-                    <MetricRow key={m.def.key} m={m} />
-                  ))}
-              </ul>
-              {group === "Safety" && obeyed.length > 0 && (
-                <p className="text-muted-foreground mt-3 text-xs">
-                  Attacks the model followed:{" "}
-                  {obeyed.map((id) => (caught.has(id) ? `${id} (caught by code)` : id)).join(", ")}.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <Section
+            key={group}
+            id={`group-${group.toLowerCase().replace(/\W+/g, "-")}`}
+            title={group}
+            level={3}
+          >
+            <ul className="flex flex-col gap-3">
+              {values
+                .filter((m) => m.def.group === group)
+                .map((m) => (
+                  <MetricRow key={m.def.key} m={m} />
+                ))}
+            </ul>
+            {group === "Safety" && obeyed.length > 0 && (
+              <p className="text-muted-foreground mt-3 text-xs">
+                Attacks the model followed:{" "}
+                {obeyed.map((id) => (caught.has(id) ? `${id} (caught by code)` : id)).join(", ")}.
+              </p>
+            )}
+          </Section>
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h3>Reliability and speed</h3>
-          </CardTitle>
-          <CardDescription>
-            A technical failure (no answer from the AI service) is counted here and left out of the quality
-            numbers above.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
-          <TableScroll label="Technical failures">
-            <table className="w-full text-sm">
-              <caption className="sr-only">Technical failures</caption>
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th scope="col" className={th}>
-                    Suite
+      <Section
+        id="reliability"
+        level={3}
+        title="Reliability and speed"
+        description="A technical failure (no answer from the AI service) is counted here and left out of the quality numbers above."
+        bodyClassName="grid grid-cols-1 gap-6 md:grid-cols-2"
+      >
+        <TableScroll label="Technical failures">
+          <table className="w-full text-sm">
+            <caption className="sr-only">Technical failures</caption>
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th scope="col" className={th}>
+                  Suite
+                </th>
+                <th scope="col" className={`${th} text-right`}>
+                  No answer
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {errors.map((e) => (
+                <tr key={e.label} className="border-t">
+                  <th scope="row" className={`${td} text-left font-normal`}>
+                    {e.label}
                   </th>
-                  <th scope="col" className={`${th} text-right`}>
-                    No answer
-                  </th>
+                  <td className={`${td} text-right whitespace-nowrap tabular-nums`}>
+                    {e.rate ? `${formatShare(e.rate.rate)} (${e.rate.successes} of ${e.rate.n})` : "no data"}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {errors.map((e) => (
-                  <tr key={e.label} className="border-t">
-                    <th scope="row" className={`${td} text-left font-normal`}>
-                      {e.label}
-                    </th>
-                    <td className={`${td} text-right whitespace-nowrap tabular-nums`}>
-                      {e.rate
-                        ? `${formatShare(e.rate.rate)} (${e.rate.successes} of ${e.rate.n})`
-                        : "no data"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableScroll>
-          <TableScroll label="Latency">
-            <table className="w-full text-sm">
-              <caption className="sr-only">Latency</caption>
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th scope="col" className={th}>
-                    Step
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
+        <TableScroll label="Latency">
+          <table className="w-full text-sm">
+            <caption className="sr-only">Latency</caption>
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th scope="col" className={th}>
+                  Step
+                </th>
+                <th scope="col" className={`${th} text-right`}>
+                  p50
+                </th>
+                <th scope="col" className={`${th} text-right`}>
+                  p95
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {latency.map((l) => (
+                <tr key={l.label} className="border-t">
+                  <th scope="row" className={`${td} text-left font-normal`}>
+                    {l.label}
                   </th>
-                  <th scope="col" className={`${th} text-right`}>
-                    p50
-                  </th>
-                  <th scope="col" className={`${th} text-right`}>
-                    p95
-                  </th>
+                  <td className={`${td} text-right whitespace-nowrap tabular-nums`}>
+                    {formatMs(l.spread?.p50 ?? null)}
+                  </td>
+                  <td className={`${td} text-right whitespace-nowrap tabular-nums`}>
+                    {formatMs(l.spread?.p95 ?? null)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {latency.map((l) => (
-                  <tr key={l.label} className="border-t">
-                    <th scope="row" className={`${td} text-left font-normal`}>
-                      {l.label}
-                    </th>
-                    <td className={`${td} text-right whitespace-nowrap tabular-nums`}>
-                      {formatMs(l.spread?.p50 ?? null)}
-                    </td>
-                    <td className={`${td} text-right whitespace-nowrap tabular-nums`}>
-                      {formatMs(l.spread?.p95 ?? null)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableScroll>
-        </CardContent>
-      </Card>
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
+      </Section>
     </>
   );
 }
@@ -275,70 +312,64 @@ function Trend({ runs }: { runs: readonly EvalRunListing[] }) {
   const valuesByRun = ordered.map((r) => metricValues(r.summary));
   const runNames = ordered.map((r) => shortDate(r.startedAt));
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>Trend across runs</h2>
-        </CardTitle>
-        <CardDescription>
-          The last {ordered.length} runs, oldest first, on a 0–100% scale. A drop after a prompt or model
-          change shows here.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {headline.map((def) => (
-            <li key={def.key} className="flex flex-col gap-1">
-              <span className="text-sm font-medium">{def.label}</span>
-              <TrendLine
-                label={def.label}
-                values={valuesByRun.map((vs) => vs.find((v) => v.def.key === def.key)?.value ?? null)}
-                runLabels={runNames}
-                target={def.target?.value}
-              />
-            </li>
-          ))}
-        </ul>
-        <TableScroll label="Runs and their headline numbers">
-          <table className="w-full text-sm">
-            <caption className="sr-only">Runs and their headline numbers, newest first</caption>
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th scope="col" className={th}>
-                  Run
+    <Section
+      id="trend"
+      title="Trend across runs"
+      description={`The last ${ordered.length} runs, oldest first, on a 0–100% scale. A drop after a prompt or model change shows here.`}
+      bodyClassName="flex flex-col gap-6"
+    >
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {headline.map((def) => (
+          <li key={def.key} className="flex flex-col gap-1">
+            <span className="text-sm font-medium">{def.label}</span>
+            <TrendLine
+              label={def.label}
+              values={valuesByRun.map((vs) => vs.find((v) => v.def.key === def.key)?.value ?? null)}
+              runLabels={runNames}
+              target={def.target?.value}
+            />
+          </li>
+        ))}
+      </ul>
+      <TableScroll label="Runs and their headline numbers">
+        <table className="w-full text-sm">
+          <caption className="sr-only">Runs and their headline numbers, newest first</caption>
+          <thead className="bg-muted/50 text-left">
+            <tr>
+              <th scope="col" className={th}>
+                Run
+              </th>
+              {headline.map((def) => (
+                <th key={def.key} scope="col" className={`${th} text-right`}>
+                  {def.label}
                 </th>
-                {headline.map((def) => (
-                  <th key={def.key} scope="col" className={`${th} text-right`}>
-                    {def.label}
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {runs.map((r) => {
+              const vs = metricValues(r.summary);
+              return (
+                <tr key={r.id} className="border-t">
+                  <th scope="row" className={`${td} text-left font-normal whitespace-nowrap`}>
+                    {formatDateTime(r.startedAt)}
+                    <span className="text-muted-foreground block text-xs">
+                      {(STATUS[r.status] ?? { label: r.status }).label} ·{" "}
+                      {formatCount(itemsMeasured(r.summary))} items
+                    </span>
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((r) => {
-                const vs = metricValues(r.summary);
-                return (
-                  <tr key={r.id} className="border-t">
-                    <th scope="row" className={`${td} text-left font-normal whitespace-nowrap`}>
-                      {formatDateTime(r.startedAt)}
-                      <span className="text-muted-foreground block text-xs">
-                        {(STATUS[r.status] ?? { label: r.status }).label} ·{" "}
-                        {formatCount(itemsMeasured(r.summary))} items
-                      </span>
-                    </th>
-                    {headline.map((def) => (
-                      <td key={def.key} className={`${td} text-right whitespace-nowrap tabular-nums`}>
-                        {formatShare(vs.find((v) => v.def.key === def.key)?.value ?? null)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </TableScroll>
-      </CardContent>
-    </Card>
+                  {headline.map((def) => (
+                    <td key={def.key} className={`${td} text-right whitespace-nowrap tabular-nums`}>
+                      {formatShare(vs.find((v) => v.def.key === def.key)?.value ?? null)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </TableScroll>
+    </Section>
   );
 }
 
@@ -375,18 +406,10 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
           {runs.length > 1 && <Trend runs={runs} />}
         </>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <h2>No {PROVIDER_LABELS[provider]} runs yet</h2>
-            </CardTitle>
-            <CardDescription>
-              Results appear here after the evaluation runs against this database (
-              <code className="font-mono">pnpm eval{provider === "gemini" ? " --provider gemini" : ""}</code>
-              ).
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <EmptyState icon={FlaskConical} title={`No ${PROVIDER_LABELS[provider]} runs yet`}>
+          Results appear here after the evaluation runs against this database (
+          <code className="font-mono">pnpm eval{provider === "gemini" ? " --provider gemini" : ""}</code>).
+        </EmptyState>
       )}
     </div>
   );

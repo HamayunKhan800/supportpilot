@@ -122,6 +122,8 @@ test("dark theme has no serious accessibility violations", async ({ page, baseUR
     "/app/account",
     "/app/tickets",
     "/app/knowledge",
+    "/app/analytics",
+    "/app/analytics/evaluation",
   ]) {
     await page.goto(path);
     await audit(page, `${path} (dark)`);

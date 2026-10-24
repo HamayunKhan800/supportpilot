@@ -1,6 +1,7 @@
 import { TableScroll } from "@/components/table-scroll";
 
 import { barLayout, niceMax } from "./scale";
+import { CHART_TONES, type ChartTone } from "./stacked-bar";
 
 export interface BarDatum {
   key: string;
@@ -22,12 +23,15 @@ export function BarChart({
   data,
   formatValue,
   valueHeader,
+  tone = 1,
 }: {
   /** What one bar is, e.g. "Tickets created per day". */
   title: string;
   data: readonly BarDatum[];
   formatValue: (n: number) => string;
   valueHeader: string;
+  /** Theme chart colour for the bars. */
+  tone?: ChartTone;
 }) {
   if (data.length === 0) return null;
   const values = data.map((d) => d.value);
@@ -57,6 +61,8 @@ export function BarChart({
           className="text-muted-foreground flex flex-col justify-between text-right text-xs tabular-nums"
         >
           <span>{formatValue(top)}</span>
+          {/* The middle label only when it is a whole number: a count axis of 1 has no honest middle. */}
+          <span>{Number.isInteger(top / 2) ? formatValue(top / 2) : ""}</span>
           <span>0</span>
         </div>
         <svg
@@ -66,6 +72,24 @@ export function BarChart({
           role="img"
           aria-label={summary}
         >
+          <line
+            x1={0}
+            y1={HEIGHT / 2}
+            x2={width}
+            y2={HEIGHT / 2}
+            className="stroke-border"
+            strokeDasharray="2 3"
+            vectorEffect="non-scaling-stroke"
+          />
+          <line
+            x1={0}
+            y1={0}
+            x2={width}
+            y2={0}
+            className="stroke-border"
+            strokeDasharray="2 3"
+            vectorEffect="non-scaling-stroke"
+          />
           <line
             x1={0}
             y1={HEIGHT}
@@ -82,7 +106,7 @@ export function BarChart({
                 y={b.y}
                 width={b.width}
                 height={b.height}
-                className="fill-foreground"
+                className={`${CHART_TONES[tone].fill} hover:opacity-80`}
               >
                 <title>{`${data[i]!.label}: ${formatValue(data[i]!.value)}`}</title>
               </rect>

@@ -72,3 +72,45 @@ export function lineSegments(
   if (current.length) segments.push(current);
   return segments;
 }
+
+export interface PeriodChange {
+  /** Sum of the newer half of the period. */
+  recent: number;
+  /** Sum of the older half, the same number of days. */
+  prior: number;
+  /** Days in each half. */
+  days: number;
+  /** (recent − prior) / prior; null when the older half is zero (no meaningful percentage). */
+  ratio: number | null;
+}
+
+/**
+ * Compares the newer half of a daily series with the older half, inside the period already
+ * shown (no extra query). With an odd number of days the oldest day is left out, so both
+ * halves cover the same number of days. Null when there are fewer than two days.
+ */
+export function periodChange(values: readonly number[]): PeriodChange | null {
+  const days = Math.floor(values.length / 2);
+  if (days === 0) return null;
+  const sum = (xs: readonly number[]) => xs.reduce((n, v) => n + v, 0);
+  const recent = sum(values.slice(values.length - days));
+  const prior = sum(values.slice(values.length - 2 * days, values.length - days));
+  return { recent, prior, days, ratio: prior === 0 ? null : (recent - prior) / prior };
+}
+
+/**
+ * Points for a sparkline: values left to right across `width`, scaled so the largest value
+ * touches the top and zero sits on the bottom (a flat zero series is a line along the bottom).
+ */
+export function sparkPoints(
+  values: readonly number[],
+  box: { width: number; height: number },
+): { x: number; y: number }[] {
+  if (values.length === 0) return [];
+  const top = Math.max(...values, 0);
+  const step = values.length > 1 ? box.width / (values.length - 1) : 0;
+  return values.map((v, i) => ({
+    x: values.length > 1 ? i * step : box.width / 2,
+    y: top > 0 ? box.height - (Math.max(v, 0) / top) * box.height : box.height,
+  }));
+}

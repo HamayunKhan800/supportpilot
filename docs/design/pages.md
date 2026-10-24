@@ -1,7 +1,7 @@
 # Workspace pages
 
 Design system step 4 (`docs/plans/design-system.md` §5). This note covers the shared page building blocks and the pages
-redesigned so far; Analytics, Evaluation and the admin pages follow in steps 4b and 4c.
+redesigned so far; the admin pages follow in step 4c.
 
 ## Shared building blocks
 
@@ -63,9 +63,41 @@ Each result now shows **why it ranked** and **what a draft would do**:
 - **The floor drafts actually use.** With Gemini that is the workspace's AI setting (default 0.62); with the offline mock
   embedder it is the fixed 0.15 (finding #89), and the summary says the mock scores are not comparable to Gemini's.
 
+## Analytics (usage)
+
+- **Key numbers** across the top: tickets created, draft acceptance, AI tokens and estimated cost. Three have a
+  **sparkline** (the period's daily series, already returned by the analytics service: no new query) and a **change
+  line**, e.g. "Last 15 days: up 23% vs the 15 before". The change compares the newer half of the selected period with
+  the older half (`periodChange` in `src/components/charts/scale.ts`; with an odd number of days the oldest day is left
+  out so both halves are equally long). It is worded and coloured neutrally: more tickets or tokens is not good or bad
+  by itself. When the older half is zero there is no percentage ("25, none in the 15 before"), never "+∞%".
+- **Tickets**: a stacked status bar (open, pending, resolved, closed in four chart colours) whose legend names each
+  part with its count and share; the daily bar chart in the brand chart colour with a dashed middle gridline; the
+  category table with a share bar in each row.
+- **AI reply drafts**: the outcomes as a stacked bar (sent, discarded, waiting, refused, and "blocked, failed or
+  cancelled" together), empty parts left out of the legend.
+- The period picker is a segmented control of links (each period is a shareable URL).
+- Sparklines and bars are decorative; every number is in text or in the chart's "Show as a table".
+
+## Evaluation
+
+- A **"Targets met" tile** ("4 of 4", green when all are met, amber otherwise) whose note says how many targets have no
+  data yet and that targets are hypotheses to test (docs/04), not promises.
+- Each metric with a target has a **Met / Not met / No data chip** beside the number. The chip is hidden from screen
+  readers because the line under the number already says "target ≥ 85% · met".
+- The **interval bars** colour the measured mark green or red by the target outcome, show the 95% interval as a tinted
+  band and the target as a dashed line; the legend says so in words.
+- Groundedness carries an **"AI-graded"** badge next to its name, as well as the note "AI-graded, not checked against a
+  human".
+- The mock-run and unfinished-run notices are info and warning callouts; an empty provider shows an empty state with
+  the command that fills it.
+
 ## Tests
 
-- Unit: `tests/unit/highlight.test.ts` (terms, stemming, stop words, no regex injection, the segments rebuild the text).
+- Unit: `tests/unit/highlight.test.ts` (terms, stemming, stop words, no regex injection, the segments rebuild the text);
+  `tests/unit/analytics-view.test.ts` adds `periodChange` and `sparkPoints`.
 - E2E: `knowledge.spec.ts` checks the floor summary, the per-result comparison and a highlighted word.
   `accessibility.spec.ts` now also audits the knowledge list, document page, search results and overview in the dark
   theme; `drafts.spec.ts` audits the overview in the dark theme with tickets and checks it shows "AI draft ready".
+- `analytics.spec.ts` checks the key numbers' change line, the status legend and the Met / Not met chips;
+  `theme.spec.ts` audits both analytics pages in the dark theme.

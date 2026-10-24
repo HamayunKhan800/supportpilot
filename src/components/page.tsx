@@ -51,6 +51,7 @@ export function Stat({
   icon: Icon,
   tone = "neutral",
   note,
+  chart,
 }: {
   label: string;
   value: React.ReactNode;
@@ -61,6 +62,8 @@ export function Stat({
   tone?: keyof typeof TONE;
   /** One short line under the number. */
   note?: React.ReactNode;
+  /** A decorative chart under the number, e.g. a sparkline (its data must be on the page as text). */
+  chart?: React.ReactNode;
 }) {
   return (
     <div className="bg-card relative flex flex-col gap-1.5 rounded-xl border p-4">
@@ -87,6 +90,7 @@ export function Stat({
       </dd>
       {/* A second definition, not a <p>: a <dl> group may only contain <dt> and <dd>. */}
       {note && <dd className="text-muted-foreground text-xs">{note}</dd>}
+      {chart && <dd className="mt-auto pt-1">{chart}</dd>}
     </div>
   );
 }
@@ -100,6 +104,7 @@ export function Section({
   className,
   bodyClassName,
   id,
+  level = 2,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -108,8 +113,11 @@ export function Section({
   className?: string;
   bodyClassName?: string;
   id?: string;
+  /** Heading level of the title; 3 for sections nested under another section's h2. */
+  level?: 2 | 3;
 }) {
   const headingId = id ? `${id}-heading` : undefined;
+  const Heading = level === 3 ? "h3" : "h2";
   return (
     <section
       id={id}
@@ -118,9 +126,9 @@ export function Section({
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b px-4 py-3">
         <div className="min-w-0">
-          <h2 id={headingId} className="text-sm font-semibold">
+          <Heading id={headingId} className="text-sm font-semibold">
             {title}
-          </h2>
+          </Heading>
           {description && <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

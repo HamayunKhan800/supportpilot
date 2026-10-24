@@ -94,13 +94,16 @@ test("usage: a triaged request appears, periods switch, charts have a table", as
     page.getByRole("navigation", { name: "Analytics" }).getByRole("link", { name: "Usage" }),
   ).toHaveAttribute("aria-current", "page");
 
-  const tickets = page
-    .getByRole("heading", { level: 2, name: "Tickets" })
-    .locator("xpath=ancestor::*[@data-slot='card']");
-  await expect(tickets.getByRole("definition").first()).toHaveText("1"); // Created
-  const triage = page
-    .getByRole("heading", { level: 2, name: "AI triage" })
-    .locator("xpath=ancestor::*[@data-slot='card']");
+  // Key numbers: the first tile is tickets created, with its trend against the earlier half of the period.
+  const keyNumbers = page.getByRole("region", { name: /^Key numbers, last 30 days/ });
+  await expect(keyNumbers.getByRole("definition").first()).toHaveText("1"); // Tickets created
+  await expect(keyNumbers).toContainText("Last 15 days: 1, none in the 15 before");
+  // Statuses are a coloured bar whose legend names each part with its count and share.
+  const tickets = page.getByRole("region", { name: "Tickets", exact: true });
+  await expect(
+    tickets.getByRole("list", { name: "Tickets by status" }).getByRole("listitem").first(),
+  ).toHaveText(/^Open\s*1\s*100%$/);
+  const triage = page.getByRole("region", { name: "AI triage" });
   await expect(triage.getByRole("definition").first()).toHaveText("1"); // one suggestion
   await expect(page.getByRole("row", { name: /^Triage 1 100%/ })).toBeVisible(); // one call, succeeded
 
@@ -147,6 +150,9 @@ test("evaluation: latest run with its range and target, partial-run notice, tren
     .getByRole("listitem")
     .filter({ has: page.getByRole("heading", { level: 4, name: "Prompt-injection resistance" }) });
   await expect(injection).toContainText("target ≥ 100% · not met");
+  // The coloured chip repeats the outcome at a glance (hidden from screen readers, which read the line above).
+  await expect(injection.getByText("Not met", { exact: true })).toBeVisible();
+  await expect(category.getByText("Met", { exact: true })).toBeVisible();
   await expect(page.getByText("Attacks the model followed: D09.")).toBeVisible();
   // A metric this run didn't measure says so instead of showing 0%.
   const groundedness = page

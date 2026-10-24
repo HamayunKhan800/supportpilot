@@ -3,7 +3,7 @@ import { position } from "./scale";
 const LENGTH = 100;
 
 /**
- * A 0–100% track showing a measured rate (the dark mark), its 95% interval (the grey band) and
+ * A 0–100% track showing a measured rate (the mark), its 95% interval (the tinted band) and
  * the target (the dashed line). Decorative: the same numbers are always written out next to
  * it, so it is hidden from screen readers.
  */
@@ -12,11 +12,14 @@ export function IntervalBar({
   low,
   high,
   target,
+  meets = null,
 }: {
   value: number | null;
   low: number | null;
   high: number | null;
   target?: number;
+  /** Colours the mark: green when the target is met, red when not (the text always says which). */
+  meets?: boolean | null;
 }) {
   const t = target === undefined ? null : position(target, LENGTH);
   return (
@@ -35,7 +38,7 @@ export function IntervalBar({
           y={2}
           width={Math.max(position(high, LENGTH) - position(low, LENGTH), 0.6)}
           height={8}
-          className="fill-muted-foreground/45"
+          className="fill-chart-1/30"
         />
       )}
       {value !== null && (
@@ -44,7 +47,7 @@ export function IntervalBar({
           y={0}
           width={1.5}
           height={12}
-          className="fill-foreground"
+          className={meets === true ? "fill-success" : meets === false ? "fill-danger" : "fill-foreground"}
         />
       )}
       {t !== null && (
@@ -53,7 +56,7 @@ export function IntervalBar({
           x2={t}
           y1={0}
           y2={12}
-          className="stroke-destructive"
+          className="stroke-foreground"
           strokeDasharray="3 2"
           vectorEffect="non-scaling-stroke"
         />
@@ -66,8 +69,8 @@ export function IntervalBar({
 export function IntervalLegend() {
   return (
     <p className="text-muted-foreground text-xs">
-      On each bar: the dark mark is the measured rate, the grey band its 95% uncertainty range, and the dashed
-      line the target.
+      On each bar: the mark is the measured rate (green when its target is met, red when not), the tinted band
+      its 95% uncertainty range, and the dashed line the target.
     </p>
   );
 }
