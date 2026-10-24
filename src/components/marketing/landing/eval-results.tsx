@@ -115,7 +115,7 @@ function EvalTable() {
       role="region"
       aria-labelledby="evaluation-heading"
       tabIndex={0}
-      className="focus-visible:ring-ring bg-card hidden overflow-x-auto rounded-2xl border outline-none focus-visible:ring-2 md:block"
+      className="bg-card hidden overflow-x-auto rounded-2xl border md:block"
     >
       <table className="w-full min-w-[46rem] text-sm">
         <caption className="sr-only">

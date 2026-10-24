@@ -11,7 +11,7 @@ import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { notify } from "@/lib/toast";
 import { INVITABLE_ROLES } from "@/server/platform/auth/permissions";
 
-const selectClass = "h-10 rounded-md border border-input bg-background px-2 text-sm";
+const selectClass = "field-focus h-10 rounded-md border border-input bg-background px-2 text-sm";
 
 function inviteLink(id: string) {
   return `${window.location.origin}/invite/${id}`;

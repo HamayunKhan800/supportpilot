@@ -28,7 +28,8 @@ export const dateFormat = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
-export const selectClass = "border-input bg-background h-10 w-full min-w-0 rounded-md border px-2 text-sm";
+export const selectClass =
+  "border-input bg-background field-focus h-10 w-full min-w-0 rounded-md border px-2 text-sm";
 
 export const SENTIMENT_LABEL: Record<string, string> = {
   negative: "Negative",

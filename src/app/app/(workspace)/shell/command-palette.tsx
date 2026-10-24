@@ -176,7 +176,7 @@ function PaletteBody({ items, close }: { items: NavItem[]; close: () => void }) 
     <>
       {/* The whole popup scrolls with the search box pinned on top, so the scroll area holds the
           focused text box and stays keyboard-reachable (axe scrollable-region-focusable). */}
-      <div className="bg-popover focus-within:ring-ring sticky top-0 z-10 flex items-center gap-2 border-b px-3 focus-within:ring-2 focus-within:ring-inset">
+      <div className="bg-popover sticky top-0 z-10 flex items-center gap-2 border-b px-3">
         <Search aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
         <input
           role="combobox"

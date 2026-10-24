@@ -30,10 +30,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <Link
       href="/"
-      className={cn(
-        "focus-visible:ring-ring inline-flex items-center gap-2 rounded-md font-semibold tracking-tight outline-none focus-visible:ring-2",
-        className,
-      )}
+      className={cn("inline-flex items-center gap-2 rounded-md font-semibold tracking-tight", className)}
     >
       <LogoMark className="-mx-0.5" />
       SupportPilot

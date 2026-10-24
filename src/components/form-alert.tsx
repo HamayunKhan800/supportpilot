@@ -16,7 +16,7 @@ export function FormAlert({ message, tone = "error" }: { message: string; tone?:
       tabIndex={-1}
       role={tone === "error" ? "alert" : "status"}
       variant={tone === "error" ? "destructive" : "default"}
-      className="focus-visible:ring-ring outline-none focus-visible:ring-2"
+      className="outline-none"
     >
       <AlertDescription>{message}</AlertDescription>
     </Alert>

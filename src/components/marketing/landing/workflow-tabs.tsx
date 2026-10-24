@@ -31,9 +31,8 @@ export function WorkflowTabs({ steps, label }: { steps: WorkflowStep[]; label: s
             key={s.value}
             value={s.value}
             className={cn(
-              "group text-muted-foreground flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors outline-none lg:p-4",
+              "group text-muted-foreground flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors lg:p-4",
               "hover:bg-muted/60 hover:text-foreground",
-              "focus-visible:ring-ring focus-visible:ring-2",
               "data-[active]:bg-card data-[active]:text-foreground data-[active]:border-border data-[active]:shadow-[0_1px_2px_oklch(0_0_0/0.06),0_8px_24px_-12px_oklch(0_0_0/0.22)]",
             )}
           >
@@ -50,11 +49,7 @@ export function WorkflowTabs({ steps, label }: { steps: WorkflowStep[]; label: s
         ))}
       </Tabs.List>
       {steps.map((s) => (
-        <Tabs.Panel
-          key={s.value}
-          value={s.value}
-          className="focus-visible:ring-ring flex flex-col gap-4 rounded-2xl outline-none focus-visible:ring-2"
-        >
+        <Tabs.Panel key={s.value} value={s.value} className="flex flex-col gap-4 rounded-2xl">
           <p className="text-muted-foreground text-sm leading-relaxed lg:hidden">{s.body}</p>
           {s.scene}
         </Tabs.Panel>

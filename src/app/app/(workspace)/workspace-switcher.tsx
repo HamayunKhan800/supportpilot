@@ -26,7 +26,7 @@ export function WorkspaceSwitcher({ activeId, workspaces }: Props) {
         id={id}
         value={activeId}
         disabled={pending}
-        className="border-input bg-background h-9 w-full min-w-0 rounded-md border px-2 text-sm font-medium"
+        className="border-input bg-background field-focus h-9 w-full min-w-0 rounded-md border px-2 text-sm font-medium"
         onChange={async (e) => {
           setPending(true);
           await authClient.organization.setActive({ organizationId: e.target.value });

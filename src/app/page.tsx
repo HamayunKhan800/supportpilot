@@ -126,9 +126,9 @@ const FOOTER_PROJECT = [
 ];
 
 const navLink =
-  "text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-2.5 py-1.5 text-sm transition-colors outline-none focus-visible:ring-2";
+  "text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1.5 text-sm transition-colors";
 const textLink =
-  "text-foreground decoration-foreground/30 hover:decoration-foreground focus-visible:ring-ring rounded-sm underline underline-offset-4 transition-colors outline-none focus-visible:ring-2";
+  "text-foreground decoration-foreground/30 hover:decoration-foreground rounded-sm underline underline-offset-4 transition-colors";
 const container = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 const h2 = "text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-[2.5rem] sm:leading-[1.1]";
 const lead = "text-muted-foreground text-lg leading-relaxed text-pretty";

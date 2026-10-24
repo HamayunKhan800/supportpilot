@@ -89,7 +89,7 @@ export function DraftFeedback({ draft, onSaved }: { draft: ApiDraft; onSaved: (d
               id={`${ids}-reason`}
               value={reason}
               onChange={(e) => setReason(e.target.value as Reason | "")}
-              className="border-input bg-background h-9 rounded-lg border px-2 text-sm"
+              className="border-input bg-background field-focus h-9 rounded-lg border px-2 text-sm"
             >
               <option value="">Choose a reason</option>
               {FEEDBACK_REASONS.map((r) => (
