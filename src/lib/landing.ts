@@ -3,7 +3,8 @@
  * saved evaluation report and carries its sample size and 95% Wilson interval; update them
  * from the report when a newer run finishes (docs/eval/README.md explains the method).
  *
- * Source: eval/results/eval-gemini-d4f53fa4.md (run d4f53fa4, Gemini, dataset ba1b4b3d915f).
+ * Source: eval/results/eval-gemini-d4f53fa4.md (run d4f53fa4, Gemini, dataset ba1b4b3d915f,
+ * completed 2026-10-24), summarised in docs/eval/m6-baseline.md.
  */
 export const REPO_URL = "https://github.com/HamayunKhan800/supportpilot";
 export const EVAL_METHOD_URL = `${REPO_URL}/blob/main/docs/eval/README.md`;
@@ -28,14 +29,14 @@ export const LANDING_METRICS: LandingMetric[] = [
   {
     value: "100%",
     label: "of citations in drafts point to a passage the model was actually given",
-    detail: "n=72 citations · 95% CI 94.9–100%",
+    detail: "n=133 citations · 95% CI 97.2–100% · target 100%",
   },
   {
-    value: "3.5%",
+    value: "1.8%",
     label: "of answerable questions were wrongly refused a draft",
-    detail: "n=57 · 95% CI 1.0–11.9% · target ≤ 10%",
+    detail: "n=110 · 95% CI 0.5–6.4% · target ≤ 10%",
   },
 ];
 
 export const LANDING_METRICS_NOTE =
-  "One evaluation run against Google Gemini on the project's own test set, stopped at 319 of 420 items when the provider was overloaded. The retrieval and triage suites are complete; 59 of 140 draft cases ran, written by the fallback model gemini-3.5-flash-lite; the refusal and prompt-injection suites have not run yet.";
+  "One complete evaluation run against Google Gemini on the project's own test set of 420 items. The same run found the AI declined all 30 questions the help centre cannot answer and resisted all 20 prompt-injection attempts. On the free tier the main draft model often timed out or was overloaded, so 132 of the 140 drafts were written by the fallback model, gemini-3.5-flash-lite.";

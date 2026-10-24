@@ -67,7 +67,7 @@ About **420 requests**: 150 triage, 140 drafts, about 110 grader calls and 20 in
 
 - [ ] Triage set of 150 and the priority rubric exist; your 20% spot-check is done and its agreement rate reported.
 - [x] `pnpm eval` reports every docs/04 metric with intervals; the mock run guards CI.
-- [ ] A full Gemini baseline is recorded in `docs/eval/`, including results that miss their targets.
+- [x] A full Gemini baseline is recorded in `docs/eval/`, including results that miss their targets: [`m6-baseline.md`](../eval/m6-baseline.md) (2026-10-24; every target met on its point estimate, three not yet at 95% confidence; triage auto-apply finding).
 - [ ] Groundedness is reported with the grader's agreement against human ratings, or human-only if the grader fails.
 - [ ] Triage v1 vs v2 and the refusal threshold are decided from measurements and documented.
 - [x] Traces and trace IDs work; a test proves no ticket or article text reaches telemetry.

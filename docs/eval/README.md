@@ -66,3 +66,4 @@ Loading checks every field, never deletes anything, and keeps whichever copy of 
 | [refusal-threshold.md](refusal-threshold.md)         | How the retrieval score floor (0.62) was chosen.                                                               |
 | [retrieval-baseline.md](retrieval-baseline.md)       | The M4 retrieval measurement.                                                                                  |
 | [ai-smoke-2026-10-23.md](ai-smoke-2026-10-23.md)     | The first, budgeted Gemini check of the AI features (20 triage calls, 20 drafts, 20 attacks).                  |
+| [m6-baseline.md](m6-baseline.md)                     | **The full Gemini baseline (420 items):** every number, its interval, findings and limits.                     |

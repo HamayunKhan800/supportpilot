@@ -27,9 +27,9 @@ check, for "a reply a person approved").
   CSP blocks.
 - **How it works**: four numbered steps (triage, retrieve, draft, approve).
 - **Evaluation**: four numbers from the latest Gemini run (`src/lib/landing.ts`), each with its
-  sample size and 95% confidence interval, and a note that says what the run did not cover (it
-  stopped at 319 of 420 items, most drafts came from the fallback model, two suites have no data).
-  Update `landing.ts` when a new report is written.
+  sample size and 95% confidence interval, and a note with the rest of the story (the refusal and
+  injection results, and that most drafts came from the fallback model). Source:
+  `docs/eval/m6-baseline.md`; update `landing.ts` when a new baseline is written.
 - **Engineering**: six claims, each one checkable in the repository. No test counts and no claim of
   a finished security review.
 
