@@ -2,13 +2,16 @@ import { BookOpen, Check, History, RefreshCw, Settings2, Undo2, Users } from "lu
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { Fragment } from "react";
 import { Logo } from "@/components/logo";
 import { ApiSample } from "@/components/marketing/landing/api-sample";
 import { CustomerSide } from "@/components/marketing/landing/customer-side";
 import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
+import { HeroField } from "@/components/marketing/landing/hero-field";
 import { HeroLive } from "@/components/marketing/landing/hero-live";
 import { Reveal } from "@/components/marketing/landing/reveal";
+import { Spotlight } from "@/components/marketing/landing/spotlight";
 import { PaletteScene } from "@/components/marketing/landing/team-tools";
 import { WORKFLOW_STEPS } from "@/components/marketing/landing/workflow-scenes";
 import { WorkflowTabs } from "@/components/marketing/landing/workflow-tabs";
@@ -159,11 +162,28 @@ function HandoffMotif({ className }: { className?: string }) {
   );
 }
 
+// The headline, word by word: each word arrives blur-to-sharp in turn (design step 10.2).
+// Delays are literal classes so Tailwind can see them; the text reads the same to assistive tech.
+const HEADLINE_A = ["Support", "replies", "drafted", "by", "AI,"];
+const HEADLINE_B = ["approved", "by", "your", "team."];
+const WORD_DELAY = [
+  "[animation-delay:40ms]",
+  "[animation-delay:95ms]",
+  "[animation-delay:150ms]",
+  "[animation-delay:205ms]",
+  "[animation-delay:260ms]",
+  "[animation-delay:340ms]",
+  "[animation-delay:395ms]",
+  "[animation-delay:450ms]",
+  "[animation-delay:505ms]",
+];
+
 export default async function Home() {
   const theme = parseThemePreference((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <>
       <Reveal />
+      <Spotlight />
       <header
         data-theme="dark"
         className="glass-bar text-foreground sticky top-0 z-40 border-b [--glass-base:var(--band-bg)]"
@@ -203,13 +223,25 @@ export default async function Home() {
         >
           <div aria-hidden="true" className="land-grid pointer-events-none absolute inset-0" />
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
+          <HeroField />
           <div className={cn(container, "relative pt-16 sm:pt-24 lg:pt-28")}>
             <h1
               id="hero-heading"
               className="max-w-4xl text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.045em] text-balance sm:text-6xl lg:max-w-none lg:text-[4.75rem]"
             >
-              Support replies drafted by AI,{" "}
-              <span className="text-muted-foreground lg:block">approved by your team.</span>
+              {HEADLINE_A.map((w, i) => (
+                <Fragment key={w}>
+                  <span className={cn("word-in", WORD_DELAY[i])}>{w}</span>{" "}
+                </Fragment>
+              ))}
+              <span className="text-muted-foreground lg:block">
+                {HEADLINE_B.map((w, i) => (
+                  <Fragment key={w + i}>
+                    {i > 0 && " "}
+                    <span className={cn("word-in", WORD_DELAY[i + HEADLINE_A.length])}>{w}</span>
+                  </Fragment>
+                ))}
+              </span>
             </h1>
             <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div className="flex max-w-2xl flex-col gap-7">
@@ -275,7 +307,7 @@ export default async function Home() {
                 retyping.
               </span>
             </h2>
-            <div data-reveal className="mt-14 overflow-hidden rounded-2xl border">
+            <div data-reveal data-spotlight className="relative mt-14 overflow-hidden rounded-2xl border">
               <div className="bg-muted/50 text-muted-foreground hidden grid-cols-2 border-b text-sm font-medium md:grid">
                 <p className="px-6 py-3">The usual way</p>
                 <p className="border-l px-6 py-3">With SupportPilot</p>
@@ -390,7 +422,8 @@ export default async function Home() {
               </div>
               <div
                 data-reveal
-                className="land-dots bg-background rounded-2xl border px-4 py-10 sm:px-10 sm:py-14"
+                data-spotlight
+                className="land-dots bg-background relative rounded-2xl border px-4 py-10 sm:px-10 sm:py-14"
               >
                 <PaletteScene />
               </div>

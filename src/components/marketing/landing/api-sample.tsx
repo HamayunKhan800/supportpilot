@@ -86,7 +86,8 @@ export function ApiSample() {
     <Tabs.Root
       defaultValue="json"
       data-theme="dark"
-      className="land-band text-foreground land-shadow overflow-hidden rounded-xl border"
+      data-spotlight
+      className="land-band text-foreground land-shadow relative overflow-hidden rounded-xl border"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2">
         <span className="bg-success-subtle text-success-strong rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold">

@@ -29,8 +29,9 @@ function Tile({
   return (
     <li
       data-reveal
+      data-spotlight
       className={cn(
-        "bg-card/60 hover:border-foreground/25 flex flex-col overflow-hidden rounded-2xl border transition-colors duration-200",
+        "bg-card/60 hover:border-foreground/25 relative flex flex-col overflow-hidden rounded-2xl border transition-colors duration-200",
         className,
       )}
     >

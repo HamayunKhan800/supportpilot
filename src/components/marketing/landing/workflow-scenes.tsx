@@ -13,6 +13,7 @@ function Stage({ children, className }: { children: ReactNode; className?: strin
   return (
     <div
       aria-hidden="true"
+      data-spotlight
       className={cn(
         "land-dots bg-muted/40 relative flex min-h-[25rem] items-center justify-center overflow-hidden rounded-2xl border p-4 select-none sm:p-8 lg:min-h-[30rem] lg:p-10",
         className,

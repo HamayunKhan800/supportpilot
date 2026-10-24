@@ -499,3 +499,68 @@ html[data-theme="dark"] {
     backdrop-filter: blur(16px) saturate(1.6);
   }
 }
+
+/* Design step 10.2: the living hero. */
+/* The canvas fades out toward the edges like the grid it sits on. */
+.hero-field {
+  mask-image: radial-gradient(ellipse 80% 75% at 50% 10%, #000 35%, transparent 100%);
+}
+/* Headline words arrive one after another, blur to sharp (as on Linear). They are visible
+   from the first paint (no opacity change), so the largest paint is not delayed. */
+@keyframes word-in {
+  from {
+    filter: blur(10px);
+    translate: 0 0.18em;
+  }
+}
+.word-in {
+  display: inline-block;
+  animation: word-in 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+/* Section headings: the same arrival as they scroll into view (Reveal sets data-revealed). */
+html[data-reveal] h2[data-reveal] {
+  transition:
+    opacity 300ms var(--land-ease),
+    translate 300ms var(--land-ease),
+    filter 300ms var(--land-ease);
+}
+html[data-reveal] [data-reveal] > h2 {
+  transition: filter 300ms var(--land-ease);
+}
+html[data-reveal] h2[data-reveal]:not([data-revealed]),
+html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
+  filter: blur(8px);
+}
+/* Cards: a soft light follows the pointer along the border (spotlight.tsx sets --mx/--my). */
+/* The card itself must be positioned (give it `relative`); the ring sits just inside its border,
+   so cards with overflow-hidden keep it. */
+[data-spotlight]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--foreground) 40%, transparent),
+    transparent 70%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+[data-spotlight]:hover::after {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .word-in {
+    animation: none;
+  }
+  html[data-reveal] h2[data-reveal]:not([data-revealed]),
+  html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
+    filter: none;
+  }
+}
