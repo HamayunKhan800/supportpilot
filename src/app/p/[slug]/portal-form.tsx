@@ -75,11 +75,6 @@ export function PortalForm({ slug }: { slug: string }) {
       <CardContent>
         <form ref={formRef} method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
           <FormAlert message={errors.form ?? ""} />
-          <Alert role="note">
-            <AlertDescription>
-              Please don&apos;t include passwords, payment card numbers or other sensitive personal data.
-            </AlertDescription>
-          </Alert>
           <FormField
             label="Your name"
             name="name"
@@ -135,9 +130,14 @@ export function PortalForm({ slug }: { slug: string }) {
               />
             </label>
           </div>
-          <Button type="submit" size="lg" disabled={pending}>
-            {pending ? "Sending…" : "Send request"}
-          </Button>
+          <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-muted-foreground text-xs">
+              Please don&apos;t include passwords, card numbers or other sensitive personal data.
+            </p>
+            <Button type="submit" size="lg" className="h-10 shrink-0 px-4" disabled={pending}>
+              {pending ? "Sending…" : "Send request"}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

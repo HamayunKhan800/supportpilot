@@ -6,7 +6,6 @@ import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/server/platform/auth/policy";
 
@@ -37,13 +36,13 @@ export function SignUpForm({ next }: { next: string }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <h1 className="text-xl leading-snug font-semibold">Create an account</h1>
-        <CardDescription>Start a workspace for your support team.</CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
+        <p className="text-muted-foreground text-sm">Then set up a workspace for your support team.</p>
+      </div>
       <form method="post" onSubmit={onSubmit}>
-        <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <FormAlert message={error} />
           <FormField label="Name" name="name" autoComplete="name" required minLength={1} maxLength={80} />
           <FormField label="Email" name="email" type="email" autoComplete="email" required />
@@ -57,19 +56,19 @@ export function SignUpForm({ next }: { next: string }) {
             maxLength={PASSWORD_MAX_LENGTH}
             hint={`At least ${PASSWORD_MIN_LENGTH} characters. A few random words make a strong, memorable passphrase.`}
           />
-        </CardContent>
-        <CardFooter className="mt-6 flex flex-col gap-3">
-          <Button type="submit" size="lg" className="w-full" disabled={pending}>
+        </div>
+        <div className="mt-6 flex flex-col gap-4">
+          <Button type="submit" size="lg" className="h-10 w-full" disabled={pending}>
             {pending ? "Creating account…" : "Create account"}
           </Button>
           <p className="text-muted-foreground text-sm">
             Already have an account?{" "}
-            <Link href="/sign-in" className="underline">
+            <Link href="/sign-in" className="text-foreground font-medium underline underline-offset-4">
               Sign in
             </Link>
           </p>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 }

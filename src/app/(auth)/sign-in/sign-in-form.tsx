@@ -6,7 +6,6 @@ import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 
 export function SignInForm({ next, registered }: { next: string; registered: boolean }) {
@@ -33,13 +32,13 @@ export function SignInForm({ next, registered }: { next: string; registered: boo
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <h1 className="text-xl leading-snug font-semibold">Sign in</h1>
-        <CardDescription>Welcome back. Sign in to your workspace.</CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+        <p className="text-muted-foreground text-sm">Sign in to your support workspace.</p>
+      </div>
       <form method="post" onSubmit={onSubmit}>
-        <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <FormAlert
             message={registered && !error ? "Account created. Please sign in." : ""}
             tone="success"
@@ -53,22 +52,22 @@ export function SignInForm({ next, registered }: { next: string; registered: boo
             autoComplete="current-password"
             required
           />
-        </CardContent>
-        <CardFooter className="mt-6 flex flex-col gap-3">
-          <Button type="submit" size="lg" className="w-full" disabled={pending}>
+        </div>
+        <div className="mt-6 flex flex-col gap-4">
+          <Button type="submit" size="lg" className="h-10 w-full" disabled={pending}>
             {pending ? "Signing in…" : "Sign in"}
           </Button>
           <p className="text-muted-foreground text-sm">
             New here?{" "}
             <Link
               href={`/sign-up${next !== "/app" ? `?next=${encodeURIComponent(next)}` : ""}`}
-              className="underline"
+              className="text-foreground font-medium underline underline-offset-4"
             >
               Create an account
             </Link>
           </p>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 }

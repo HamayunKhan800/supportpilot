@@ -8,7 +8,6 @@ import {
   FlaskConical,
   Inbox,
   LayoutDashboard,
-  LifeBuoy,
   type LucideIcon,
   Monitor,
   Moon,
@@ -24,7 +23,6 @@ import { authClient } from "@/lib/auth-client";
 import type { NavIcon } from "@/lib/navigation";
 import { isApplePlatform } from "@/lib/preferences-client";
 import type { ThemePreference } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 
 export const NAV_ICON: Record<NavIcon, LucideIcon> = {
   overview: LayoutDashboard,
@@ -45,20 +43,7 @@ export const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: Lucid
   { value: "system", label: "Device", Icon: Monitor },
 ];
 
-/** Product mark: an original life-buoy glyph on the brand colour (no third-party logo). */
-export function LogoMark({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "bg-primary text-primary-foreground inline-flex size-7 shrink-0 items-center justify-center rounded-md",
-        className,
-      )}
-    >
-      <LifeBuoy className="size-4" strokeWidth={2.25} />
-    </span>
-  );
-}
+export { LogoMark } from "@/components/logo";
 
 const noSubscribe = () => () => {};
 

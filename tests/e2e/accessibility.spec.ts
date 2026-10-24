@@ -1,7 +1,7 @@
 import { audit, email, expect, signIn, signUp, test } from "./fixtures";
 
 test("public pages have no serious accessibility violations", async ({ page }) => {
-  for (const path of ["/", "/sign-in", "/sign-up", "/invite/example-invitation-id"]) {
+  for (const path of ["/", "/sign-in", "/sign-up", "/invite/example-invitation-id", "/no-such-page"]) {
     await page.goto(path);
     await audit(page, path);
   }
@@ -38,7 +38,10 @@ test("forms show errors accessibly", async ({ page }) => {
   await audit(page, "/sign-in (error)");
 });
 
-test("customer portal and tracking pages have no serious accessibility violations", async ({ page }) => {
+test("customer portal and tracking pages have no serious accessibility violations", async ({
+  page,
+  baseURL,
+}) => {
   const who = email(`a11y-portal-${test.info().project.name}`);
   const slug = `a11y-portal-${Date.now().toString(36)}-${test.info().project.name}`;
   await signUp(page, "Ada Access", who);
@@ -65,6 +68,21 @@ test("customer portal and tracking pages have no serious accessibility violation
   await audit(page, "/t/{token}");
   await page.getByRole("button", { name: "Send reply" }).click();
   await audit(page, "/t/{token} (error)");
+
+  // The customer-facing pages in the dark theme too (design system step 5).
+  const trackingUrl = page.url();
+  await page.context().addCookies([{ name: "sp_theme", value: "dark", url: baseURL! }]);
+  for (const [path, label] of [
+    [trackingUrl, "/t/{token} (dark)"],
+    [`/p/${slug}`, "/p/{slug} (dark)"],
+    ["/invite/example-invitation-id", "/invite/{id} (dark)"],
+    ["/no-such-page", "404 (dark)"],
+  ] as const) {
+    await page.goto(path);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await audit(page, label);
+  }
+  await page.context().clearCookies({ name: "sp_theme" });
 
   // Agent side, same session (the owner is signed in).
   await page.goto("/app/tickets");

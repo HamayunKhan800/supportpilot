@@ -56,7 +56,7 @@ export function ReplyForm({ token }: { token: string }) {
           error={error.message}
         />
         <div className="flex items-center gap-3">
-          <Button type="submit" size="lg" disabled={pending}>
+          <Button type="submit" size="lg" className="h-10 px-4" disabled={pending}>
             {pending ? "Sending…" : "Send reply"}
           </Button>
           <p role="status" className="text-success-strong text-sm">
