@@ -28,6 +28,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test",
     "auth:generate": "auth generate --config scripts/auth-cli.config.ts --output src/server/platform/db/auth-schema.ts",
     "test:e2e": "playwright test",
+    "test:visual:update": "playwright test visual --update-snapshots",
     "db:seed-demo": "tsx scripts/seed-demo.ts",
     "eval": "tsx scripts/eval.ts",
     "eval:retrieval": "tsx scripts/eval-retrieval.ts",

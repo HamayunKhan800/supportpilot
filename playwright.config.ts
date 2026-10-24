@@ -19,12 +19,17 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: { baseURL, trace: "retain-on-failure", screenshot: "only-on-failure" },
+  // Visual regression baselines (tests/e2e/visual.spec.ts): one folder per project, no OS suffix
+  // (local runs and CI both use Linux and the bundled Chromium). A small tolerance absorbs
+  // anti-aliasing noise; a real layout or colour change is far larger.
+  snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{arg}{ext}",
+  expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01 } },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testMatch: /(accessibility|drafts|settings|review|analytics|theme|shell)\.spec\.ts/,
+      testMatch: /(accessibility|drafts|settings|review|analytics|theme|shell|visual)\.spec\.ts/,
     },
   ],
   webServer: [
