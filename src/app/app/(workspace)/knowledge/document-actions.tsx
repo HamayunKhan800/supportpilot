@@ -6,6 +6,7 @@ import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
 import { deleteResource, postEmpty } from "@/lib/api-client";
 import { useProgressRouter } from "@/lib/use-progress-router";
+import { notify } from "@/lib/toast";
 
 /** Retry (failed documents only) and delete with an inline confirmation step. */
 export function DocumentActions({ id, title, canRetry }: { id: string; title: string; canRetry: boolean }) {
@@ -31,6 +32,7 @@ export function DocumentActions({ id, title, canRetry }: { id: string; title: st
     const result = await postEmpty(`/api/v1/kb/documents/${id}/retry`);
     setPending(null);
     if (!result.ok) return setError(result.message);
+    notify("Processing again", { description: `“${title}” is back in the queue.` });
     router.refresh();
   }
 

@@ -147,6 +147,21 @@ export function SearchPanel({ floor }: { floor: Floor }) {
       </form>
       <FormAlert message={error} />
 
+      {pending && !data && (
+        // First search: the shape of the results while they load (later searches keep the
+        // previous results on screen until the new ones arrive).
+        <div aria-hidden="true" className="flex flex-col gap-3" data-testid="search-skeleton">
+          <div className="skeleton h-5 w-56" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex flex-col gap-2 rounded-xl border p-4">
+              <div className="skeleton h-4 w-2/5" />
+              <div className="skeleton h-3.5 w-full" />
+              <div className="skeleton h-3.5 w-4/5" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {data && (
         <section aria-labelledby="search-results-heading" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

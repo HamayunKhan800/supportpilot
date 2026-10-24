@@ -135,14 +135,26 @@ export function DraftPanel({
         {state.phase === "streaming" && (
           <div
             aria-busy="true"
-            className="bg-background rounded-lg border p-3.5"
+            className="enter-fade bg-background rounded-lg border p-3.5"
             data-testid="draft-streaming"
           >
             <p className="text-muted-foreground mb-1.5 flex items-center gap-2 text-xs" aria-hidden="true">
               <span className="bg-primary size-1.5 animate-pulse rounded-full motion-reduce:animate-none" />
               Searching your knowledge base and writing…
             </p>
-            <p className="leading-relaxed break-words whitespace-pre-wrap">{state.text}</p>
+            {state.text ? (
+              <p className="leading-relaxed break-words whitespace-pre-wrap">
+                {state.text}
+                <span aria-hidden="true" className="stream-caret" />
+              </p>
+            ) : (
+              // Before the first words arrive: the shape of a reply, not a spinner.
+              <div aria-hidden="true" className="flex flex-col gap-2 py-1" data-testid="draft-skeleton">
+                <div className="skeleton h-3.5 w-full" />
+                <div className="skeleton h-3.5 w-11/12" />
+                <div className="skeleton h-3.5 w-3/5" />
+              </div>
+            )}
           </div>
         )}
 
@@ -165,7 +177,10 @@ export function DraftPanel({
         )}
 
         {state.phase === "refused" && (
-          <div className="flex gap-3 rounded-lg border border-dashed p-4 text-sm" data-testid="draft-outcome">
+          <div
+            className="enter-fade flex gap-3 rounded-lg border border-dashed p-4 text-sm"
+            data-testid="draft-outcome"
+          >
             <BookX aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0" />
             <div className="flex min-w-0 flex-col gap-2">
               <p className="font-semibold">Insufficient knowledge: no reliable sources found.</p>
@@ -214,7 +229,7 @@ export function DraftPanel({
         )}
 
         {state.phase === "sent" && (
-          <p className="text-success-strong text-sm" data-testid="draft-outcome">
+          <p className="enter-fade text-success-strong text-sm" data-testid="draft-outcome">
             Reply sent to {customerName}. It now appears in the conversation.
           </p>
         )}

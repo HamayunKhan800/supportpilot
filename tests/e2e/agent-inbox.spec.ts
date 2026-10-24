@@ -107,13 +107,12 @@ test("agent works a ticket end to end", async ({ page, browser, playwright, base
     "Internal note, not visible to the customer",
   );
 
-  // Details: status, priority and assignee in one save.
+  // Details save as they change (design step 8.3): three quick changes, saved in order.
   await page.getByLabel("Status").selectOption("pending");
   await page.getByLabel("Priority").selectOption("high");
   await page.getByLabel("Assignee").selectOption({ label: "Olivia Owner (you)" });
-  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Assignee changed to Olivia Owner")).toBeVisible();
   await expect(page.getByRole("main").getByText("Status: Pending")).toBeAttached();
-  await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
 
   // The customer sees the public reply, never the note, and the waiting status.
   const tracking = await (await browser.newContext()).newPage();
@@ -154,11 +153,9 @@ test("concurrent edits are detected, and closed tickets accept notes only", asyn
   await other.goto("/app/tickets/1");
 
   await page.getByLabel("Priority").selectOption("urgent");
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
+  await expect(page.getByText("Priority changed to Urgent")).toBeVisible();
 
   await other.getByLabel("Priority").selectOption("low");
-  await other.getByRole("button", { name: "Save changes" }).click();
   const alert = other.getByRole("main").getByRole("alert");
   await expect(alert).toContainText("changed by someone else");
   await other.getByRole("button", { name: "Load latest version" }).click();
@@ -167,7 +164,10 @@ test("concurrent edits are detected, and closed tickets accept notes only", asyn
   // Closed: final status, public replies off, internal notes still allowed.
   await page.reload();
   await page.getByLabel("Status").selectOption("closed");
-  await page.getByRole("button", { name: "Save changes" }).click();
+  // Closing is final, so it asks first (and offers no Undo).
+  const confirmClose = page.getByRole("alertdialog", { name: "Close this request?" });
+  await confirmClose.getByRole("button", { name: "Close request" }).click();
+  await expect(confirmClose).toBeHidden();
   await expect(page.getByText("Closed requests are final.")).toBeVisible();
   await expect(page.getByLabel("Public reply to Casey Customer")).toBeDisabled();
   await expect(page.getByLabel("Internal note (team only)")).toBeChecked();
@@ -237,8 +237,7 @@ test("a customer reply reopens a resolved ticket, and the overview counts it", a
   await page.getByRole("button", { name: "Send reply" }).click();
   await expect(page.getByText("Reply sent to Casey Customer.")).toBeVisible();
   await page.getByLabel("Status").selectOption("resolved");
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
+  await expect(page.getByText("Status changed to Resolved")).toBeVisible();
   await page.goto("/app");
   await expect(overviewCount("open tickets")).toHaveText(/^0/);
 

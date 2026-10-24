@@ -52,6 +52,11 @@ export function NavigationProgress() {
     };
   }, []);
 
+  // From now on, newly added `.enter-fade` items fade in (globals.css, design step 8.5).
+  useEffect(() => {
+    document.documentElement.dataset.interactive = "";
+  }, []);
+
   // The new page has landed when the path or query changes.
   useEffect(() => {
     finishNavigation();

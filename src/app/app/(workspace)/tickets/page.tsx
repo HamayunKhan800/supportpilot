@@ -25,6 +25,8 @@ import { requireAppWorkspace } from "../workspace-context";
 import { PRIORITY_LABEL, selectClass, STATUS_LABEL } from "./labels";
 import { ListKeys } from "./list-keys";
 import { Age, Avatar, PriorityIcon, StatusIcon } from "./ticket-bits";
+import { LiveRefresh } from "@/components/live-refresh";
+import { newestTicketNotice } from "@/lib/live-notice";
 
 export const metadata: Metadata = { title: "Tickets" };
 
@@ -62,6 +64,8 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
   return (
     <div data-wide className="flex flex-col gap-5">
       <ListKeys />
+      {/* A new view (other filters) starts afresh, so switching tabs never reads as news. */}
+      <LiveRefresh key={JSON.stringify(queue)} notice={page ? newestTicketNotice(page.items) : null} />
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Tickets</h1>
@@ -164,7 +168,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
               {page.items.map((t) => (
                 <li
                   key={t.id}
-                  className="hover:bg-muted/60 has-[[data-row-link]:focus-visible]:bg-muted has-[[data-row-link]:focus-visible]:ring-ring relative grid grid-cols-[1rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-2.5 has-[[data-row-link]:focus-visible]:ring-2 has-[[data-row-link]:focus-visible]:ring-inset sm:items-center md:grid-cols-[1rem_3.5rem_minmax(0,1fr)_6.5rem_10rem_3.5rem]"
+                  className="enter-fade hover:bg-muted/60 has-[[data-row-link]:focus-visible]:bg-muted has-[[data-row-link]:focus-visible]:ring-ring relative grid grid-cols-[1rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-2.5 has-[[data-row-link]:focus-visible]:ring-2 has-[[data-row-link]:focus-visible]:ring-inset sm:items-center md:grid-cols-[1rem_3.5rem_minmax(0,1fr)_6.5rem_10rem_3.5rem]"
                 >
                   <span className="pt-0.5 sm:pt-0">
                     <StatusIcon status={t.status} />

@@ -20,6 +20,8 @@ import { DraftPanel } from "./draft-panel";
 import { TicketProperties } from "./properties";
 import { TicketKeys } from "./ticket-keys";
 import { TriageCard } from "./triage-card";
+import { LiveRefresh } from "@/components/live-refresh";
+import { customerReplyNotice } from "@/lib/live-notice";
 
 /** One lookup per request; 404 covers unknown numbers and other workspaces' tickets alike. */
 const load = cache(async (number: string) => {
@@ -69,6 +71,7 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/a
   return (
     <div data-wide="xl" className="flex flex-col gap-6">
       <TicketKeys previousHref={previousHref} nextHref={nextHref} />
+      <LiveRefresh key={t.id} notice={customerReplyNotice(t.customerName, messages)} />
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <nav aria-label="Breadcrumb">
@@ -147,7 +150,7 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/a
                 const who = customer ? t.customerName : (m.authorName ?? "Former member");
                 const last = i === messages.length - 1;
                 return (
-                  <li key={m.id} className="relative flex gap-3 pb-5 last:pb-0">
+                  <li key={m.id} className="enter-fade relative flex gap-3 pb-5 last:pb-0">
                     {!last && (
                       <span aria-hidden="true" className="bg-border absolute top-8 bottom-0 left-3 w-px" />
                     )}
@@ -221,7 +224,7 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/a
             now={d.loadedAt}
           />
           <TicketProperties
-            key={`${t.id}:${t.version}`}
+            key={t.id}
             ticket={{
               id: t.id,
               version: t.version,

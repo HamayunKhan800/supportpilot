@@ -10,6 +10,8 @@ import { getTicketCounts, listTicketsForAgent } from "@/server/modules/tickets/s
 import { can } from "@/server/platform/auth/permissions";
 import { Age, StatusIcon } from "./tickets/ticket-bits";
 import { requireAppWorkspace } from "./workspace-context";
+import { LiveRefresh } from "@/components/live-refresh";
+import { newestTicketNotice } from "@/lib/live-notice";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -37,6 +39,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <LiveRefresh notice={newestTicketNotice(recent.items)} />
       <PageHeader
         title={ctx.workspace.name}
         description={

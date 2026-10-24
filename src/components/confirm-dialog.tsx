@@ -22,18 +22,28 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   onConfirm,
   focusAfterConfirm,
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  /** The trigger button, without children (e.g. `<Button variant="destructive" />`). */
-  trigger: React.ReactElement<Record<string, unknown>>;
-  triggerLabel: React.ReactNode;
+  /** The trigger button, without children (e.g. `<Button variant="destructive" />`). Omit when controlled. */
+  trigger?: React.ReactElement<Record<string, unknown>>;
+  triggerLabel?: React.ReactNode;
   title: string;
   description: React.ReactNode;
   confirmLabel: string;
   cancelLabel?: string;
   onConfirm: () => Promise<string | void>;
   focusAfterConfirm?: () => HTMLElement | null;
+  /** Controlled mode: open from code (e.g. after choosing "Closed" in a select). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +74,7 @@ export function ConfirmDialog({
         setOpen(next);
       }}
     >
-      <AlertDialog.Trigger render={trigger}>{triggerLabel}</AlertDialog.Trigger>
+      {trigger && <AlertDialog.Trigger render={trigger}>{triggerLabel}</AlertDialog.Trigger>}
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="bg-background/70 fixed inset-0 z-50 backdrop-blur-[2px] transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
         <AlertDialog.Popup

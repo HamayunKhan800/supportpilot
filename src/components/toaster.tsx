@@ -1,7 +1,7 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
-import { CircleAlert, CircleCheck, X } from "lucide-react";
+import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
 import { toastManager } from "@/lib/toast";
 
 /**
@@ -24,7 +24,7 @@ export function Toaster() {
 function ToastList() {
   const { toasts } = Toast.useToastManager();
   return toasts.map((toast) => {
-    const Icon = toast.type === "error" ? CircleAlert : CircleCheck;
+    const Icon = toast.type === "error" ? CircleAlert : toast.type === "info" ? Info : CircleCheck;
     return (
       <Toast.Root
         key={toast.id}
@@ -37,12 +37,17 @@ function ToastList() {
             className={
               toast.type === "error"
                 ? "text-danger-strong mt-0.5 size-4 shrink-0"
-                : "text-success-strong mt-0.5 size-4 shrink-0"
+                : toast.type === "info"
+                  ? "text-muted-foreground mt-0.5 size-4 shrink-0"
+                  : "text-success-strong mt-0.5 size-4 shrink-0"
             }
           />
           <div className="min-w-0">
             <Toast.Title className="text-sm font-medium" />
             <Toast.Description className="text-muted-foreground mt-0.5 text-sm empty:hidden" />
+            {toast.actionProps && (
+              <Toast.Action className="border-border hover:bg-muted focus-visible:outline-ring mt-2 inline-flex h-7 items-center rounded-md border px-2.5 text-sm font-medium focus-visible:outline-2" />
+            )}
           </div>
           <Toast.Close
             aria-label="Dismiss notification"

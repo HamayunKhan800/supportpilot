@@ -246,3 +246,62 @@
     }
   }
 }
+
+/*
+ * Design step 8.5: small, purposeful motion. Items added after the page became interactive
+ * (a new message, a new inbox row, a finished draft) fade in over 180 ms instead of popping
+ * in; items already there when a page opens do not animate. `data-interactive` is set on
+ * <html> once the app has hydrated (src/components/navigation-progress.tsx).
+ */
+@layer components {
+  html[data-interactive] .enter-fade {
+    transition:
+      opacity 180ms ease-out,
+      translate 180ms ease-out;
+  }
+  @starting-style {
+    html[data-interactive] .enter-fade {
+      opacity: 0;
+      translate: 0 4px;
+    }
+  }
+
+  /* Placeholder shapes while content is on its way (1–10 s waits: NN/g). */
+  .skeleton {
+    border-radius: 0.375rem;
+    background: var(--muted);
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes skeleton-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* The cursor at the end of a draft while the AI is still writing it. */
+  .stream-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 1px;
+    vertical-align: -0.15em;
+    background: currentColor;
+    animation: caret-blink 1s steps(1) infinite;
+  }
+  @keyframes caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton,
+    .stream-caret {
+      animation: none;
+    }
+  }
+}

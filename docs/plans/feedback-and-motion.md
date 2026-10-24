@@ -1,6 +1,6 @@
 # Plan: feedback, loading states and motion (design step 8)
 
-Status: **approved 2026-10-24 (all seven steps; push after step 8).** Progress: 8.1 done.
+Status: **approved 2026-10-24 (all seven steps; push after step 8).** Progress: 8.1–8.6 done; 8.7 (proof and showcase) in progress.
 
 ## 1. Why
 
@@ -74,3 +74,25 @@ An audit of the code confirms it:
   ignored, and the bar gives up after 15 s, so it can't get stuck.
 - Build note: a stale Turbopack cache in `.next/cache` once served an old stylesheet after `globals.css` changed.
   Delete `.next` before building when CSS changes.
+- **8.2 done.** `notify()` takes an action ("Undo", "Open") and an `info` tone (`src/lib/toast.ts`, `toaster.tsx`).
+  New confirmations only where the page showed nothing: accepting the AI suggestion, re-processing a document, and every
+  ticket-detail change. Actions that already confirm on the page (reply sent, note added, settings saved, upload
+  queued, draft feedback) keep that message: no duplicates.
+- **8.3 done.** Ticket details save on change, without a Save button (`tickets/[number]/properties.tsx`). Saves run
+  one at a time, each with the version the previous one returned; a refused change is put back and explained;
+  each change offers Undo; closing asks first (it is final) and has no Undo. `ConfirmDialog` gained a controlled
+  mode. The panel is keyed by ticket only and adopts server values when someone else raised the version.
+- **8.4 done.** `<LiveRefresh />` (`src/components/live-refresh.tsx`) re-renders the inbox, overview and ticket pages
+  every 15 s while the tab is visible, and at once on returning to the tab; it skips while someone types, chooses
+  in a select, or has a dialog open. News is a quiet toast: "New ticket #26 · Open" and "Casey Customer replied"
+  (`src/lib/live-notice.ts`, 6 unit tests). A notice carries an order that only grows, so closing the newest
+  ticket is never announced as new. Knowledge already refreshed itself while documents process.
+- **8.5 done.** Menus, the tooltip, dialogs, the drawer and toasts already animated (150–200 ms), and buttons already
+  had press feedback. Added: new conversation messages, inbox rows and draft results fade in (180 ms, only for items
+  added after the page became interactive, via `@starting-style`); skeleton lines while a draft starts and while the
+  first knowledge search runs; a blinking cursor while the AI writes. The command palette stays instant.
+- **8.6 done.** `<ConnectionStatus />` in the root layout: "You're offline. Changes can't be saved until the connection
+  is back." and "Back online." (a polite live region, not `role="status"`, so it never competes with a page's own
+  status). Failed requests already said "You appear to be offline"; both error pages already offer Try again.
+- Route-level skeletons (`loading.tsx`) stay out: the CSP finding in docs/design/pages.md still applies, and the top
+  progress bar covers page changes without loosening the policy.

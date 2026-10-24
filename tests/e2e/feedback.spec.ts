@@ -1,5 +1,5 @@
-import type { Page } from "@playwright/test";
-import { appShell, email, expect, signIn, signUp, test, workspaceNav } from "./fixtures";
+import type { APIRequestContext, Page } from "@playwright/test";
+import { appShell, email, expect, signIn, signUp, test, waitForTriage, workspaceNav } from "./fixtures";
 
 /**
  * Design step 8: feedback, loading states and motion (docs/plans/feedback-and-motion.md).
@@ -7,16 +7,30 @@ import { appShell, email, expect, signIn, signUp, test, workspaceNav } from "./f
  * new page lands. The server is slowed on purpose so the wait is long enough to see.
  */
 
-async function ownerWorkspace(page: Page, who: string) {
+async function ownerWorkspace(page: Page, who: string): Promise<string> {
   await signUp(page, "Fay Feedback", who);
   await signIn(page, who);
   await expect(page).toHaveURL(/\/app\/onboarding/);
   await page.getByLabel("Workspace name").fill("Feedback Co");
-  await page
-    .getByLabel("Workspace address")
-    .fill(`feedback-${Date.now().toString(36)}-${test.info().project.name}`);
+  const slug = `feedback-${Date.now().toString(36)}-${test.info().project.name}`;
+  await page.getByLabel("Workspace address").fill(slug);
   await page.getByRole("button", { name: "Create workspace" }).click();
   await expect(appShell(page)).toBeVisible();
+  return slug;
+}
+
+/** A customer request through the public portal API, then wait for the worker's triage. */
+async function oneTicket(page: Page, customer: APIRequestContext, slug: string) {
+  const res = await customer.post(`/api/v1/portal/${slug}/tickets`, {
+    data: {
+      name: "Casey Customer",
+      email: "casey@example.test",
+      subject: "Invoice shows the wrong plan",
+      message: "My October invoice says Team, but I'm on Starter.",
+    },
+  });
+  expect(res.status()).toBe(201);
+  await waitForTriage(page, 1);
 }
 
 /** Delay Next.js page-data requests (they carry the `rsc` header) to simulate a slow network. */
@@ -69,4 +83,103 @@ test("tapping a link to the page already open shows nothing", async ({ page }) =
   await nav.getByRole("link", { name: "Overview" }).click();
   await page.waitForTimeout(400);
   await expect(bar(page)).toHaveAttribute("data-nav-progress", "idle");
+});
+
+test.describe("8.2 and 8.3: instant ticket details with toasts", () => {
+  test("a change saves at once, says so, and can be undone", async ({ page, playwright, baseURL }) => {
+    const slug = await ownerWorkspace(page, email("feedback-undo"));
+    const customer = await playwright.request.newContext({ baseURL });
+    await oneTicket(page, customer, slug);
+    await page.goto("/app/tickets/1");
+
+    const priority = page.getByLabel("Priority", { exact: true });
+    const before = await priority.inputValue();
+    const target = before === "urgent" ? "low" : "urgent";
+    await priority.selectOption(target);
+    const toast = page.getByText(/^Priority changed to/);
+    await expect(toast).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
+
+    // The saved value survives a reload: it really reached the server.
+    await page.reload();
+    await expect(priority).toHaveValue(target);
+
+    await priority.selectOption(before);
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByText("Change undone")).toBeVisible();
+    await expect(priority).toHaveValue(target);
+    await page.reload();
+    await expect(priority).toHaveValue(target);
+    await customer.dispose();
+  });
+
+  test("a change the server refuses is put back and explained", async ({ page, playwright, baseURL }) => {
+    const slug = await ownerWorkspace(page, email("feedback-rollback"));
+    const customer = await playwright.request.newContext({ baseURL });
+    await oneTicket(page, customer, slug);
+    await page.goto("/app/tickets/1");
+
+    const priority = page.getByLabel("Priority", { exact: true });
+    const before = await priority.inputValue();
+    await page.route("**/api/v1/tickets/*", (route) =>
+      route.request().method() === "PATCH"
+        ? route.fulfill({
+            status: 500,
+            contentType: "application/problem+json",
+            body: JSON.stringify({ type: "about:blank", title: "Internal Server Error", status: 500 }),
+          })
+        : route.continue(),
+    );
+    await priority.selectOption(before === "urgent" ? "low" : "urgent");
+    await expect(page.getByRole("main").getByRole("alert")).toContainText("Something went wrong on our side");
+    await expect(priority).toHaveValue(before);
+    await customer.dispose();
+  });
+});
+
+test("8.4: a new request appears in an open inbox without reloading", async ({
+  page,
+  playwright,
+  baseURL,
+}) => {
+  test.setTimeout(90_000);
+  const slug = await ownerWorkspace(page, email("feedback-live"));
+  const customer = await playwright.request.newContext({ baseURL });
+  await oneTicket(page, customer, slug);
+  await page.goto("/app/tickets");
+  const rows = page
+    .getByRole("main")
+    .getByRole("link", { name: /Invoice shows the wrong plan|Export stuck at 99%/ });
+  await expect(rows).toHaveCount(1);
+
+  const res = await customer.post(`/api/v1/portal/${slug}/tickets`, {
+    data: {
+      name: "Casey Customer",
+      email: "casey@example.test",
+      subject: "Export stuck at 99%",
+      message: "The CSV export never finishes.",
+    },
+  });
+  expect(res.status()).toBe(201);
+
+  // The page checks every 15 s while visible: the row and a quiet notice arrive by themselves.
+  await expect(page.getByText("New ticket #2")).toBeVisible({ timeout: 30_000 });
+  await expect(rows).toHaveCount(2);
+  await page.getByRole("button", { name: "Open", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/tickets\/2$/);
+  await customer.dispose();
+});
+
+test("8.6: losing the connection is announced, and so is getting it back", async ({ page, context }) => {
+  await ownerWorkspace(page, email("feedback-offline"));
+  await expect(page.getByText(/You're offline|Back online/)).toHaveCount(0);
+
+  await context.setOffline(true);
+  await expect(
+    page.getByText("You're offline. Changes can't be saved until the connection is back."),
+  ).toBeVisible();
+
+  await context.setOffline(false);
+  await expect(page.getByText("Back online.")).toBeVisible();
+  await expect(page.getByText("Back online.")).toBeHidden({ timeout: 6000 });
 });

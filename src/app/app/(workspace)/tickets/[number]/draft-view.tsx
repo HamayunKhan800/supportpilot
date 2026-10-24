@@ -139,7 +139,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="enter-fade flex flex-col gap-4">
       <ul aria-label="Automatic checks" className="flex flex-wrap gap-1.5">
         {checks.map((c) => (
           <li

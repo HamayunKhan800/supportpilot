@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
 import { postJson } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 
 /** "Accept suggestion": applies the AI's category and priority as this agent (FR-AI2). */
 export function AcceptSuggestion({ ticketId, version }: { ticketId: string; version: number }) {
@@ -23,6 +24,7 @@ export function AcceptSuggestion({ ticketId, version }: { ticketId: string; vers
       setConflict(res.problem.status === 409);
       return;
     }
+    notify("Suggestion applied", { description: "Category and priority are updated." });
     router.refresh();
   }
 
