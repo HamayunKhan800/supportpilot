@@ -13,6 +13,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * - A Pause button stops it with the full sentence showing; Play starts it again. The label
  *   changes (Pause typing / Play typing), so it has no aria-pressed as well.
  * - Reduced motion: no loop and no button, the headline is simply there.
+ * - The button keeps a scroll margin, so focusing it never leaves it under the sticky header
+ *   (WCAG 2.4.11 Focus Not Obscured).
  * - It waits while the tab is hidden or the headline is off-screen, and never moves the layout
  *   (letters change colour only).
  */
@@ -79,7 +81,7 @@ export function HeroHeadline({
           setPaused((p) => !p);
           setPhase("type");
         }}
-        className="text-muted-foreground hover:text-foreground mt-3 inline-flex h-7 w-fit cursor-pointer items-center gap-1.5 rounded-md text-xs font-medium transition-colors motion-reduce:hidden"
+        className="text-muted-foreground hover:text-foreground mt-3 inline-flex h-7 w-fit cursor-pointer scroll-mt-24 items-center gap-1.5 rounded-md text-xs font-medium transition-colors motion-reduce:hidden"
       >
         {paused ? (
           <Play aria-hidden="true" className="size-3.5" />

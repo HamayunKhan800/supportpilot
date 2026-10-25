@@ -17,7 +17,10 @@ async function createWorkspace(page: Page, who: string, slug: string) {
   await page.getByRole("button", { name: "Create workspace" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Portal Test Co" })).toBeVisible();
   // The overview tells the owner where their customers go.
-  await expect(page.getByRole("link", { name: `/p/${slug}` })).toHaveAttribute("href", `/p/${slug}`);
+  await expect(page.getByRole("link", { name: /^Open the customer portal/ })).toHaveAttribute(
+    "href",
+    `/p/${slug}`,
+  );
 }
 
 /** Agent-side calls through the REST API with the signed-in owner's cookies. */
