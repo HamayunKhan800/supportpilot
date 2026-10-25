@@ -761,9 +761,41 @@ main[data-route-busy="data"] :is([data-busy-dim], section:not(section section)) 
     opacity: 0;
   }
 }
+/*
+ * The loop (hero-headline.tsx): "erase" deletes from the last letter back, like a backspace,
+ * 16 ms per letter (58 is the last letter's position). Its own animation names, so switching back
+ * to "type" restarts the typing. "still" (paused) shows the sentence with no caret.
+ */
+[data-type-phase="erase"] .type-ch {
+  --erase-at: calc((58 - var(--o, 0) - var(--n, 0)) * 16ms);
+  animation: type-erase 1ms linear var(--erase-at) both;
+}
+[data-type-phase="erase"] .type-ch::after {
+  animation: type-caret-erase 16ms linear var(--erase-at);
+}
+[data-type-phase="erase"] .type-sp::after {
+  content: none;
+}
+[data-type-phase="still"] .type-ch,
+[data-type-phase="still"] .type-ch::after {
+  animation: none;
+}
+@keyframes type-erase {
+  to {
+    color: color-mix(in oklab, currentColor 8%, transparent);
+  }
+}
+@keyframes type-caret-erase {
+  0%,
+  100% {
+    opacity: 1;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .type-ch,
-  .type-ch::after {
+  .type-ch::after,
+  [data-type-phase] .type-ch,
+  [data-type-phase] .type-ch::after {
     animation: none;
   }
 }

@@ -9,6 +9,7 @@ import { CustomerSide } from "@/components/marketing/landing/customer-side";
 import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
 import { HeroField } from "@/components/marketing/landing/hero-field";
+import { HeroHeadline } from "@/components/marketing/landing/hero-headline";
 import { HeroLive } from "@/components/marketing/landing/hero-live";
 import { LandingHeader } from "@/components/marketing/landing/landing-header";
 import { MobileMenu } from "@/components/marketing/landing/mobile-menu";
@@ -173,7 +174,8 @@ function HandoffMotif({ className }: { className?: string }) {
 // The headline, word by word: each word arrives blur-to-sharp in turn (design step 10.2).
 // Delays are literal classes so Tailwind can see them; the text reads the same to assistive tech.
 /*
- * The headline types itself out once, like a reply being drafted (globals.css, "type-ch"). Each
+ * The headline types itself out like a reply being drafted, then deletes and types again, with a
+ * Pause button (hero-headline.tsx; globals.css, "type-ch"). Each
  * character is painted from the first frame as faint ghost text and turns solid in turn, so the
  * layout never moves and the largest paint is not delayed. Screen readers and search engines get
  * the sentence once, from the sr-only copy. Classes are literal so Tailwind can see them.
@@ -280,7 +282,7 @@ export default async function Home() {
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
           <HeroField />
           <div className={cn(container, "relative pt-16 sm:pt-24 lg:pt-28")}>
-            <h1
+            <HeroHeadline
               id="hero-heading"
               className="max-w-4xl text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.035em] text-balance sm:text-[3.25rem] lg:max-w-none lg:text-[4rem]"
             >
@@ -291,7 +293,7 @@ export default async function Home() {
                   <TypedChars text={HEADLINE_B} last />
                 </span>
               </span>
-            </h1>
+            </HeroHeadline>
             <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div className="flex max-w-2xl flex-col gap-7">
                 <p className={lead}>

@@ -194,14 +194,38 @@ test.describe("the live demo in the hero", () => {
 
   test("can be paused, and waits for the visitor with reduced motion", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Pause" }).click();
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
     await expect(page.getByText("Paused. Press play, or try it yourself.")).toBeVisible();
 
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
     await page.waitForTimeout(3500);
     await expect(demo(page).getByText("Can I add a second admin to our plan?")).toHaveCount(0);
+  });
+});
+
+test.describe("the hero headline", () => {
+  test("types again and again, and can be paused (WCAG 2.2.2)", async ({ page }) => {
+    await page.goto("/");
+    const heading = page.locator("#hero-heading");
+    await expect(heading).toHaveAttribute("data-type-phase", "type");
+    await expect(heading).toHaveAttribute("data-type-phase", "erase", { timeout: 8000 });
+    await expect(heading).toHaveAttribute("data-type-phase", "type", { timeout: 4000 });
+
+    await page.getByRole("button", { name: "Pause typing" }).click();
+    await expect(heading).toHaveAttribute("data-type-phase", "still");
+    await page.getByRole("button", { name: "Play typing" }).click();
+    await expect(heading).toHaveAttribute("data-type-phase", "type");
+  });
+
+  test("with reduced motion it stays still and shows no button", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await expect(page.locator("#hero-heading")).toHaveAttribute("data-type-phase", "type");
+    await page.waitForTimeout(6500);
+    await expect(page.locator("#hero-heading")).toHaveAttribute("data-type-phase", "type");
+    await expect(page.getByRole("button", { name: "Pause typing" })).toBeHidden();
   });
 });
 
