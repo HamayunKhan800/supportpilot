@@ -1,6 +1,8 @@
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import { LinkPending } from "@/components/link-pending";
 import Link from "next/link";
 import type * as React from "react";
+import { SlidingIndicator } from "@/components/sliding-indicator";
 import { cn } from "@/lib/utils";
 
 /**
@@ -101,7 +103,7 @@ export function Stat({
   chart?: React.ReactNode;
 }) {
   return (
-    <div className="bg-card relative flex flex-col gap-1.5 p-4">
+    <div className="bg-card has-[a:hover]:bg-muted/40 has-[a:active]:bg-muted/70 relative flex flex-col gap-1.5 p-4 transition-colors duration-150">
       <dt className="text-muted-foreground flex items-center gap-2 text-sm">
         {TONE[tone] && <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", TONE[tone])} />}
         {label}
@@ -114,6 +116,7 @@ export function Stat({
           >
             {value}
             {srSuffix && <span className="sr-only"> {srSuffix}</span>}
+            <LinkPending />
           </Link>
         ) : (
           value
@@ -214,7 +217,8 @@ export function TabNav({
   current: string;
 }) {
   return (
-    <nav aria-label={label} className="-mx-1 overflow-x-auto px-1">
+    <nav aria-label={label} className="group/ind relative -mx-1 overflow-x-auto px-1">
+      <SlidingIndicator variant="underline" className="bg-foreground" />
       <ul className="flex min-w-max gap-1 border-b">
         {tabs.map((t) => {
           const here = t.value === current;
@@ -224,8 +228,9 @@ export function TabNav({
                 href={t.href}
                 aria-current={here ? "page" : undefined}
                 className={cn(
-                  "text-muted-foreground hover:text-foreground -mb-px inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm",
-                  here && "border-foreground text-foreground font-medium",
+                  "text-muted-foreground hover:text-foreground relative -mb-px inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm transition-colors duration-150",
+                  here &&
+                    "border-foreground text-foreground font-medium group-data-[ind-ready]/ind:border-transparent",
                 )}
               >
                 {t.label}

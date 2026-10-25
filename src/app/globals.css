@@ -604,6 +604,48 @@ html[data-menu-open] .landing-header {
 }
 
 /*
+ * Premium UX pass (design step 12). Sliding selection highlight (sliding-indicator.tsx): one
+ * element moves to the active item. 220 ms ease-out; no animation for size changes or with
+ * reduced motion. Items paint above it (they are positioned and come later in the DOM).
+ */
+@layer components {
+  .sliding-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--ind-w, 0);
+    height: var(--ind-h, 0);
+    translate: var(--ind-x, 0) var(--ind-y, 0);
+    pointer-events: none;
+    transition:
+      translate 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      width 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      height 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      opacity 150ms ease-out;
+  }
+  .sliding-indicator-underline,
+  .sliding-indicator-overline {
+    height: 2px;
+    translate: var(--ind-x, 0) 0;
+  }
+  .sliding-indicator-underline {
+    top: auto;
+    bottom: 0;
+  }
+  .sliding-indicator[data-hidden] {
+    opacity: 0;
+  }
+  .sliding-indicator[data-instant] {
+    transition: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sliding-indicator {
+      transition: none;
+    }
+  }
+}
+
+/*
  * A row, tile or card whose page is loading (link-pending.tsx): a thin line moves along its
  * bottom edge, after 120 ms. Reduced motion: the line stands still.
  */

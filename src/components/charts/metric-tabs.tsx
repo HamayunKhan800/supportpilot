@@ -2,6 +2,7 @@
 
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { useId, useRef, useState } from "react";
+import { SlidingIndicator } from "@/components/sliding-indicator";
 import { cn } from "@/lib/utils";
 import { AreaChart, type ChartFormat, type ChartPoint } from "./area-chart";
 import type { Trend } from "./scale";
@@ -61,8 +62,9 @@ export function MetricTabs({ label, metrics }: { label: string; metrics: Metric[
         role="tablist"
         aria-label={label}
         onKeyDown={onKeyDown}
-        className={cn("grid border-b", COLS[metrics.length] ?? "grid-cols-3")}
+        className={cn("group/ind relative grid border-b", COLS[metrics.length] ?? "grid-cols-3")}
       >
+        <SlidingIndicator variant="overline" className="bg-foreground z-[1]" />
         {metrics.map((m, i) => {
           const on = i === selected;
           const Icon = m.change ? TREND_ICONS[m.change.trend] : null;
@@ -85,7 +87,12 @@ export function MetricTabs({ label, metrics }: { label: string; metrics: Metric[
                 on ? "bg-card" : "bg-muted/40 hover:bg-muted/70",
               )}
             >
-              {on && <span aria-hidden="true" className="bg-foreground absolute inset-x-0 top-0 h-0.5" />}
+              {on && (
+                <span
+                  aria-hidden="true"
+                  className="bg-foreground absolute inset-x-0 top-0 h-0.5 group-data-[ind-ready]/ind:hidden"
+                />
+              )}
               <span className="text-muted-foreground truncate text-xs sm:text-sm">{m.label}</span>
               <span
                 className={cn(

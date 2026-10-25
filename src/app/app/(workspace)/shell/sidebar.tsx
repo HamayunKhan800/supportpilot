@@ -5,6 +5,7 @@ import { Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, Search, X } from "luci
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
+import { SlidingIndicator } from "@/components/sliding-indicator";
 import { Kbd } from "@/components/ui/kbd";
 import { activeHref, groupNav, NAV_GROUP_LABEL, type NavItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -165,32 +166,35 @@ function SidebarBody({
         aria-label="Workspace"
         className={cn("min-h-0 flex-1 px-2 py-1", compact ? "overflow-visible" : "overflow-y-auto")}
       >
-        {groupNav(items).map(({ group, items: links }, g) => {
-          const labelId = `${id}-${group ?? "top"}`;
-          return (
-            <div key={group ?? "top"} className={cn(g > 0 && "mt-4")}>
-              {group &&
-                (compact ? (
-                  <div className="bg-sidebar-border mx-2 mb-2 h-px" />
-                ) : (
-                  <p id={labelId} className="text-muted-foreground px-2 pb-1 text-xs font-medium">
-                    {NAV_GROUP_LABEL[group]}
-                  </p>
-                ))}
-              <ul className="space-y-0.5" aria-labelledby={group && !compact ? labelId : undefined}>
-                {links.map((item) => (
-                  <SidebarLink
-                    key={item.href}
-                    item={item}
-                    state={item.href === current ? (pathname === item.href ? "page" : "true") : undefined}
-                    compact={compact}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+        <div className="group/ind relative">
+          <SlidingIndicator className="bg-sidebar-accent rounded-md" />
+          {groupNav(items).map(({ group, items: links }, g) => {
+            const labelId = `${id}-${group ?? "top"}`;
+            return (
+              <div key={group ?? "top"} className={cn(g > 0 && "mt-4")}>
+                {group &&
+                  (compact ? (
+                    <div className="bg-sidebar-border mx-2 mb-2 h-px" />
+                  ) : (
+                    <p id={labelId} className="text-muted-foreground px-2 pb-1 text-xs font-medium">
+                      {NAV_GROUP_LABEL[group]}
+                    </p>
+                  ))}
+                <ul className="space-y-0.5" aria-labelledby={group && !compact ? labelId : undefined}>
+                  {links.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      item={item}
+                      state={item.href === current ? (pathname === item.href ? "page" : "true") : undefined}
+                      compact={compact}
+                      onNavigate={onNavigate}
+                    />
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       </nav>
 
       <div className="border-sidebar-border shrink-0 border-t p-2">
@@ -223,8 +227,9 @@ function SidebarLink({
         aria-current={state}
         aria-describedby={hasBadge ? descId : undefined}
         className={cn(
-          "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-ring flex h-8 items-center gap-2.5 rounded-md px-2 text-sm focus-visible:outline-2",
-          state && "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
+          "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-ring active:bg-sidebar-accent flex h-8 items-center gap-2.5 rounded-md px-2 text-sm transition-colors duration-150 focus-visible:outline-2",
+          state &&
+            "bg-sidebar-accent text-sidebar-accent-foreground font-medium group-data-[ind-ready]/ind:bg-transparent",
           compact && "justify-center px-0",
         )}
       >

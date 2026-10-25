@@ -2,6 +2,7 @@
 
 import { Tabs } from "@base-ui/react/tabs";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { SlidingIndicator } from "@/components/sliding-indicator";
 import { cn } from "@/lib/utils";
 
 export interface WorkflowStep {
@@ -56,7 +57,8 @@ export function WorkflowTabs({ steps, label }: { steps: WorkflowStep[]; label: s
       orientation="vertical"
       className="land-tour grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] lg:gap-10"
     >
-      <Tabs.List aria-label={label} className="grid grid-cols-2 gap-2 lg:flex lg:flex-col">
+      <Tabs.List aria-label={label} className="group/ind relative grid grid-cols-2 gap-2 lg:flex lg:flex-col">
+        <SlidingIndicator className="bg-card border-border rounded-xl border shadow-[0_1px_2px_oklch(0_0_0/0.06),0_8px_24px_-12px_oklch(0_0_0/0.22)]" />
         {steps.map((s) => (
           <Tabs.Tab
             key={s.value}
@@ -65,6 +67,7 @@ export function WorkflowTabs({ steps, label }: { steps: WorkflowStep[]; label: s
               "group text-muted-foreground relative flex min-h-11 cursor-pointer items-start gap-3 overflow-hidden rounded-xl border border-transparent p-3 text-left transition-colors lg:p-4",
               "hover:bg-muted/60 hover:text-foreground",
               "data-[active]:bg-card data-[active]:text-foreground data-[active]:border-border data-[active]:shadow-[0_1px_2px_oklch(0_0_0/0.06),0_8px_24px_-12px_oklch(0_0_0/0.22)]",
+              "group-data-[ind-ready]/ind:data-[active]:border-transparent group-data-[ind-ready]/ind:data-[active]:bg-transparent group-data-[ind-ready]/ind:data-[active]:shadow-none",
             )}
           >
             <span className="bg-background group-data-[active]:text-foreground mt-0.5 hidden size-7 shrink-0 items-center justify-center rounded-md border sm:flex [&_svg]:size-3.5">

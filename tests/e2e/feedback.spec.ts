@@ -54,6 +54,7 @@ async function slowPageChanges(page: Page, ms: number) {
 }
 
 const bar = (page: Page) => page.locator("[data-nav-progress]");
+const skeleton = (page: Page) => page.locator(".route-skeleton[data-show]");
 const barOpacity = (page: Page) => bar(page).evaluate((el) => Number(getComputedStyle(el).opacity));
 
 test("a slow page change shows the top progress bar until the new page lands", async ({ page }) => {
@@ -67,10 +68,85 @@ test("a slow page change shows the top progress bar until the new page lands", a
 
   await expect(bar(page)).toHaveAttribute("data-nav-progress", "loading");
   await expect.poll(() => barOpacity(page)).toBeGreaterThan(0.5);
+  // Design step 12: after 300 ms a skeleton of the page being opened covers the old one, and the
+  // main area is marked busy.
+  await expect(page.locator("main")).toHaveAttribute("aria-busy", "true");
+  await expect(skeleton(page)).toBeVisible();
+  await expect.poll(() => skeleton(page).evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
   await expect(page).toHaveURL(/\/app\/knowledge$/);
   await expect(page.getByRole("heading", { level: 1, name: "Knowledge base" })).toBeVisible();
   await expect(bar(page)).toHaveAttribute("data-nav-progress", "idle");
   expect(await barOpacity(page)).toBe(0);
+  await expect(skeleton(page)).toBeHidden();
+  await expect(page.locator("main")).not.toHaveAttribute("aria-busy");
+});
+
+test.describe("design step 12: selection and loading feedback", () => {
+  const indicatorOver = async (page: Page, container: string, item: ReturnType<Page["locator"]>) => {
+    const ind = page.locator(`${container} > .sliding-indicator`).first();
+    await expect(ind).not.toHaveAttribute("data-hidden");
+    // Wait out the 220 ms slide, then compare boxes.
+    await expect
+      .poll(async () => {
+        const [a, b] = [await ind.boundingBox(), await item.boundingBox()];
+        return a && b ? Math.abs(a.x - b.x) + Math.abs(a.width - b.width) : Infinity;
+      })
+      .toBeLessThan(2);
+  };
+
+  test("the sidebar highlight moves to the tapped page at once", async ({ page, isMobile }) => {
+    test.skip(isMobile, "phones use the navigation drawer, which closes on a tap");
+    await ownerWorkspace(page, email("feedback-slide"));
+    const nav = page.getByRole("navigation", { name: "Workspace" });
+    await indicatorOver(
+      page,
+      'nav[aria-label="Workspace"] > div',
+      nav.getByRole("link", { name: "Overview" }),
+    );
+    await slowPageChanges(page, 1500);
+    const knowledge = nav.getByRole("link", { name: "Knowledge" });
+    await knowledge.click();
+    // Before the page has loaded, the highlight is already on the tapped item.
+    await indicatorOver(page, 'nav[aria-label="Workspace"] > div', knowledge);
+    await expect(page.locator("main")).toHaveAttribute("aria-busy", "true");
+    await expect(page.getByRole("heading", { level: 1, name: "Knowledge base" })).toBeVisible();
+    await expect(knowledge).toHaveAttribute("aria-current", "page");
+    await indicatorOver(page, 'nav[aria-label="Workspace"] > div', knowledge);
+  });
+
+  test("an inbox row shows it is loading; a status tab slides and dims the old results", async ({
+    page,
+    playwright,
+    baseURL,
+  }) => {
+    const slug = await ownerWorkspace(page, email("feedback-rows"));
+    const customer = await playwright.request.newContext({ baseURL });
+    await oneTicket(page, customer, slug);
+    await page.goto("/app/tickets");
+    const tabs = page.getByRole("navigation", { name: "Ticket status" });
+    await indicatorOver(page, 'nav[aria-label="Ticket status"]', tabs.getByRole("link", { name: /^Active/ }));
+
+    await slowPageChanges(page, 1500);
+    // Same page, new query: the highlight slides at once, the results dim, the tabs do not.
+    const openTab = tabs.getByRole("link", { name: /^Open/ });
+    await openTab.click();
+    await indicatorOver(page, 'nav[aria-label="Ticket status"]', openTab);
+    await expect(page.locator("main")).toHaveAttribute("data-route-busy", "data");
+    const results = page.locator('section[aria-labelledby="results-heading"]');
+    await expect.poll(() => results.evaluate((el) => Number(getComputedStyle(el).opacity))).toBeLessThan(0.7);
+    expect(await tabs.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
+    await expect(page).toHaveURL(/view=open/);
+    await expect(openTab).toHaveAttribute("aria-current", "page");
+    await expect(page.locator("main")).not.toHaveAttribute("data-route-busy");
+    await expect.poll(() => results.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
+
+    // Opening a ticket: its row shows a loading line until the ticket page lands.
+    const row = results.getByRole("listitem").first();
+    await row.getByRole("link").click();
+    await expect(row.locator("[data-link-pending]")).toBeVisible();
+    await expect(page).toHaveURL(/\/app\/tickets\/1/);
+    await expect(page.locator("[data-link-pending]")).toHaveCount(0);
+  });
 });
 
 test("page changes from the command palette show the bar too", async ({ page, isMobile }) => {
@@ -86,6 +162,17 @@ test("page changes from the command palette show the bar too", async ({ page, is
   await expect(bar(page)).toHaveAttribute("data-nav-progress", "loading");
   await expect(page).toHaveURL(/\/app\/members$/);
   await expect(bar(page)).toHaveAttribute("data-nav-progress", "idle");
+});
+
+test("a search that stays on the page does not look like a page change", async ({ page }) => {
+  await ownerWorkspace(page, email("feedback-search"));
+  await page.goto("/app/knowledge/search");
+  const main = page.getByRole("main");
+  await main.getByLabel("Question", { exact: true }).fill("How do refunds work?");
+  await main.getByRole("button", { name: "Search" }).click();
+  await page.waitForTimeout(500);
+  await expect(bar(page)).toHaveAttribute("data-nav-progress", "idle");
+  await expect(page.locator("main")).not.toHaveAttribute("data-route-busy");
 });
 
 test("tapping a link to the page already open shows nothing", async ({ page }) => {

@@ -1,4 +1,5 @@
 import { Check, Inbox, PenLine, SearchX } from "lucide-react";
+import { LinkPending } from "@/components/link-pending";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -17,6 +18,7 @@ import {
   ticketHref,
   type TicketTab,
 } from "@/lib/ticket-queue";
+import { SlidingIndicator } from "@/components/sliding-indicator";
 import { cn } from "@/lib/utils";
 import { getInboxOptions, listTicketsForAgent } from "@/server/modules/tickets/service";
 import { requireAppWorkspace } from "../workspace-context";
@@ -76,7 +78,8 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
         }
       />
 
-      <nav aria-label="Ticket status" className="-mx-1 overflow-x-auto px-1">
+      <nav aria-label="Ticket status" className="group/ind relative -mx-1 overflow-x-auto px-1">
+        <SlidingIndicator variant="underline" className="bg-foreground" />
         <ul className="flex min-w-max gap-1 border-b">
           {TICKET_TABS.map((t) => {
             const current = t.value === tab.value;
@@ -89,8 +92,9 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                   })}
                   aria-current={current ? "page" : undefined}
                   className={cn(
-                    "text-muted-foreground hover:text-foreground -mb-px inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm",
-                    current && "border-foreground text-foreground font-medium",
+                    "text-muted-foreground hover:text-foreground relative -mb-px inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-sm transition-colors duration-150",
+                    current &&
+                      "border-foreground text-foreground font-medium group-data-[ind-ready]/ind:border-transparent",
                   )}
                 >
                   {t.label}
@@ -158,7 +162,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
         />
       ) : (
         page && (
-          <section aria-labelledby="results-heading" className="flex flex-col gap-3">
+          <section aria-labelledby="results-heading" data-busy-dim className="flex flex-col gap-3">
             <h2 id="results-heading" className="sr-only">
               Results
             </h2>
@@ -166,7 +170,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
               {page.items.map((t) => (
                 <li
                   key={t.id}
-                  className="enter-fade hover:bg-muted/60 has-[[data-row-link]:focus-visible]:bg-muted has-[[data-row-link]:focus-visible]:ring-ring relative grid grid-cols-[1rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-2.5 has-[[data-row-link]:focus-visible]:ring-2 has-[[data-row-link]:focus-visible]:ring-inset sm:items-center md:grid-cols-[1rem_3.5rem_minmax(0,1fr)_6.5rem_10rem_3.5rem]"
+                  className="enter-fade hover:bg-muted/60 active:bg-muted has-[[data-row-link]:focus-visible]:bg-muted has-[[data-row-link]:focus-visible]:ring-ring relative grid grid-cols-[1rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-2.5 transition-colors duration-150 has-[[data-row-link]:focus-visible]:ring-2 has-[[data-row-link]:focus-visible]:ring-inset sm:items-center md:grid-cols-[1rem_3.5rem_minmax(0,1fr)_6.5rem_10rem_3.5rem]"
                 >
                   <span className="pt-0.5 sm:pt-0">
                     <StatusIcon status={t.status} />
@@ -185,6 +189,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                         #{t.number}
                       </span>
                       {t.subject}
+                      <LinkPending />
                     </Link>
                     <span className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                       <span className="truncate">{t.customerName}</span>

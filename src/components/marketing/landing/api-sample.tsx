@@ -3,6 +3,7 @@
 import { Tabs } from "@base-ui/react/tabs";
 import { KeyRound } from "lucide-react";
 import type { ReactNode } from "react";
+import { SlidingIndicator } from "@/components/sliding-indicator";
 import { cn } from "@/lib/utils";
 
 /**
@@ -101,14 +102,15 @@ export function ApiSample() {
           public
         </span>
       </div>
-      <Tabs.List aria-label="Code sample" className="flex gap-1 border-b px-2 pt-1.5">
+      <Tabs.List aria-label="Code sample" className="group/ind relative flex gap-1 border-b px-2 pt-1.5">
+        <SlidingIndicator variant="underline" className="bg-foreground -bottom-px" />
         {SAMPLES.map((s) => (
           <Tabs.Tab
             key={s.value}
             value={s.value}
             className={cn(
               "text-muted-foreground hover:text-foreground -mb-px min-h-8 cursor-pointer border-b-2 border-transparent px-2.5 text-xs font-medium transition-colors",
-              "data-[active]:border-foreground data-[active]:text-foreground",
+              "data-[active]:border-foreground data-[active]:text-foreground group-data-[ind-ready]/ind:data-[active]:border-transparent",
             )}
           >
             {s.label}
