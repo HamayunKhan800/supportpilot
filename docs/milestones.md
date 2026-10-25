@@ -677,3 +677,23 @@ Plan step 6, [ADR-0019](adr/0019-evaluation-method.md), [docs/eval/README.md](ev
 - Design-slop scanner (`AdrianKrebs/design-slop-cop`): before, 1 of 14 patterns (stat strip), score 7/100; after, 0 of 14, score 0/100. The scanner did not count the old indigo (its purple check starts at HSL 250°; indigo is near 243°), so the hand review was stricter than the tool.
 - Tests: unit 1242; full E2E 57 passed / 6 skipped / 6 failed on the first run. Three failures were the expected visual changes, and all 20 changed baselines were regenerated and checked by eye. The other three were timing: the drafts journey takes about 31–35 s on this 2-CPU sandbox (now `test.setTimeout(60_000)`), and the keyboard walkthrough pressed J while the command palette was still closing (it now waits for the palette to be hidden). Both specs then passed on desktop and mobile.
 - Whole-app pass (owner request): the scanner found 0 of 14 patterns on all 20 pages, before and after this pass. The review by eye removed the remaining tells (icon-tile stat cards, three ALL-CAPS labels, icon tiles, numbered portal steps); details in the design plan, step 7. Unit tests 1242; full E2E 61 passed / 6 skipped, with only the 2 expected visual failures; 9 baselines regenerated and checked by eye; README screenshots retaken. `docs/design/preview.html` now shows ink as the chosen brand, with Iris, Teal and Amber labelled as earlier options.
+
+### M6.6 Accounts: password reset, email verification, Google/GitHub sign-in (2026-10-25)
+
+- Owner decisions: build before M7; build now and switch real email on at M8 when a domain exists; verification by 6-digit code. Plan: [accounts-and-email](plans/accounts-and-email.md). Decision record: [ADR-0020](adr/0020-account-emails-and-social-sign-in.md).
+- Checked in the installed library (better-auth 1.7.12), not only the docs:
+  - Linking already needs the local email verified (`requireLocalEmailVerified`, default true); now set explicitly.
+  - Reset tokens were stored in plain text by default; now hashed.
+  - The Email OTP plugin adds 9 endpoints; the 7 this app doesn't use are closed.
+- Built in 5 commits: email interface (Resend over fetch, in-memory outbox behind a token); forgot/reset password; verification by code; Google and GitHub buttons; docs and tests.
+- Email stays off by default, so the demo and the main test suite behave exactly as before.
+- Tests:
+  - unit 1366 (+25)
+  - integration: `auth-email.test.ts` 16 new; the existing auth, workspace and demo-seed tests still pass
+  - browser: `accounts.spec.ts` 12 passed (6 tests × desktop and phone, own server with email on); 30 passed in the auth-related main specs (auth forms, security, accessibility, visual, workspace journey)
+  - one production build; prettier and ESLint clean
+- First browser run: 4 of 12 failed because `getByRole("alert")` also matched Next.js's route announcer. The tests now look inside `main`, as the other specs do, and the rerun passed. The app was not changed.
+- Not yet:
+  - Real sending (M8: domain, Resend key, production callback URLs, Google brand verification).
+  - Per-account limits on reset requests (M7).
+  - A connected-accounts page, email change, passwordless sign-in and two-factor authentication.

@@ -42,11 +42,13 @@ IDs are referenced by tests (`describe("FR-T3 …")`).
 
 ### Auth & workspaces (A)
 
-- **FR-A1** Sign up / sign in with email+password; optional GitHub OAuth.
+- **FR-A1** Sign up / sign in with email+password; optional Google and GitHub sign-in (shown only when configured; ADR-0020).
 - **FR-A2** Create a workspace (name, unique slug); the creator becomes `owner`.
 - **FR-A3** Invite by email with a role; invitation expires after 7 days; single use.
 - **FR-A4** Users may belong to several workspaces and switch the active one.
 - **FR-A5** Sign out revokes the session server-side; a password change revokes all other sessions.
+- **FR-A6** When email is configured: forgot/reset password by single-use link (30 minutes), signing out every session and emailing a "password changed" notice (OWASP Forgot Password Cheat Sheet).
+- **FR-A7** When email is configured: an account confirms its email with a 6-digit code (10 minutes, 3 tries) before it can sign in; sign-up looks the same for taken emails (T3).
 
 ### Tickets (T)
 

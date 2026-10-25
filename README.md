@@ -152,7 +152,9 @@ The research behind these choices, with sources: [docs/00](docs/00-research-and-
 
 - **Accounts:**
   - Email and password following NIST SP 800-63B-4, with an optional breached-password check that fails closed.
-  - Database sessions; changing your password signs you out everywhere.
+  - Optional "Continue with Google / GitHub". A provider sign-in joins an existing account only when both sides have verified the email ([ADR-0020](docs/adr/0020-account-emails-and-social-sign-in.md)).
+  - When email is configured: password reset by single-use link (OWASP) and email verification by 6-digit code, with tokens and codes stored hashed and the same answers for known and unknown emails.
+  - Database sessions; changing or resetting your password signs you out everywhere.
 - **Authorisation:**
   - Owner / admin / agent roles are checked on the server for every action.
   - Every tenant query is scoped by workspace, with cross-workspace tests for each route.
@@ -202,23 +204,24 @@ AI coding assistants were used to build this project, under a written policy: AI
   - Existing workspaces keep the threshold they had saved.
   - Prompt v2 was measured on the same 150 tickets whose labelling rubric it was written from, with one run on one model.
 - **The Gemini free tier may use inputs to improve Google's products,** so use demo data only.
-- **No outbound email:** invite and tracking links are copied and shared by hand.
+- **Email is built but not switched on:** password reset and email verification are tested against an in-memory outbox and turn on at deployment (M8), once a domain can be verified for sending. Until then they're hidden, and invite and tracking links are copied and shared by hand.
 - **English-only interface**; the AI detects the customer's language.
 - **Scale:** one region and a single database. Per-IP limits need a trusted proxy ([AR-004](docs/security/accepted-risks.md)).
 
 ## Roadmap
 
-| Milestone                                | Status                    |
-| ---------------------------------------- | ------------------------- |
-| M0–M2 · Foundation, accounts, workspaces | Done                      |
-| M3 · Ticketing and customer portal       | Done                      |
-| M4 · Knowledge base and search           | Done                      |
-| M5 · AI triage and cited drafts          | Done                      |
-| M6 · Evaluation and observability        | Finishing (baseline done) |
-| Design system                            | Done                      |
-| M7 · Security review                     | Next                      |
-| M8 · Deployment and live demo            | Planned                   |
-| M9 · Portfolio presentation              | Planned                   |
+| Milestone                                    | Status                     |
+| -------------------------------------------- | -------------------------- |
+| M0–M2 · Foundation, accounts, workspaces     | Done                       |
+| M3 · Ticketing and customer portal           | Done                       |
+| M4 · Knowledge base and search               | Done                       |
+| M5 · AI triage and cited drafts              | Done                       |
+| M6 · Evaluation and observability            | Finishing (baseline done)  |
+| Design system                                | Done                       |
+| Accounts: reset, verification, Google/GitHub | Done (email sending at M8) |
+| M7 · Security review                         | Next                       |
+| M8 · Deployment and live demo                | Planned                    |
+| M9 · Portfolio presentation                  | Planned                    |
 
 What was built and verified in each milestone: [milestone log](docs/milestones.md).
 
@@ -256,6 +259,7 @@ docker compose --profile full up --build
 | `pnpm test:integration`           | tests against real PostgreSQL (`TEST_DATABASE_URL`)                                                              |
 | `pnpm test:smoke`                 | checks against a running server (`SMOKE_BASE_URL`) and worker (`SMOKE_DATABASE_URL`)                             |
 | `pnpm test:e2e`                   | Playwright + axe against the production build (run `pnpm build` and `pnpm db:migrate` first)                     |
+| `pnpm test:e2e:accounts`          | Browser tests for sign-up codes, password reset and the Google/GitHub buttons, on a server with email on         |
 | `pnpm build`                      | production build (needs **no** runtime secrets)                                                                  |
 | `pnpm worker`                     | background worker from source (needs only `DATABASE_URL` and `AI_PROVIDER`)                                      |
 | `pnpm build:scripts`              | bundle the worker, its PDF thread and the migration script into `.build/`                                        |
@@ -289,6 +293,9 @@ All settings are environment variables. Most are validated at startup (`src/serv
 | `TRUST_PROXY_HEADERS`                                             | `false`                            | Read the client IP from `X-Forwarded-For` for per-IP portal limits. **Enable only behind a proxy that overwrites that header.** Otherwise anyone can fake their IP. While off, all clients share one per-IP bucket ([AR-004](docs/security/accepted-risks.md)) |
 | `CSP_FRAME_ANCESTORS`                                             | `'none'`                           | Origins allowed to embed the app in a frame. Read by the proxy: an invalid value falls back to `'none'` (no framing) instead of stopping the server                                                                                                            |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`                       | none                               | Optional GitHub sign-in                                                                                                                                                                                                                                        |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`                       | none                               | Optional Google sign-in (callback: `<BETTER_AUTH_URL>/api/auth/callback/google`)                                                                                                                                                                               |
+| `EMAIL_PROVIDER`                                                  | none                               | `resend` (needs a verified domain) or `outbox` (in memory, development and tests). Unset = no password reset or email verification                                                                                                                             |
+| `EMAIL_FROM` / `RESEND_API_KEY` / `EMAIL_OUTBOX_TOKEN`            | none                               | Sender address; Resend key; secret for reading the outbox (32+ characters). Required as the provider needs                                                                                                                                                     |
 | `AI_PROVIDER`                                                     | `mock` (must be set in production) | `gemini` for real embeddings, triage and drafts; `mock` for deterministic offline AI (tests, local work). Production must choose explicitly, so a deployment never silently runs on fake AI                                                                    |
 | `GEMINI_API_KEY`                                                  | none                               | Google AI Studio key, required when `AI_PROVIDER=gemini`. Free-tier inputs may be used by Google to improve its products: demo data only                                                                                                                       |
 | `AI_DAILY_CALL_LIMIT`                                             | `200`                              | Triage + draft calls per day for the whole deployment, counted per Pacific-time day (when Google resets free quotas). `0` turns AI generation off                                                                                                              |

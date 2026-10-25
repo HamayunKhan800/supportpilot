@@ -25,7 +25,8 @@ export default defineConfig({
   snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{arg}{ext}",
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01 } },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    // accounts.spec.ts needs email on: it runs with playwright.accounts.config.ts.
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /accounts\.spec\.ts/ },
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
