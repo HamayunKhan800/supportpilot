@@ -1,4 +1,5 @@
 import { getDb } from "@/server/platform/db/client";
+import { transaction } from "@/server/platform/db/tx";
 import { insertAuditEvent, type AuditEvent } from "@/server/platform/auth/audit";
 import { requireWorkspace, type WorkspaceContext } from "@/server/platform/auth/context";
 import { getWorkspaceSettings } from "@/server/platform/auth/workspace-settings";
@@ -96,7 +97,7 @@ export async function createPortalTicket(
   }
 
   const { token, hash } = generateTrackingToken();
-  const created = await repo.transaction(async (tx) => {
+  const created = await transaction(async (tx) => {
     const t = await repo.insertTicket(tx, ws.id, {
       subject: input.subject,
       customerName: input.name,
@@ -150,7 +151,7 @@ export async function addCustomerReply(token: string, rawInput: unknown): Promis
   const t = await ticketForToken(token);
   await limit(rateLimitKey("portal-reply", t.id), PORTAL_LIMITS.repliesPerTicket);
 
-  await repo.transaction(async (tx) => {
+  await transaction(async (tx) => {
     const locked = await repo.lockTicket(tx, t.workspaceId, t.id);
     if (!locked) throw Errors.notFound();
     if (!canCustomerReply(locked.status)) {
@@ -307,7 +308,7 @@ export async function updateTicketForAgent(headers: Headers, rawId: string, rawP
   if (events.length === 0) return current; // nothing actually changed
 
   try {
-    return await repo.transaction(async (tx) => {
+    return await transaction(async (tx) => {
       const updated = await repo.updateTicket(tx, ws, id, patch.version, changes);
       if (!updated) throw staleConflict();
       for (const e of events) await insertAuditEvent(tx, e);
@@ -352,7 +353,7 @@ export async function acceptTriageSuggestion(headers: Headers, rawId: string, ra
     throw Errors.conflict("The suggested category no longer exists. Choose a category instead.");
   }
 
-  await repo.transaction(async (tx) => {
+  await transaction(async (tx) => {
     const current = await triageRepo.lockTicketLabels(tx, ws, id);
     if (!current) throw Errors.notFound();
     if (current.version !== input.version) throw staleConflict();
@@ -398,7 +399,7 @@ export async function addAgentMessage(headers: Headers, rawId: string, rawInput:
   const ctx = await requireWorkspace(headers, { ticket: ["update"] });
   const id = parseId(rawId);
   const input = agentMessageInput.parse(rawInput);
-  return repo.transaction(async (tx) => {
+  return transaction(async (tx) => {
     const locked = await repo.lockTicket(tx, ctx.workspace.id, id);
     if (!locked) throw Errors.notFound();
     if (!canAgentPost(locked.status, input.internal)) {

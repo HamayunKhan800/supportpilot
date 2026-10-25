@@ -5,6 +5,7 @@ import { getAuth } from "@/server/platform/auth";
 import { getSessionContext } from "@/server/platform/auth/context";
 import { getDb } from "@/server/platform/db/client";
 import { member, ticket, ticketMessage } from "@/server/platform/db/schema";
+import { transaction } from "@/server/platform/db/tx";
 import {
   countTicketsByStatus,
   findTicketById,
@@ -14,7 +15,6 @@ import {
   insertTicket,
   listMessages,
   listTickets,
-  transaction,
   updateTicket,
   type Ticket,
 } from "@/server/modules/tickets/repository";

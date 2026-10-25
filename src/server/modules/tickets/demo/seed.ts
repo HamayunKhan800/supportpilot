@@ -16,6 +16,7 @@
  */
 import { and, eq, sql } from "drizzle-orm";
 import { ticket, ticketMessage } from "@/server/platform/db/schema";
+import { transaction } from "@/server/platform/db/tx";
 import { enqueueTriage } from "@/server/platform/jobs/boss";
 import * as repo from "../repository";
 import { generateTrackingToken } from "../tracking-token";
@@ -29,7 +30,7 @@ export async function seedDemoTickets(
   now: Date = new Date(),
   tickets: DemoTicket[] = DEMO_TICKETS,
 ): Promise<number> {
-  return repo.transaction(async (tx) => {
+  return transaction(async (tx) => {
     // Serialise concurrent seed runs for this workspace, then seed only an empty one.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"demo-seed:" + workspaceId}))`);
     const [existing] = await tx

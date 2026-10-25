@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
-import { getDb, type Database } from "@/server/platform/db/client";
+import { getDb } from "@/server/platform/db/client";
+import type { Executor, Transaction } from "@/server/platform/db/tx";
 import {
   organization,
   ticket,
@@ -20,8 +21,7 @@ import {
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
 export type MessageAuthorType = (typeof MESSAGE_AUTHOR_TYPES)[number];
-export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
-export type Executor = Database | Transaction;
+export type { Executor, Transaction };
 
 export type TicketRow = typeof ticket.$inferSelect;
 export type MessageRow = typeof ticketMessage.$inferSelect;
@@ -56,10 +56,6 @@ const messageColumns = {
   createdAt: ticketMessage.createdAt,
 };
 export type Message = Omit<MessageRow, "workspaceId" | "seq"> & { authorName: string | null };
-
-export function transaction<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
-  return getDb().db.transaction(fn);
-}
 
 /**
  * Next per-workspace ticket number. The upsert takes a row lock on the workspace's
