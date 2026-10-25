@@ -19,6 +19,51 @@ const databaseFields = {
   DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(10_000),
 };
 
+/**
+ * Outbound email (docs/plans/accounts-and-email.md). Unset = no email features: no password
+ * reset and no email verification, exactly as before.
+ */
+const emailFields = {
+  /** `resend` sends real mail (needs a verified domain); `outbox` keeps it in memory (dev, tests). */
+  EMAIL_PROVIDER: z.enum(["resend", "outbox"]).optional(),
+  /** Sender, e.g. `SupportPilot <no-reply@example.com>`. Required when EMAIL_PROVIDER is set. */
+  EMAIL_FROM: z.string().min(3).max(200).optional(),
+  /** From https://resend.com/api-keys. Required when EMAIL_PROVIDER=resend. */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  /**
+   * Secret needed to read the outbox at /api/dev/email-outbox. Required when EMAIL_PROVIDER=outbox,
+   * so a misconfigured server never shows reset links to anyone who asks.
+   */
+  EMAIL_OUTBOX_TOKEN: z.string().min(32, "EMAIL_OUTBOX_TOKEN must be at least 32 characters").optional(),
+};
+
+type EmailSettings = { [K in keyof typeof emailFields]?: string | undefined };
+
+function refineEmail(env: EmailSettings, ctx: z.RefinementCtx): void {
+  if (!env.EMAIL_PROVIDER) return;
+  if (!env.EMAIL_FROM) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["EMAIL_FROM"],
+      message: "EMAIL_FROM is required when EMAIL_PROVIDER is set",
+    });
+  }
+  if (env.EMAIL_PROVIDER === "resend" && !env.RESEND_API_KEY) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["RESEND_API_KEY"],
+      message: "RESEND_API_KEY is required when EMAIL_PROVIDER=resend",
+    });
+  }
+  if (env.EMAIL_PROVIDER === "outbox" && !env.EMAIL_OUTBOX_TOKEN) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["EMAIL_OUTBOX_TOKEN"],
+      message: "EMAIL_OUTBOX_TOKEN is required when EMAIL_PROVIDER=outbox",
+    });
+  }
+}
+
 const aiFields = {
   /**
    * AI provider (ADR-0006). `mock` = deterministic offline embeddings for tests and local
@@ -167,18 +212,24 @@ const envSchema = z
           : [],
       )
       .pipe(z.array(z.email({ error: "EVAL_REVIEWER_EMAILS entries must be email addresses" })).max(10)),
-    /** Optional GitHub OAuth. Both values or neither. */
+    /** Optional GitHub sign-in. Both values or neither. */
     GITHUB_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+    /** Optional Google sign-in. Both values or neither. */
+    GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+    ...emailFields,
   })
   .superRefine((env, ctx) => {
-    if (Boolean(env.GITHUB_CLIENT_ID) !== Boolean(env.GITHUB_CLIENT_SECRET)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["GITHUB_CLIENT_ID"],
-        message: "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set together",
-      });
+    for (const [id, secret] of [
+      ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
+      ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+    ] as const) {
+      if (Boolean(env[id]) !== Boolean(env[secret])) {
+        ctx.addIssue({ code: "custom", path: [id], message: `${id} and ${secret} must be set together` });
+      }
     }
+    refineEmail(env, ctx);
     refineAi(env, ctx);
     // Production must use https, except loopback (CI smoke tests run the production build locally).
     const url = new URL(env.BETTER_AUTH_URL);

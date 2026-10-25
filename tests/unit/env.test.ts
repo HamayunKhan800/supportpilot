@@ -116,6 +116,36 @@ describe("env: auth settings (FR-A1, T3/T4)", () => {
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id" }).join()).toContain("GITHUB_CLIENT_ID");
     expect(issues({ ...valid, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "s" })).toEqual([]);
   });
+
+  it("requires Google OAuth credentials as a pair", () => {
+    expect(issues({ ...valid, GOOGLE_CLIENT_SECRET: "s" }).join()).toContain("GOOGLE_CLIENT_ID");
+    expect(issues({ ...valid, GOOGLE_CLIENT_ID: "id", GOOGLE_CLIENT_SECRET: "s" })).toEqual([]);
+  });
+
+  it("leaves email off by default and checks what each email provider needs", () => {
+    expect(parseEnv(valid).EMAIL_PROVIDER).toBeUndefined();
+    const from = "SupportPilot <no-reply@example.com>";
+    expect(issues({ ...valid, EMAIL_PROVIDER: "resend", RESEND_API_KEY: "re_x" }).join()).toContain(
+      "EMAIL_FROM",
+    );
+    expect(issues({ ...valid, EMAIL_PROVIDER: "resend", EMAIL_FROM: from }).join()).toContain(
+      "RESEND_API_KEY",
+    );
+    expect(issues({ ...valid, EMAIL_PROVIDER: "resend", EMAIL_FROM: from, RESEND_API_KEY: "re_x" })).toEqual(
+      [],
+    );
+    // The outbox shows reset links, so reading it always needs a long secret.
+    expect(issues({ ...valid, EMAIL_PROVIDER: "outbox", EMAIL_FROM: from }).join()).toContain(
+      "EMAIL_OUTBOX_TOKEN",
+    );
+    expect(
+      issues({ ...valid, EMAIL_PROVIDER: "outbox", EMAIL_FROM: from, EMAIL_OUTBOX_TOKEN: "short" }).join(),
+    ).toContain("at least 32");
+    expect(
+      issues({ ...valid, EMAIL_PROVIDER: "outbox", EMAIL_FROM: from, EMAIL_OUTBOX_TOKEN: "t".repeat(32) }),
+    ).toEqual([]);
+    expect(issues({ ...valid, EMAIL_PROVIDER: "smtp" }).join()).toContain("EMAIL_PROVIDER");
+  });
 });
 
 describe("env: AI provider (ADR-0006, plan M4 D4)", () => {
