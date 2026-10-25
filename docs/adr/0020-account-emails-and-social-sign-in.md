@@ -36,6 +36,7 @@ Until now, sign-in was email and password only, with no way to recover an accoun
 ## Consequences
 
 - **Tests:** 16 integration tests run against the real database and outbox. Separate browser tests (`pnpm test:e2e:accounts`, own server with email on) cover desktop and phone.
+- **Live check with real keys (2026-10-25, 13:06–13:09 PKT):** the owner signed in on an Android phone through a temporary HTTPS tunnel, with a real GitHub OAuth app and a real Google client (Testing mode, owner as test user). Before that, the server's sign-in requests were checked: both send the exact callback URL and PKCE S256, and Google adds `prompt=select_account`. Result: GitHub and Google each created a new user with a verified email and one session, and onboarding created a workspace for each. Automated tests still use fake keys, and linking a provider to an existing password account was not part of this check.
 - **Real users when email is switched on:** an existing account whose email was never verified is asked for a code at its next sign-in. That's one extra step, not a lockout.
 - **Not yet:**
   - **Per-account limits:** the limits are per IP. Better Auth has no per-account limit on reset requests, so someone rotating IPs could send several reset emails to one address. Each link still expires, and nothing changes without it. Review at M7.
