@@ -1,29 +1,21 @@
 "use client";
 
-import { BookX, PenLine, ShieldAlert, Square } from "lucide-react";
-import Link from "next/link";
+import { PenLine } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { streamDraft } from "@/lib/draft-stream";
-import { cn } from "@/lib/utils";
 import type { ApiDraft } from "@/server/modules/drafts/serialize";
-import { BLOCKED_TEXT, REFUSAL_TEXT } from "./draft-labels";
 import { DraftFeedback } from "./draft-feedback";
+import {
+  BlockedOutcome,
+  ErrorOutcome,
+  IdlePrompt,
+  PanelAction,
+  RefusedOutcome,
+  StreamingPreview,
+} from "./draft-outcomes";
+import { afterStream, type DraftPanelState, fromDraft } from "./draft-state";
 import { DraftView } from "./draft-view";
-
-type State =
-  | { phase: "idle" }
-  | { phase: "streaming"; text: string }
-  | { phase: "ready" | "refused" | "blocked" | "sent" | "discarded"; draft: ApiDraft }
-  | { phase: "error"; message: string; retryable: boolean };
-
-const fromDraft = (draft: ApiDraft): State =>
-  draft.status === "ready" || draft.status === "refused" || draft.status === "blocked"
-    ? { phase: draft.status, draft }
-    : draft.status === "sent" || draft.status === "discarded"
-      ? { phase: draft.status, draft }
-      : { phase: "error", message: "Something went wrong while drafting. Try again.", retryable: true };
 
 /**
  * AI reply drafts on the ticket page (M5 FR-AI3–AI8). The streamed text is a preview; the
@@ -43,7 +35,9 @@ export function DraftPanel({
   canAddArticles: boolean;
 }) {
   const router = useRouter();
-  const [state, setState] = useState<State>(initialDraft ? fromDraft(initialDraft) : { phase: "idle" });
+  const [state, setState] = useState<DraftPanelState>(
+    initialDraft ? fromDraft(initialDraft) : { phase: "idle" },
+  );
   const [announcement, setAnnouncement] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
@@ -62,22 +56,9 @@ export function DraftPanel({
       abort.signal,
     );
     if (abortRef.current === abort) abortRef.current = null;
-    if (result.kind === "aborted") {
-      setState({ phase: "idle" });
-      setAnnouncement("Drafting stopped.");
-    } else if (result.kind === "error") {
-      setState({ phase: "error", message: result.message, retryable: result.retryable });
-      setAnnouncement(result.message);
-    } else {
-      setState(fromDraft(result.draft));
-      setAnnouncement(
-        result.draft.status === "ready"
-          ? "Draft ready. Review it before sending."
-          : result.draft.status === "refused"
-            ? "Insufficient knowledge: no reliable sources found."
-            : "The draft was blocked for safety.",
-      );
-    }
+    const next = afterStream(result);
+    setState(next.state);
+    setAnnouncement(next.announcement);
   }
 
   const keepDraft = (draft: ApiDraft) => setState((s) => ("draft" in s ? { ...s, draft } : s));
@@ -103,16 +84,7 @@ export function DraftPanel({
             </span>
           )}
         </div>
-        {state.phase === "streaming" ? (
-          <Button type="button" variant="outline" onClick={() => abortRef.current?.abort()}>
-            <Square aria-hidden="true" className="size-3 fill-current" />
-            Stop
-          </Button>
-        ) : state.phase !== "ready" && state.phase !== "idle" ? (
-          <Button type="button" variant="outline" onClick={generate}>
-            {state.phase === "error" && state.retryable ? "Try again" : "Generate a new draft"}
-          </Button>
-        ) : null}
+        <PanelAction state={state} onStop={() => abortRef.current?.abort()} onGenerate={generate} />
       </div>
 
       <div className="flex flex-col gap-3 p-4">
@@ -120,43 +92,9 @@ export function DraftPanel({
           {announcement}
         </p>
 
-        {state.phase === "idle" && (
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground max-w-prose text-sm">
-              Get a suggested reply written from your knowledge base, with its sources. You review and edit
-              it; nothing is sent until you approve it.
-            </p>
-            <Button type="button" size="lg" onClick={generate} className="shrink-0">
-              Generate draft
-            </Button>
-          </div>
-        )}
+        {state.phase === "idle" && <IdlePrompt onGenerate={generate} />}
 
-        {state.phase === "streaming" && (
-          <div
-            aria-busy="true"
-            className="enter-fade bg-background rounded-lg border p-3.5"
-            data-testid="draft-streaming"
-          >
-            <p className="text-muted-foreground mb-1.5 flex items-center gap-2 text-xs" aria-hidden="true">
-              <span className="bg-primary size-1.5 animate-pulse rounded-full motion-reduce:animate-none" />
-              Searching your knowledge base and writing…
-            </p>
-            {state.text ? (
-              <p className="leading-relaxed break-words whitespace-pre-wrap">
-                {state.text}
-                <span aria-hidden="true" className="stream-caret" />
-              </p>
-            ) : (
-              // Before the first words arrive: the shape of a reply, not a spinner.
-              <div aria-hidden="true" className="flex flex-col gap-2 py-1" data-testid="draft-skeleton">
-                <div className="skeleton h-3.5 w-full" />
-                <div className="skeleton h-3.5 w-11/12" />
-                <div className="skeleton h-3.5 w-3/5" />
-              </div>
-            )}
-          </div>
-        )}
+        {state.phase === "streaming" && <StreamingPreview text={state.text} />}
 
         {state.phase === "ready" && (
           <DraftView
@@ -177,56 +115,12 @@ export function DraftPanel({
         )}
 
         {state.phase === "refused" && (
-          <div
-            className="enter-fade flex gap-3 rounded-lg border border-dashed p-4 text-sm"
-            data-testid="draft-outcome"
-          >
-            <BookX aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0" />
-            <div className="flex min-w-0 flex-col gap-2">
-              <p className="font-semibold">Insufficient knowledge: no reliable sources found.</p>
-              <p className="text-muted-foreground">
-                {REFUSAL_TEXT[state.draft.errorCode ?? ""] ?? REFUSAL_TEXT.below_min_score}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                The AI does not guess when your articles don&apos;t cover a question.
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {canAddArticles && (
-                  <Link href="/app/knowledge" className={buttonVariants({ variant: "outline" })}>
-                    Add a help article
-                  </Link>
-                )}
-                <a href="#composer-heading" className={buttonVariants({ variant: "ghost" })}>
-                  Write the reply yourself
-                </a>
-              </div>
-            </div>
-          </div>
+          <RefusedOutcome errorCode={state.draft.errorCode} canAddArticles={canAddArticles} />
         )}
 
-        {state.phase === "blocked" && (
-          <div
-            className="border-danger-border bg-danger-subtle text-danger-strong flex gap-3 rounded-lg border p-4 text-sm"
-            data-testid="draft-outcome"
-          >
-            <ShieldAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            <div>
-              <p className="font-semibold">Draft blocked</p>
-              <p className="mt-1">{BLOCKED_TEXT}</p>
-            </div>
-          </div>
-        )}
+        {state.phase === "blocked" && <BlockedOutcome />}
 
-        {state.phase === "error" && (
-          <div
-            className="border-danger-border bg-danger-subtle text-danger-strong rounded-lg border p-4 text-sm"
-            data-testid="draft-outcome"
-          >
-            <p className="font-semibold">No draft this time</p>
-            <p className="mt-1">{state.message}</p>
-            <p className="mt-1">You can still write the reply yourself below.</p>
-          </div>
-        )}
+        {state.phase === "error" && <ErrorOutcome message={state.message} />}
 
         {state.phase === "sent" && (
           <p className="enter-fade text-success-strong text-sm" data-testid="draft-outcome">
@@ -234,7 +128,7 @@ export function DraftPanel({
           </p>
         )}
         {state.phase === "discarded" && (
-          <p className={cn("text-muted-foreground text-sm")} data-testid="draft-outcome">
+          <p className="text-muted-foreground text-sm" data-testid="draft-outcome">
             Draft discarded.
           </p>
         )}
