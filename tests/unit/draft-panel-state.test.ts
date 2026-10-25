@@ -61,11 +61,21 @@ describe("afterStream", () => {
     });
   });
 
-  it("keeps today's announcement for a finished draft in any other status (shown as an error)", () => {
-    // Characterises current behaviour: the server only finishes a stream as ready, refused or blocked.
+  it("announces the same error the panel shows when a draft finishes in an unexpected status", () => {
+    // Was "The draft was blocked for safety." while the panel showed an error (fixed 2026-10-25).
     expect(afterStream({ kind: "done", draft: draft("failed") })).toEqual({
       state: { phase: "error", message: "Something went wrong while drafting. Try again.", retryable: true },
-      announcement: "The draft was blocked for safety.",
+      announcement: "Something went wrong while drafting. Try again.",
     });
   });
+
+  it.each(["ready", "refused", "blocked", "sent", "discarded", "failed", "generating", "aborted"] as const)(
+    "never announces something different from what it shows (%s)",
+    (status) => {
+      const { state, announcement } = afterStream({ kind: "done", draft: draft(status) });
+      expect(announcement).not.toBe("");
+      if (state.phase === "error") expect(announcement).toBe(state.message);
+      if (state.phase !== "blocked") expect(announcement).not.toMatch(/blocked/);
+    },
+  );
 });

@@ -15,6 +15,15 @@ export const fromDraft = (draft: ApiDraft): DraftPanelState =>
       ? { phase: draft.status, draft }
       : { phase: "error", message: "Something went wrong while drafting. Try again.", retryable: true };
 
+/** What screen readers hear for a finished draft, matching what the panel shows. */
+const FINISHED: Record<"ready" | "refused" | "blocked" | "sent" | "discarded", string> = {
+  ready: "Draft ready. Review it before sending.",
+  refused: "Insufficient knowledge: no reliable sources found.",
+  blocked: "The draft was blocked for safety.",
+  sent: "Reply sent.",
+  discarded: "Draft discarded.",
+};
+
 /** The panel's next state and the short message screen readers hear when a generation ends. */
 export function afterStream(result: DraftStreamResult): { state: DraftPanelState; announcement: string } {
   if (result.kind === "aborted") return { state: { phase: "idle" }, announcement: "Drafting stopped." };
@@ -24,13 +33,13 @@ export function afterStream(result: DraftStreamResult): { state: DraftPanelState
       announcement: result.message,
     };
   }
-  return {
-    state: fromDraft(result.draft),
-    announcement:
-      result.draft.status === "ready"
-        ? "Draft ready. Review it before sending."
-        : result.draft.status === "refused"
-          ? "Insufficient knowledge: no reliable sources found."
-          : "The draft was blocked for safety.",
-  };
+  const state = fromDraft(result.draft);
+  // Derived from the state, so the spoken message can never disagree with the screen.
+  const announcement =
+    state.phase === "error"
+      ? state.message
+      : state.phase === "idle" || state.phase === "streaming"
+        ? ""
+        : FINISHED[state.phase];
+  return { state, announcement };
 }
