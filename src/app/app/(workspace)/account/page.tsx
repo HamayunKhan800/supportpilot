@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Account" };
 export default async function AccountPage() {
   const { ctx } = await requireAppWorkspace();
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHeader title="Account" description="Your sign-in details and preferences on this device." />
 
       <Section id="profile" title="Profile">

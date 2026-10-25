@@ -123,9 +123,11 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
         <DesktopSidebar {...shell} />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader {...shell} />
+          {/* Left-aligned at every width (as on Linear and Plain), so narrow and wide pages start
+              at the same edge and the title doesn't jump when switching pages. */}
           <main
             id="main"
-            className="relative mx-auto w-full max-w-5xl flex-1 px-4 py-8 has-[[data-wide]]:max-w-7xl sm:px-6 lg:px-10 has-[[data-wide=xl]]:2xl:max-w-[100rem]"
+            className="relative w-full max-w-5xl flex-1 px-4 py-8 has-[[data-wide]]:max-w-7xl sm:px-6 lg:px-10 has-[[data-wide=xl]]:2xl:max-w-[100rem]"
           >
             {children}
             <RouteBusy />
