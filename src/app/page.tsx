@@ -172,19 +172,66 @@ function HandoffMotif({ className }: { className?: string }) {
 
 // The headline, word by word: each word arrives blur-to-sharp in turn (design step 10.2).
 // Delays are literal classes so Tailwind can see them; the text reads the same to assistive tech.
-const HEADLINE_A = ["Support", "replies", "drafted", "by", "AI,"];
-const HEADLINE_B = ["approved", "by", "your", "team."];
-const WORD_DELAY = [
-  "[animation-delay:40ms]",
-  "[animation-delay:95ms]",
-  "[animation-delay:150ms]",
-  "[animation-delay:205ms]",
-  "[animation-delay:260ms]",
-  "[animation-delay:340ms]",
-  "[animation-delay:395ms]",
-  "[animation-delay:450ms]",
-  "[animation-delay:505ms]",
+/*
+ * The headline types itself out once, like a reply being drafted (globals.css, "type-ch"). Each
+ * character is painted from the first frame as faint ghost text and turns solid in turn, so the
+ * layout never moves and the largest paint is not delayed. Screen readers and search engines get
+ * the sentence once, from the sr-only copy. Classes are literal so Tailwind can see them.
+ */
+const HEADLINE_A = "Support replies drafted by AI, ";
+const HEADLINE_B = "approved by your team.";
+const CHAR_INDEX = [
+  "[--n:0]",
+  "[--n:1]",
+  "[--n:2]",
+  "[--n:3]",
+  "[--n:4]",
+  "[--n:5]",
+  "[--n:6]",
+  "[--n:7]",
+  "[--n:8]",
+  "[--n:9]",
+  "[--n:10]",
+  "[--n:11]",
+  "[--n:12]",
+  "[--n:13]",
+  "[--n:14]",
+  "[--n:15]",
+  "[--n:16]",
+  "[--n:17]",
+  "[--n:18]",
+  "[--n:19]",
+  "[--n:20]",
+  "[--n:21]",
+  "[--n:22]",
+  "[--n:23]",
+  "[--n:24]",
+  "[--n:25]",
+  "[--n:26]",
+  "[--n:27]",
+  "[--n:28]",
+  "[--n:29]",
+  "[--n:30]",
+  "[--n:31]",
 ];
+/** A short pause after "AI," before the second half, as a person typing would. */
+const LINE_B_OFFSET = "[--o:37]";
+
+function TypedChars({ text, last = false }: { text: string; last?: boolean }) {
+  return Array.from(text).map((ch, i) => (
+    <span
+      key={i}
+      className={cn(
+        "type-ch",
+        CHAR_INDEX[i],
+        ch === " " && "type-sp",
+        last && i === text.length - 1 && "type-ch-last",
+      )}
+    >
+      {ch}
+    </span>
+  ));
+}
 
 export default async function Home() {
   const theme = parseThemePreference((await cookies()).get(THEME_COOKIE)?.value);
@@ -237,18 +284,12 @@ export default async function Home() {
               id="hero-heading"
               className="max-w-4xl text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.035em] text-balance sm:text-[3.25rem] lg:max-w-none lg:text-[4rem]"
             >
-              {HEADLINE_A.map((w, i) => (
-                <Fragment key={w}>
-                  <span className={cn("word-in", WORD_DELAY[i])}>{w}</span>{" "}
-                </Fragment>
-              ))}
-              <span className="text-muted-foreground lg:block">
-                {HEADLINE_B.map((w, i) => (
-                  <Fragment key={w + i}>
-                    {i > 0 && " "}
-                    <span className={cn("word-in", WORD_DELAY[i + HEADLINE_A.length])}>{w}</span>
-                  </Fragment>
-                ))}
+              <span className="sr-only">{HEADLINE_A + HEADLINE_B}</span>
+              <span aria-hidden="true">
+                <TypedChars text={HEADLINE_A} />
+                <span className={cn("text-muted-foreground lg:block", LINE_B_OFFSET)}>
+                  <TypedChars text={HEADLINE_B} last />
+                </span>
               </span>
             </h1>
             <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">

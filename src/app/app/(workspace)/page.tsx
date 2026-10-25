@@ -1,5 +1,4 @@
 import { ArrowRight, ExternalLink, Inbox, PenLine } from "lucide-react";
-import { LinkPending } from "@/components/link-pending";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -184,7 +183,6 @@ export default async function OverviewPage() {
                         #{t.number}
                       </span>
                       {t.subject}
-                      <LinkPending />
                     </Link>
                     <p className="text-muted-foreground truncate text-xs">{t.customerName}</p>
                   </div>
@@ -329,7 +327,6 @@ function Figure({
         >
           {value}
           <span className="sr-only"> {srSuffix}</span>
-          <LinkPending />
         </Link>
       </dd>
       <dd className="text-muted-foreground text-xs">{note}</dd>

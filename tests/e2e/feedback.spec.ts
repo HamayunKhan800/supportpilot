@@ -114,7 +114,7 @@ test.describe("design step 12: selection and loading feedback", () => {
     await indicatorOver(page, 'nav[aria-label="Workspace"] > div', knowledge);
   });
 
-  test("an inbox row shows it is loading; a status tab slides and dims the old results", async ({
+  test("a status tab slides and dims the old results; opening a ticket marks the page busy", async ({
     page,
     playwright,
     baseURL,
@@ -140,12 +140,12 @@ test.describe("design step 12: selection and loading feedback", () => {
     await expect(page.locator("main")).not.toHaveAttribute("data-route-busy");
     await expect.poll(() => results.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
 
-    // Opening a ticket: its row shows a loading line until the ticket page lands.
+    // Opening a ticket: the page is marked busy (no extra line on the row) until the ticket lands.
     const row = results.getByRole("listitem").first();
     await row.getByRole("link").click();
-    await expect(row.locator("[data-link-pending]")).toBeVisible();
+    await expect(page.locator("main")).toHaveAttribute("aria-busy", "true");
     await expect(page).toHaveURL(/\/app\/tickets\/1/);
-    await expect(page.locator("[data-link-pending]")).toHaveCount(0);
+    await expect(page.locator("main")).not.toHaveAttribute("aria-busy");
   });
 });
 

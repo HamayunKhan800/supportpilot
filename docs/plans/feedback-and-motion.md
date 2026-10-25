@@ -107,8 +107,7 @@ An audit of the code confirms it:
 ## Design step 12: premium feedback pass (2026-10-25)
 
 - **Loading feedback.** `Button` has a `pending` prop (spinner in place of its icon, `aria-busy`, disabled, full
-  opacity); every form and async button uses it. Links being opened show a thin running line (`<LinkPending />`,
-  React's `useLinkStatus`, after 120 ms). On a page change that takes over 300 ms, `<RouteBusy />` covers the old page
+  opacity); every form and async button uses it. On a page change that takes over 300 ms, `<RouteBusy />` covers the old page
   with a skeleton shaped like the page being opened (client-side, so the CSP finding above still holds) and marks
   `<main aria-busy>`. A new query on the same page dims its sections after 200 ms instead; filters and search fields
   never dim. Background refreshes (`router.refresh()`) show nothing. GET forms whose script takes over are no longer
@@ -124,3 +123,8 @@ An audit of the code confirms it:
 - Verified on a production build: 88 passed and 9 skipped across the affected specs. The only failures (axe on the
   knowledge search, caused by the form-tracking bug above) were fixed and rerun: 27/27. Unit 1290/1290; lint, types,
   formatting and gitleaks clean.
+- **Follow-up from the owner's phone test (2026-10-25).** The running line on rows being opened was removed: with the
+  top bar and the page skeleton it said the same thing three times. On phones the page bar no longer sticks under the
+  app header (two stacked bars); it scrolls away as the page heading, and only the app header stays. The hero demo's
+  draft card overflowed its border at 360 px; the demo is taller on phones and the card now contains its own text. The
+  hero headline types itself out once, like a draft being written.

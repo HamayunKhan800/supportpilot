@@ -1,5 +1,4 @@
 import { Check, Inbox, PenLine, SearchX } from "lucide-react";
-import { LinkPending } from "@/components/link-pending";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -189,7 +188,6 @@ export default async function TicketsPage({ searchParams }: PageProps<"/app/tick
                         #{t.number}
                       </span>
                       {t.subject}
-                      <LinkPending />
                     </Link>
                     <span className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                       <span className="truncate">{t.customerName}</span>

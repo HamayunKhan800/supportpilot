@@ -1,5 +1,4 @@
 import { ChevronRight, type LucideIcon } from "lucide-react";
-import { LinkPending } from "@/components/link-pending";
 import Link from "next/link";
 import type * as React from "react";
 import { SlidingIndicator } from "@/components/sliding-indicator";
@@ -29,9 +28,11 @@ export function PageHeader({
 }) {
   return (
     <>
+      {/* Wide screens: sticks to the top as the page's toolbar. Phones and tablets already have a
+          sticky app header, so here it scrolls away as the page heading (one bar, not two). */}
       <div
         data-page-bar
-        className="page-bar glass-bar sticky top-14 z-30 -mx-4 -mt-8 flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:-mx-6 sm:px-6 lg:top-0 lg:-mx-10 lg:px-10"
+        className="page-bar lg:glass-bar -mx-4 -mt-8 flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:-mx-6 sm:px-6 lg:sticky lg:top-0 lg:z-30 lg:-mx-10 lg:px-10"
       >
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
           {breadcrumb && (
@@ -116,7 +117,6 @@ export function Stat({
           >
             {value}
             {srSuffix && <span className="sr-only"> {srSuffix}</span>}
-            <LinkPending />
           </Link>
         ) : (
           value

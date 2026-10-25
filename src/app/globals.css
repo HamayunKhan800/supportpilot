@@ -477,11 +477,14 @@ html[data-theme="dark"] {
     box-shadow: 0 1px 0 var(--border);
   }
 }
+/* Only where the bar sticks (wide screens; see PageHeader). */
 @supports (animation-timeline: scroll()) {
-  .page-bar {
-    animation: page-bar-edge linear both;
-    animation-timeline: scroll(root);
-    animation-range: 0 1.5rem;
+  @media (min-width: 64rem) {
+    .page-bar {
+      animation: page-bar-edge linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 1.5rem;
+    }
   }
 }
 
@@ -515,19 +518,7 @@ html[data-theme="dark"] {
 .hero-field {
   mask-image: radial-gradient(ellipse 80% 75% at 50% 10%, #000 35%, transparent 100%);
 }
-/* Headline words arrive one after another, blur to sharp (as on Linear). They are visible
-   from the first paint (no opacity change), so the largest paint is not delayed. */
-@keyframes word-in {
-  from {
-    filter: blur(10px);
-    translate: 0 0.18em;
-  }
-}
-.word-in {
-  display: inline-block;
-  animation: word-in 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-/* Section headings: the same arrival as they scroll into view (Reveal sets data-revealed). */
+/* Section headings: blur to sharp as they scroll into view (Reveal sets data-revealed). */
 html[data-reveal] h2[data-reveal] {
   transition:
     opacity 300ms var(--land-ease),
@@ -566,9 +557,6 @@ html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
   opacity: 1;
 }
 @media (prefers-reduced-motion: reduce) {
-  .word-in {
-    animation: none;
-  }
   html[data-reveal] h2[data-reveal]:not([data-revealed]),
   html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
     filter: none;
@@ -646,51 +634,6 @@ html[data-menu-open] .landing-header {
 }
 
 /*
- * A row, tile or card whose page is loading (link-pending.tsx): a thin line moves along its
- * bottom edge, after 120 ms. Reduced motion: the line stands still.
- */
-.link-pending {
-  position: absolute;
-  inset: auto 0 0;
-  height: 2px;
-  overflow: hidden;
-  pointer-events: none;
-  animation: link-pending-in 150ms ease-out 120ms both;
-}
-.link-pending::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 35%;
-  background: var(--foreground);
-  opacity: 0.55;
-  animation: link-pending-run 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-@keyframes link-pending-in {
-  from {
-    opacity: 0;
-  }
-}
-@keyframes link-pending-run {
-  from {
-    translate: -100% 0;
-  }
-  to {
-    translate: 290% 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .link-pending {
-    animation: link-pending-in 0s 120ms both;
-  }
-  .link-pending::before {
-    width: 100%;
-    opacity: 0.35;
-    animation: none;
-  }
-}
-
-/*
  * Page changes inside the workspace (route-busy.tsx). Another page: after 300 ms a skeleton of it
  * covers the old one (above the sticky page bar, below the phone header). Same page, new query:
  * the page's sections (and anything marked data-busy-dim) dim a little after 200 ms and come back
@@ -749,5 +692,68 @@ main[data-route-busy="data"] :is([data-busy-dim], section:not(section section)) 
   to {
     filter: blur(0);
     translate: 0 0;
+  }
+}
+
+/*
+ * Hero headline typing (page.tsx): characters start as faint ghost text and turn solid one after
+ * another, 26 ms apart (about 1.5 s in all), with a caret at the typing point that blinks three
+ * times at the end. Colour only, so nothing moves and the text is painted from the first frame.
+ * Reduced motion: the headline is simply there.
+ */
+.type-ch {
+  position: relative;
+  --type-at: calc(250ms + (var(--o, 0) + var(--n, 0)) * 26ms);
+  animation: type-ch 1ms linear var(--type-at) both;
+}
+.type-ch::after {
+  content: "";
+  position: absolute;
+  top: 0.14em;
+  bottom: 0.06em;
+  right: -0.04em;
+  width: 0.06em;
+  background: var(--foreground);
+  opacity: 0;
+  pointer-events: none;
+  animation: type-caret 26ms linear var(--type-at);
+}
+/* No caret on spaces: at a line wrap the space hangs past the line and the caret would stretch. */
+.type-sp::after {
+  content: none;
+}
+.type-ch-last::after {
+  animation: type-caret-end 1.6s step-end var(--type-at);
+}
+@keyframes type-ch {
+  from {
+    color: color-mix(in oklab, currentColor 8%, transparent);
+  }
+}
+@keyframes type-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes type-caret-end {
+  0%,
+  25%,
+  50%,
+  75% {
+    opacity: 1;
+  }
+  12.5%,
+  37.5%,
+  62.5%,
+  87.5%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .type-ch,
+  .type-ch::after {
+    animation: none;
   }
 }

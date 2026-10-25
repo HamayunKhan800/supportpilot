@@ -159,7 +159,8 @@ export function HeroLive() {
         <div
           className={cn(
             "grid grid-cols-1",
-            "h-[38rem]",
+            // One column (phones): taller, so the longest draft and its buttons fit at 360 px.
+            "h-[45rem] @min-[22rem]:h-[43rem] @min-[30rem]:h-[40rem] @min-[44rem]:h-[38rem]",
             "@min-[44rem]:grid-cols-[minmax(0,1fr)_14rem] @min-[56rem]:grid-cols-[17rem_minmax(0,1fr)_14rem] @min-[68rem]:grid-cols-[11rem_17.5rem_minmax(0,1fr)_14rem]",
           )}
         >
@@ -475,7 +476,7 @@ function DraftPanel({ state, act }: { state: HeroState; act: (a: HeroAction) => 
   }
 
   const header = (
-    <div className="flex items-center gap-2 border-b px-3 py-2">
+    <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
       <PenLine aria-hidden="true" className="text-muted-foreground size-3.5" />
       <span className="text-[13px] font-semibold">AI draft</span>
       {s.draft !== "none" && s.draft !== "refused" && (
@@ -533,9 +534,11 @@ function DraftPanel({ state, act }: { state: HeroState; act: (a: HeroAction) => 
   const total = tokenCount(t.draft);
   const ready = s.draft === "ready";
   return (
-    <div className="flex min-h-0 flex-col rounded-lg border">
+    // The card holds its own text: if space runs short (large text settings), the body scrolls
+    // inside the border instead of spilling past it.
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">
       {header}
-      <div className="flex min-h-0 flex-col gap-3 p-3">
+      <div className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain p-3">
         {ready && (
           <ul className="flex flex-wrap gap-1.5">
             {[

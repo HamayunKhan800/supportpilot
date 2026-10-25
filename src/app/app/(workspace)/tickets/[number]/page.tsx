@@ -1,5 +1,4 @@
 import { ChevronDown, ChevronUp, Lock } from "lucide-react";
-import { LinkPending } from "@/components/link-pending";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -311,7 +310,6 @@ function QueueColumn({
                     <Age date={i.createdAt} now={now} />
                   </span>
                 </span>
-                <LinkPending />
               </Link>
             </li>
           );
