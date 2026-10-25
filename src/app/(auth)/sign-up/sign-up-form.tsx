@@ -8,10 +8,11 @@ import { emailError, nameError } from "@/components/form-checks";
 import { PasswordField } from "@/components/password-field";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
+import type { AuthFeatures } from "@/server/platform/auth/features";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/server/platform/auth/policy";
 import { useProgressRouter } from "@/lib/use-progress-router";
 
-export function SignUpForm({ next }: { next: string }) {
+export function SignUpForm({ next, features }: { next: string; features: AuthFeatures }) {
   const router = useProgressRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -24,9 +25,10 @@ export function SignUpForm({ next }: { next: string }) {
     setError("");
     setPending(true);
     const form = new FormData(e.currentTarget);
+    const email = String(form.get("email")).trim();
     const { error: err } = await authClient.signUp.email({
       name: String(form.get("name")).trim(),
-      email: String(form.get("email")).trim(),
+      email,
       password: String(form.get("password")),
     });
     setPending(false);
@@ -35,9 +37,10 @@ export function SignUpForm({ next }: { next: string }) {
       return;
     }
     // Same response whether or not the email already had an account (enumeration protection).
-    const params = new URLSearchParams({ registered: "1" });
+    // With email on, the next step is the code; the owner of a taken address gets a notice.
+    const params = new URLSearchParams(features.email ? { email } : { registered: "1" });
     if (next !== "/app") params.set("next", next);
-    router.push(`/sign-in?${params}`);
+    router.push(`${features.email ? "/verify-email" : "/sign-in"}?${params}`);
   }
 
   return (

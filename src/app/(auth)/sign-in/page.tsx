@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: "Sign in" };
 /** Messages other pages can ask for with ?notice=… (fixed texts, never echoed from the URL). */
 const NOTICES: Record<string, string> = {
   "password-reset": "Password changed. Please sign in with your new password.",
+  "email-verified": "Email confirmed. Please sign in.",
 };
 
 export default async function SignInPage({ searchParams }: PageProps<"/sign-in">) {

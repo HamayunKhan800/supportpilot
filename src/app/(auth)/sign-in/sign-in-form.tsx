@@ -35,6 +35,13 @@ export function SignInForm({
       email: String(form.get("email")),
       password: String(form.get("password")),
     });
+    if (err?.code === "EMAIL_NOT_VERIFIED") {
+      // The password was right; the server has just emailed a fresh code.
+      const params = new URLSearchParams({ email: String(form.get("email")).trim(), from: "sign-in" });
+      if (next !== "/app") params.set("next", next);
+      router.push(`/verify-email?${params}`);
+      return;
+    }
     if (err) {
       setPending(false);
       setError(authErrorMessage(err));

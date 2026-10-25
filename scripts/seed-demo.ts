@@ -7,10 +7,12 @@
  * Idempotent: existing users and the workspace are reused, and tickets and articles are
  * only added to a workspace that has none. The password is never stored
  * in the repository. Refuses to run in production unless ALLOW_DEMO_SEED=true.
+ * The demo accounts are marked as having a verified email (they can't receive mail).
  */
-import { eq } from "drizzle-orm";
-import { getAuth } from "../src/server/platform/auth";
+import { eq, inArray } from "drizzle-orm";
+import { createAuth } from "../src/server/platform/auth/auth";
 import { getDb } from "../src/server/platform/db/client";
+import { getEnv } from "../src/server/platform/env";
 import { member, organization, user } from "../src/server/platform/db/schema";
 import { PASSWORD_MIN_LENGTH } from "../src/server/platform/auth/policy";
 import { seedDemoTickets } from "../src/server/modules/tickets/demo/seed";
@@ -33,7 +35,8 @@ async function main() {
   if (!password || password.length < PASSWORD_MIN_LENGTH) {
     throw new Error(`Set DEMO_PASSWORD (at least ${PASSWORD_MIN_LENGTH} characters)`);
   }
-  const auth = getAuth();
+  // Email off for the seed: the demo addresses can't receive mail, so no codes are sent.
+  const auth = createAuth(getDb().db, getEnv(), { email: null });
   const { db, pool } = getDb();
 
   const ids: Record<string, string> = {};
@@ -46,6 +49,18 @@ async function main() {
     const res = await auth.api.signUpEmail({ body: { name: u.name, email: u.email, password } });
     ids[u.role] = res.user.id;
   }
+
+  // The demo accounts are marked verified so they can sign in when email verification is on.
+  // Repeatable, so it also fixes databases seeded before verification existed.
+  await db
+    .update(user)
+    .set({ emailVerified: true })
+    .where(
+      inArray(
+        user.email,
+        USERS.map((u) => u.email),
+      ),
+    );
 
   let [org] = await db.select().from(organization).where(eq(organization.slug, WORKSPACE.slug));
   if (!org) {

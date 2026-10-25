@@ -2,13 +2,18 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { haveIBeenPwned, organization } from "better-auth/plugins";
+import { emailOTP, haveIBeenPwned, organization } from "better-auth/plugins";
 import type { Database } from "../db/client";
 import { createEmailSender, type EmailSender, sendInBackground } from "../email";
 import * as schema from "../db/schema";
 import type { Env } from "../env";
 import { logger } from "../logger";
-import { passwordChangedEmail, resetPasswordEmail } from "./account-emails";
+import {
+  passwordChangedEmail,
+  resetPasswordEmail,
+  signUpAttemptEmail,
+  verificationCodeEmail,
+} from "./account-emails";
 import { auditEventFromAuthResponse, memberEvent, recordAuditEvent } from "./audit";
 import { ac, INVITABLE_ROLES, roles } from "./permissions";
 import {
@@ -19,6 +24,9 @@ import {
   RESET_PASSWORD_EXPIRES_IN_SECONDS,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
+  VERIFICATION_CODE_ATTEMPTS,
+  VERIFICATION_CODE_EXPIRES_IN_SECONDS,
+  VERIFICATION_CODE_LENGTH,
   validateWorkspaceName,
   validateWorkspaceSlug,
 } from "./policy";
@@ -84,6 +92,14 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       minPasswordLength: PASSWORD_MIN_LENGTH,
       maxPasswordLength: PASSWORD_MAX_LENGTH,
       revokeSessionsOnPasswordReset: true,
+      // With email on, an account must confirm its address with a code before it can sign in.
+      // Sign-up still answers the same for a taken email (T3); that owner gets a notice instead.
+      requireEmailVerification: Boolean(email),
+      ...(email && {
+        onExistingUserSignUp: async ({ user }) => {
+          sendInBackground(email, signUpAttemptEmail(user.email, signInUrl), "sign-up-attempt");
+        },
+      }),
       // Password reset by email link (OWASP Forgot Password Cheat Sheet): only when email is on.
       // The response is the same whether or not the account exists, and sending isn't awaited.
       resetPasswordTokenExpiresIn: RESET_PASSWORD_EXPIRES_IN_SECONDS,
@@ -97,8 +113,24 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
         },
       }),
     },
-    // Reset tokens (and later verification codes) are stored hashed, not as plain text.
+    // A code is sent on sign-up and again whenever an unverified account signs in with the right
+    // password (the Email OTP plugin replaces the default link with a code). No auto sign-in.
+    emailVerification: { sendOnSignUp: true, sendOnSignIn: true, autoSignInAfterVerification: false },
+    // Reset tokens and the like are stored hashed, not as plain text.
     verification: { storeIdentifier: "hashed" },
+    // Endpoints this app never uses, closed so they can't be called directly: link-based
+    // verification (codes replace it) and the Email OTP plugin's sign-in, reset and email change.
+    disabledPaths: [
+      "/send-verification-email",
+      "/verify-email",
+      "/sign-in/email-otp",
+      "/forget-password/email-otp",
+      "/email-otp/request-password-reset",
+      "/email-otp/reset-password",
+      "/email-otp/request-email-change",
+      "/email-otp/change-email",
+      "/email-otp/check-verification-otp",
+    ],
     socialProviders: github ? { github } : {},
 
     session: {
@@ -130,6 +162,10 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
         if (ctx.path === "/change-password") {
           return { context: { ...ctx, body: { ...ctx.body, revokeOtherSessions: true } } };
         }
+        // Codes are only for confirming an email address; other code types are turned off.
+        if (ctx.path === "/email-otp/send-verification-otp" && ctx.body?.type !== "email-verification") {
+          throw new APIError("BAD_REQUEST", { message: "Only email verification codes can be sent." });
+        }
       }),
       after: createAuthMiddleware(async (ctx) => {
         const returned = ctx.context.returned;
@@ -145,6 +181,11 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
           return;
         }
         if (failed) return;
+
+        if (ctx.path === "/email-otp/verify-email") {
+          logger.info({ event: "auth.email_verified" }, "email verified");
+          return;
+        }
 
         // Tell the owner when their password changes (OWASP), reset or not.
         if (ctx.path === "/change-password" && email) {
@@ -211,6 +252,22 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
           },
         },
       }),
+      ...(email
+        ? [
+            emailOTP({
+              overrideDefaultEmailVerification: true,
+              otpLength: VERIFICATION_CODE_LENGTH,
+              expiresIn: VERIFICATION_CODE_EXPIRES_IN_SECONDS,
+              allowedAttempts: VERIFICATION_CODE_ATTEMPTS,
+              storeOTP: "hashed",
+              disableSignUp: true,
+              sendVerificationOTP: async ({ email: to, otp, type }) => {
+                if (type !== "email-verification") return;
+                sendInBackground(email, verificationCodeEmail(to, otp), "verification-code");
+              },
+            }),
+          ]
+        : []),
       ...(env.AUTH_PASSWORD_BREACH_CHECK ? [haveIBeenPwned()] : []),
       nextCookies(), // must be last (docs: integrations/next)
     ],

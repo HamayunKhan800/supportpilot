@@ -1,6 +1,6 @@
 "use client";
 
-import { organizationClient } from "better-auth/client/plugins";
+import { emailOTPClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { ac, roles } from "@/server/platform/auth/permissions";
 
@@ -9,7 +9,7 @@ import { ac, roles } from "@/server/platform/auth/permissions";
  * rate limiting and CSRF/origin checks apply. `permissions` is pure data, safe to bundle.
  */
 export const authClient = createAuthClient({
-  plugins: [organizationClient({ ac, roles })],
+  plugins: [organizationClient({ ac, roles }), emailOTPClient()],
 });
 
 /** Plain-language messages for auth errors shown in forms. */
@@ -21,5 +21,8 @@ export function authErrorMessage(error: { status?: number; message?: string; cod
   }
   if (error.status === 401 && error.code === "INVALID_EMAIL_OR_PASSWORD")
     return "Incorrect email or password.";
+  if (error.code === "INVALID_OTP") return "That code isn't right. Check the newest email and try again.";
+  if (error.code === "OTP_EXPIRED") return "That code has expired. Send a new one.";
+  if (error.code === "TOO_MANY_ATTEMPTS") return "Too many wrong tries. Send a new code.";
   return error.message || "Something went wrong. Please try again.";
 }

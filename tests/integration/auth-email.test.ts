@@ -141,11 +141,109 @@ describe("with email off (no EMAIL_PROVIDER)", () => {
   it("offers no password reset and sends nothing", async () => {
     const off = createAuth(getDb().db, getEnv(), { email: null });
     await verifiedUser("reset-off@example.com");
+    await vi.waitFor(() => expect(readOutbox().length).toBeGreaterThan(0)); // its sign-up code
+    clearOutbox();
     const res = await new TestClient((req) => off.handler(req)).post("/request-password-reset", {
       email: "reset-off@example.com",
       redirectTo: "/reset-password",
     });
     expect(res.status).toBeGreaterThanOrEqual(400);
+    await new Promise((r) => setTimeout(r, 50));
     expect(readOutbox()).toHaveLength(0);
+  });
+});
+
+describe("email verification by 6-digit code", () => {
+  const codeIn = (text: string) => text.match(/\b(\d{6})\b/)?.[1];
+  const signUp = (email: string) =>
+    new TestClient(handler).post("/sign-up/email", { email, password: PASSWORD, name: "New" });
+  const verify = (email: string, otp: string) =>
+    new TestClient(handler).post("/email-otp/verify-email", { email, otp });
+
+  it("sends a code on sign-up; signing in needs it, and a wrong password never sends one", async () => {
+    const email = "verify-flow@example.com";
+    expect((await signUp(email)).status).toBe(200);
+    const first = await lastEmail(email);
+    expect(first.subject).toMatch(/^\d{6} is your SupportPilot verification code$/);
+    expect(first.text).toContain("10 minutes");
+
+    clearOutbox();
+    expect((await signIn(email, "x".repeat(20))).status).toBe(401); // same as an unknown email
+    await new Promise((r) => setTimeout(r, 50));
+    expect(readOutbox(email)).toHaveLength(0);
+
+    const blocked = await new TestClient(handler).post("/sign-in/email", { email, password: PASSWORD });
+    expect(blocked.status).toBe(403);
+    expect(blocked.json.code).toBe("EMAIL_NOT_VERIFIED");
+    const code = codeIn((await lastEmail(email)).text)!; // a fresh code on each sign-in attempt
+
+    const ok = await verify(email, code);
+    expect(ok.status).toBe(200);
+    expect(ok.headers.getSetCookie().some((c) => c.includes("session_token"))).toBe(false); // no auto sign-in
+    expect((await signIn(email)).status).toBe(200);
+  });
+
+  it("spends a code after 3 wrong tries", async () => {
+    const email = "verify-attempts@example.com";
+    await signUp(email);
+    const code = codeIn((await lastEmail(email)).text)!;
+    const wrong = code === "000000" ? "111111" : "000000";
+    for (let i = 0; i < 3; i++) expect((await verify(email, wrong)).status).toBe(400);
+    const late = await verify(email, code);
+    expect(late.status).toBeGreaterThanOrEqual(400);
+    expect((await signIn(email)).status).toBe(403);
+  });
+
+  it("stores codes hashed", async () => {
+    const email = "verify-hash@example.com";
+    await signUp(email);
+    const code = codeIn((await lastEmail(email)).text)!;
+    const rows = await getDb().db.select().from(verification);
+    for (const row of rows) {
+      expect(row.value).not.toContain(code);
+      expect(row.identifier).not.toContain(email);
+    }
+  });
+
+  it("answers a sign-up with a taken email the same way, and tells the owner instead (T3)", async () => {
+    const email = "verify-taken@example.com";
+    await verifiedUser(email);
+    clearOutbox();
+    const fresh = await signUp("verify-fresh@example.com");
+    const taken = await signUp(email);
+    expect(taken.status).toBe(fresh.status);
+    expect(Object.keys(taken.json).sort()).toEqual(Object.keys(fresh.json).sort());
+    const notice = await lastEmail(email);
+    expect(notice.subject).toBe("Someone tried to create a SupportPilot account with your email");
+    expect(codeIn(notice.text)).toBeUndefined();
+  });
+
+  it("'send a new code' says the same for an unknown email and sends nothing", async () => {
+    const known = "verify-resend@example.com";
+    await signUp(known);
+    clearOutbox();
+    const c = new TestClient(handler);
+    const a = await c.post("/email-otp/send-verification-otp", { email: known, type: "email-verification" });
+    const b = await c.post("/email-otp/send-verification-otp", {
+      email: "verify-nobody@example.com",
+      type: "email-verification",
+    });
+    expect(a.status).toBe(200);
+    expect(b.json).toEqual(a.json);
+    await lastEmail(known);
+    expect(readOutbox("verify-nobody@example.com")).toHaveLength(0);
+  });
+
+  it("only sends verification codes, and keeps the plugin's other endpoints closed", async () => {
+    const c = new TestClient(handler);
+    const signInCode = await c.post("/email-otp/send-verification-otp", {
+      email: "a@example.com",
+      type: "sign-in",
+    });
+    expect(signInCode.status).toBe(400);
+    for (const path of ["/sign-in/email-otp", "/email-otp/reset-password", "/forget-password/email-otp"]) {
+      expect((await c.post(path, { email: "a@example.com", otp: "123456" })).status).toBe(404);
+    }
+    expect((await c.get("/verify-email", { token: "x" })).status).toBe(404);
   });
 });
