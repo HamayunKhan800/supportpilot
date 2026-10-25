@@ -110,7 +110,11 @@ test("sections below the fold come into focus as they scroll into view", async (
   await expect(page.locator("html")).not.toHaveAttribute("data-reveal");
   const tile = page.locator("#guardrails li[data-reveal]").first();
   await expect(tile).not.toHaveAttribute("data-revealed");
-  await expect(tile).toHaveCSS("filter", /blur\(\d/);
+  // A real blur (not "blur(0px)"): a clipping ancestor with overflow: hidden would become the
+  // view timeline's scroller and leave everything sharp, which an earlier version missed.
+  const blurPx = () =>
+    tile.evaluate((el) => Number(/blur\(([\d.]+)px\)/.exec(getComputedStyle(el).filter)?.[1] ?? 0));
+  await expect.poll(blurPx).toBeGreaterThan(4);
   await expect(tile).toHaveCSS("opacity", "1");
   await tile.scrollIntoViewIfNeeded();
   await expect(tile).toHaveCSS("filter", /^(none|blur\(0px\))$/);
@@ -272,6 +276,10 @@ test.describe("the live sections", () => {
   test("the API sample switches between JSON, curl and TypeScript", async ({ page }) => {
     await page.goto("/");
     const tabs = page.getByRole("tablist", { name: "Code sample" });
+    // The sample sits in a scroll-focus block: after a jump scroll it settles 16 px up one frame
+    // later, so tap only once it has (a tap at the old spot would miss a 32 px tab).
+    await tabs.scrollIntoViewIfNeeded();
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await tabs.getByRole("tab", { name: "curl" }).click();
     await expect(page.locator("pre", { hasText: '-H "Content-Type: application/json"' })).toBeVisible();
     await tabs.getByRole("tab", { name: "TypeScript" }).click();

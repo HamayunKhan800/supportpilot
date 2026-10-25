@@ -728,6 +728,8 @@ main[data-route-busy="data"] :is([data-busy-dim], section:not(section section)) 
  * blurred and sharpens as it scrolls in, finishing 40% of a screen into view, so text is crisp
  * long before it reaches reading height. Tied to scroll position, run by the browser (no scroll
  * listeners). Only where supported and without reduced motion; elsewhere the timed reveal applies.
+ * Sections around [data-reveal] clip with overflow: clip, not hidden: overflow: hidden makes a
+ * scroll container, which would become the view timeline and leave everything sharp.
  */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {

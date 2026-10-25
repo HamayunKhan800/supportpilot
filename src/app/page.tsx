@@ -227,7 +227,7 @@ export default async function Home() {
         <section
           data-theme="dark"
           aria-labelledby="hero-heading"
-          className="land-band text-foreground relative -mt-14 overflow-hidden pt-14"
+          className="land-band text-foreground relative -mt-14 overflow-clip pt-14"
         >
           <div aria-hidden="true" className="land-grid pointer-events-none absolute inset-0" />
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
@@ -368,7 +368,7 @@ export default async function Home() {
           id="guardrails"
           data-theme="dark"
           aria-labelledby="guardrails-heading"
-          className="land-band text-foreground relative scroll-mt-14 overflow-hidden py-24 sm:py-32"
+          className="land-band text-foreground relative scroll-mt-14 overflow-clip py-24 sm:py-32"
         >
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
           <div className={cn(container, "relative")}>
@@ -535,7 +535,7 @@ export default async function Home() {
         <section
           data-theme="dark"
           aria-labelledby="start-heading"
-          className="land-band text-foreground relative overflow-hidden py-28 sm:py-36"
+          className="land-band text-foreground relative overflow-clip py-28 sm:py-36"
         >
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
           <HandoffMotif className="text-foreground/[0.12] pointer-events-none absolute top-1/2 -right-40 size-[44rem] -translate-y-1/2 sm:-right-24 lg:right-0" />
