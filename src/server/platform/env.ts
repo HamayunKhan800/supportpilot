@@ -252,7 +252,18 @@ export type Env = z.infer<typeof envSchema>;
  * never receives the web app's auth secrets (least privilege).
  */
 const workerEnvSchema = z
-  .object({ ...commonFields, ...databaseFields, ...aiFields, ...observabilityFields })
+  .object({
+    ...commonFields,
+    ...databaseFields,
+    ...aiFields,
+    ...observabilityFields,
+    /**
+     * How long running jobs may finish after a stop signal (unfinished ones are retried).
+     * Keep it below the host's shutdown deadline: Cloud Run allows 10 seconds, and the
+     * container launcher (scripts/start-container.ts) stops waiting at 9 (plan M8 D2).
+     */
+    WORKER_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
+  })
   .superRefine(refineAi)
   .transform(withAiDefault);
 

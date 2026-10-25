@@ -264,6 +264,16 @@ describe("worker and database settings (least privilege)", () => {
     expect(parseWorkerEnv({ ...DB, AI_PROVIDER: "gemini", GEMINI_API_KEY: "k" }).AI_PROVIDER).toBe("gemini");
   });
 
+  it("the worker's shutdown wait defaults to 30 s and can be lowered for Cloud Run (M8 D2)", () => {
+    expect(parseWorkerEnv(DB).WORKER_SHUTDOWN_TIMEOUT_MS).toBe(30_000);
+    expect(parseWorkerEnv({ ...DB, WORKER_SHUTDOWN_TIMEOUT_MS: "8000" }).WORKER_SHUTDOWN_TIMEOUT_MS).toBe(
+      8_000,
+    );
+    expect(issues(() => parseWorkerEnv({ ...DB, WORKER_SHUTDOWN_TIMEOUT_MS: "10" })).join()).toContain(
+      "WORKER_SHUTDOWN_TIMEOUT_MS",
+    );
+  });
+
   it("the worker still validates the database URL", () => {
     expect(issues(() => parseWorkerEnv({})).join()).toContain("DATABASE_URL");
   });

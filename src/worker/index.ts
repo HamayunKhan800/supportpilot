@@ -26,8 +26,6 @@ const pdfThreadUrl =
     ? new URL(`./${__SP_PDF_THREAD_FILE__}`, import.meta.url)
     : undefined;
 
-const SHUTDOWN_TIMEOUT_MS = 30_000;
-
 /**
  * Tracing first, then Sentry (Sentry's guide for an existing OpenTelemetry setup); each is off
  * unless configured (plan M6 D7, D9). Returns what shutdown must flush.
@@ -74,7 +72,7 @@ async function main(): Promise<void> {
     stopping = true;
     logger.info({ signal }, "worker stopping");
     // Graceful: running jobs may finish; unfinished ones are retried by another worker.
-    await boss.stop({ graceful: true, timeout: SHUTDOWN_TIMEOUT_MS });
+    await boss.stop({ graceful: true, timeout: env.WORKER_SHUTDOWN_TIMEOUT_MS });
     await getDb().pool.end();
     await observability.flush(); // last spans and error reports
     logger.info("worker stopped");

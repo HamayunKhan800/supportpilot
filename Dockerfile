@@ -50,8 +50,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 
-# Three commands, one image:
+# Four commands, one image:
 #   web (default):  node server.js
 #   worker:         node .build/worker.mjs   (run with --no-healthcheck: the check probes the web port)
+#   web + worker:   node .build/start.mjs    (one container runs both, e.g. Cloud Run scaled to zero; plan M8 D2)
 #   release step:   node .build/migrate.mjs  (SQL migrations + job queues, before new code serves traffic)
 CMD ["node", "server.js"]
