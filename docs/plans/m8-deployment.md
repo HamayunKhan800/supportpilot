@@ -1,6 +1,6 @@
 # M8 · Deployment and live demo: plan
 
-> Status: **draft, waiting for owner approval** · 2026-10-25 · No application code or cloud resources until approved.
+> Status: **approved by the owner 2026-10-25** (spend cap $5; domain name chosen before step 6).
 > Owner decisions so far: Google Cloud Run (option A), own domain, real Gemini on the free tier.
 
 ## Goal
@@ -87,8 +87,12 @@ No table changes. No new runtime dependencies.
 
 Multi-region, a paid database, CDN or Cloud Armor, two-factor sign-in (AR-007), a status page, load testing beyond a short smoke test.
 
-## Questions for the owner
+## Owner answers (2026-10-25)
 
-1. **Domain name.** Which name? (Check availability at Cloudflare. Buying a `.com` before 1 November saves about Rs 200 a year.)
-2. **Spend cap.** Start at $5 (about Rs 1,400) a month?
-3. Approve this plan as written?
+1. **Plan:** approved as written.
+2. **Spend cap:** $5 a month.
+3. **Domain name:** decided later (needed by step 6). Code reads the demo email domain from configuration, so step 2 does not wait for it.
+
+## Change log
+
+- 2026-10-25: drafted; alternatives (Vercel, DigitalOcean) recorded; approved.
