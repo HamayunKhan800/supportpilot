@@ -343,7 +343,7 @@ export function AiSettingsForm({ initial }: { initial: EditableSettings }) {
             Unsaved changes
           </span>
         )}
-        <Button type="submit" size="lg" className="h-10" disabled={pending}>
+        <Button type="submit" size="lg" className="h-10" pending={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>
         {dirty && !pending && (

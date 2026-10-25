@@ -1,6 +1,5 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { FormAlert } from "@/components/form-alert";
@@ -61,8 +60,7 @@ export function SignInForm({ next, registered }: { next: string; registered: boo
           <PasswordField autoComplete="current-password" />
         </div>
         <div className="mt-6 flex flex-col gap-4">
-          <Button type="submit" size="lg" className="h-10 w-full" disabled={pending}>
-            {pending && <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}
+          <Button type="submit" size="lg" className="h-10 w-full" pending={pending}>
             {pending ? "Signing in…" : "Sign in"}
           </Button>
           <p className="text-muted-foreground text-sm">

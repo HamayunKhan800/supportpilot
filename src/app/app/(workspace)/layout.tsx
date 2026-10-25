@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { RouteBusy } from "@/components/route-busy";
 import type { NavItem } from "@/lib/navigation";
 import { parseSidebarCollapsed, SIDEBAR_COOKIE } from "@/lib/sidebar";
 import { parseThemePreference, THEME_COOKIE } from "@/lib/theme";
@@ -124,9 +125,10 @@ export default async function WorkspaceLayout({ children }: LayoutProps<"/app">)
           <MobileHeader {...shell} />
           <main
             id="main"
-            className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 has-[[data-wide]]:max-w-7xl sm:px-6 lg:px-10 has-[[data-wide=xl]]:2xl:max-w-[100rem]"
+            className="relative mx-auto w-full max-w-5xl flex-1 px-4 py-8 has-[[data-wide]]:max-w-7xl sm:px-6 lg:px-10 has-[[data-wide=xl]]:2xl:max-w-[100rem]"
           >
             {children}
+            <RouteBusy />
           </main>
         </div>
       </div>

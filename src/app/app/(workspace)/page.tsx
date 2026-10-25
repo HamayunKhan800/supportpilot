@@ -1,4 +1,5 @@
 import { ArrowRight, ExternalLink, Inbox, PenLine } from "lucide-react";
+import { LinkPending } from "@/components/link-pending";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -169,7 +170,10 @@ export default async function OverviewPage() {
           ) : (
             <ul className="divide-y border-y">
               {recent.items.map((t) => (
-                <li key={t.id} className="hover:bg-muted/50 relative flex items-center gap-3 px-2 py-3">
+                <li
+                  key={t.id}
+                  className="hover:bg-muted/50 active:bg-muted relative flex items-center gap-3 px-2 py-3 transition-colors duration-150"
+                >
                   <StatusIcon status={t.status} className="size-4 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <Link
@@ -180,6 +184,7 @@ export default async function OverviewPage() {
                         #{t.number}
                       </span>
                       {t.subject}
+                      <LinkPending />
                     </Link>
                     <p className="text-muted-foreground truncate text-xs">{t.customerName}</p>
                   </div>
@@ -312,7 +317,7 @@ function Figure({
   attention?: boolean;
 }) {
   return (
-    <div className="hover:bg-muted/40 relative -mx-2 flex flex-col gap-0.5 rounded-md px-2 py-3 first:pt-0 lg:first:pt-3">
+    <div className="hover:bg-muted/40 active:bg-muted/70 relative -mx-2 flex flex-col gap-0.5 rounded-md px-2 py-3 transition-colors duration-150 first:pt-0 lg:first:pt-3">
       <dt className="text-muted-foreground flex items-center gap-2 text-sm">
         {attention && <span aria-hidden="true" className="bg-warning size-2 shrink-0 rounded-full" />}
         {label}
@@ -324,6 +329,7 @@ function Figure({
         >
           {value}
           <span className="sr-only"> {srSuffix}</span>
+          <LinkPending />
         </Link>
       </dd>
       <dd className="text-muted-foreground text-xs">{note}</dd>

@@ -2,6 +2,7 @@
 
 import { RotateCcw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
+import { useTransition } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 /**
@@ -12,6 +13,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 export default function WorkspaceError({ error, retry }: { error: unknown; retry: () => void }) {
   // Server errors arrive as an Error with a digest that matches the server logs.
   const digest = error instanceof Error && "digest" in error ? String(error.digest) : "";
+  // retry() re-fetches the page inside a transition: the button shows it is working until then.
+  const [retrying, startRetry] = useTransition();
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
       <span className="bg-danger-subtle text-danger-strong inline-flex size-10 items-center justify-center rounded-full">
@@ -23,9 +26,9 @@ export default function WorkspaceError({ error, retry }: { error: unknown; retry
         {digest && <span className="mt-1 block">Reference: {digest}</span>}
       </p>
       <div className="flex flex-wrap justify-center gap-2 pt-1">
-        <Button size="lg" className="h-10" onClick={() => retry()}>
+        <Button size="lg" className="h-10" pending={retrying} onClick={() => startRetry(() => retry())}>
           <RotateCcw aria-hidden="true" />
-          Try again
+          {retrying ? "Trying again…" : "Try again"}
         </Button>
         <Link href="/app" className={buttonVariants({ variant: "outline", size: "lg", className: "h-10" })}>
           Go to Overview

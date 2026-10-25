@@ -1,4 +1,5 @@
 import { BookOpen, FileText, FileType, Search } from "lucide-react";
+import { LinkPending } from "@/components/link-pending";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -96,7 +97,7 @@ export default async function KnowledgePage({ searchParams }: PageProps<"/app/kn
               return (
                 <li
                   key={d.id}
-                  className="hover:bg-muted/50 relative flex items-start gap-3 px-4 py-3 sm:items-center"
+                  className="hover:bg-muted/50 active:bg-muted relative flex items-start gap-3 px-4 py-3 transition-colors duration-150 sm:items-center"
                 >
                   <Icon aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0 sm:mt-0" />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -105,6 +106,7 @@ export default async function KnowledgePage({ searchParams }: PageProps<"/app/kn
                       className="truncate text-sm font-medium after:absolute after:inset-0 hover:underline"
                     >
                       {d.title}
+                      <LinkPending />
                     </Link>
                     <span className="text-muted-foreground truncate text-xs">
                       {typeLabel(d.mimeType)} · {formatBytes(d.sizeBytes)}

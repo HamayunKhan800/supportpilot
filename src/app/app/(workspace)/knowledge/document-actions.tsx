@@ -62,7 +62,13 @@ export function DocumentActions({ id, title, canRetry }: { id: string; title: st
             Delete “{title}”? Its passages stop appearing in search immediately. This cannot be undone.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button ref={confirmRef} variant="destructive" onClick={remove} disabled={pending !== null}>
+            <Button
+              ref={confirmRef}
+              variant="destructive"
+              onClick={remove}
+              disabled={pending !== null}
+              pending={pending === "delete"}
+            >
               <Trash2 aria-hidden="true" />
               {pending === "delete" ? "Deleting…" : "Yes, delete"}
             </Button>
@@ -74,7 +80,7 @@ export function DocumentActions({ id, title, canRetry }: { id: string; title: st
       ) : (
         <div className="flex flex-wrap gap-2">
           {canRetry && (
-            <Button onClick={retry} disabled={pending !== null}>
+            <Button onClick={retry} disabled={pending !== null} pending={pending === "retry"}>
               <RotateCw aria-hidden="true" />
               {pending === "retry" ? "Retrying…" : "Retry processing"}
             </Button>

@@ -110,7 +110,7 @@ export function DraftFeedback({ draft, onSaved }: { draft: ApiDraft; onSaved: (d
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" size="sm" disabled={pending}>
+            <Button type="submit" size="sm" pending={pending}>
               Send feedback
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => setAskReason(false)}>

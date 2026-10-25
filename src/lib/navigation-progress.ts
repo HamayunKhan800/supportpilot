@@ -20,14 +20,21 @@ export const FINISH_MS = 320;
 export const GIVE_UP_MS = 15_000;
 
 let state: NavigationState = "idle";
+/** Where the page change in progress is going (path and query), or "" when none. */
+let target = "";
 let startedAt = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<Listener>();
 
+function notify() {
+  for (const listener of listeners) listener();
+}
+
 function set(next: NavigationState) {
   if (state === next) return;
   state = next;
-  for (const listener of listeners) listener();
+  if (next !== "loading") target = "";
+  notify();
 }
 
 function schedule(fn: () => void, ms: number) {
@@ -44,13 +51,28 @@ export function getNavigationState(): NavigationState {
   return state;
 }
 
+/** The destination of the page change in progress ("/app/tickets?view=open"), or "". */
+export function getNavigationTarget(): string {
+  return target;
+}
+
+export function getServerNavigationTarget(): string {
+  return "";
+}
+
 /** Always idle on the server: nothing is loading during the first render. */
 export function getServerNavigationState(): NavigationState {
   return "idle";
 }
 
-function begin() {
+function begin(to: URL) {
   if (state !== "loading") startedAt = Date.now();
+  const next = to.pathname + to.search;
+  if (state === "loading" && target !== next) {
+    target = next;
+    notify();
+  }
+  target = next;
   set("loading");
   schedule(finishNavigation, GIVE_UP_MS);
 }
@@ -69,7 +91,8 @@ export function isTrackedNavigation(target: URL, current: URL): boolean {
 export function startNavigation(href: string): void {
   if (typeof window === "undefined") return;
   const current = new URL(window.location.href);
-  if (isTrackedNavigation(new URL(href, current), current)) begin();
+  const to = new URL(href, current);
+  if (isTrackedNavigation(to, current)) begin(to);
 }
 
 /** The new page has landed. Fast changes end silently; slower ones fill and fade the bar. */
@@ -88,6 +111,7 @@ export function finishNavigation(): void {
 export function resetNavigationProgressForTests(): void {
   clearTimeout(timer);
   state = "idle";
+  target = "";
   startedAt = 0;
   listeners.clear();
 }

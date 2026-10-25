@@ -23,8 +23,12 @@ export function NavigationProgress() {
   const pathname = usePathname();
   const search = useSearchParams().toString();
 
-  // Detect link clicks and GET form submits. Capture phase: Next's <Link> calls
+  // Detect link clicks and GET form submits. Clicks in the capture phase: Next's <Link> calls
   // preventDefault() in its own handler, so the native default can't be used as a signal.
+  // Submits in the bubble phase, after the page's own handlers: a form whose script takes over
+  // (preventDefault) either stays on the page (knowledge search) or navigates through
+  // useProgressRouter, which reports itself. Tracking those here would leave the bar, and the
+  // busy state, running until the give-up timer.
   useEffect(() => {
     function onClick(event: MouseEvent) {
       const anchor = (event.target as Element | null)?.closest?.("a[href]");
@@ -34,6 +38,7 @@ export function NavigationProgress() {
     }
     function onSubmit(event: SubmitEvent) {
       const form = event.target;
+      if (event.defaultPrevented) return;
       if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== "get") return;
       if (form.target && form.target !== "_self") return;
       const target = new URL(form.action, window.location.href);
@@ -45,10 +50,10 @@ export function NavigationProgress() {
       if (isTrackedNavigation(target, new URL(window.location.href))) startNavigation(target.href);
     }
     window.addEventListener("click", onClick, { capture: true });
-    window.addEventListener("submit", onSubmit, { capture: true });
+    window.addEventListener("submit", onSubmit);
     return () => {
       window.removeEventListener("click", onClick, { capture: true });
-      window.removeEventListener("submit", onSubmit, { capture: true });
+      window.removeEventListener("submit", onSubmit);
     };
   }, []);
 

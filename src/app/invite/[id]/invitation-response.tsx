@@ -16,7 +16,7 @@ export function InvitationResponse({
   const router = useProgressRouter();
   const [error, setError] = useState("");
   const [declined, setDeclined] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<null | "accept" | "decline">(null);
 
   if (declined) return <FormAlert message="Invitation declined." tone="success" />;
 
@@ -26,12 +26,13 @@ export function InvitationResponse({
       <div className="flex gap-2">
         <Button
           size="lg"
-          disabled={pending}
+          disabled={pending !== null}
+          pending={pending === "accept"}
           onClick={async () => {
-            setPending(true);
+            setPending("accept");
             const { error: err } = await authClient.organization.acceptInvitation({ invitationId });
             if (err) {
-              setPending(false);
+              setPending(null);
               setError(authErrorMessage(err));
               return;
             }
@@ -40,21 +41,22 @@ export function InvitationResponse({
             router.refresh();
           }}
         >
-          Accept invitation
+          {pending === "accept" ? "Accepting…" : "Accept invitation"}
         </Button>
         <Button
           size="lg"
           variant="outline"
-          disabled={pending}
+          disabled={pending !== null}
+          pending={pending === "decline"}
           onClick={async () => {
-            setPending(true);
+            setPending("decline");
             const { error: err } = await authClient.organization.rejectInvitation({ invitationId });
-            setPending(false);
+            setPending(null);
             if (err) setError(authErrorMessage(err));
             else setDeclined(true);
           }}
         >
-          Decline
+          {pending === "decline" ? "Declining…" : "Decline"}
         </Button>
       </div>
     </div>

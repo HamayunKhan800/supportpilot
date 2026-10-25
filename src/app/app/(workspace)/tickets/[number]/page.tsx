@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { LinkPending } from "@/components/link-pending";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -296,7 +297,7 @@ function QueueColumn({
                 href={ticketHref(i.number, queue)}
                 aria-current={here ? "page" : undefined}
                 className={cn(
-                  "hover:bg-muted/60 focus-visible:ring-ring flex gap-2 px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
+                  "hover:bg-muted/60 active:bg-muted focus-visible:ring-ring relative flex gap-2 px-3 py-2.5 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
                   here && "bg-muted",
                 )}
               >
@@ -310,6 +311,7 @@ function QueueColumn({
                     <Age date={i.createdAt} now={now} />
                   </span>
                 </span>
+                <LinkPending />
               </Link>
             </li>
           );

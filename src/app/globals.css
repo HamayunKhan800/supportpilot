@@ -602,3 +602,82 @@ html[data-menu-open] .landing-header {
     animation: none;
   }
 }
+
+/*
+ * A row, tile or card whose page is loading (link-pending.tsx): a thin line moves along its
+ * bottom edge, after 120 ms. Reduced motion: the line stands still.
+ */
+.link-pending {
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  animation: link-pending-in 150ms ease-out 120ms both;
+}
+.link-pending::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: var(--foreground);
+  opacity: 0.55;
+  animation: link-pending-run 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes link-pending-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes link-pending-run {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 290% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-pending {
+    animation: link-pending-in 0s 120ms both;
+  }
+  .link-pending::before {
+    width: 100%;
+    opacity: 0.35;
+    animation: none;
+  }
+}
+
+/*
+ * Page changes inside the workspace (route-busy.tsx). Another page: after 300 ms a skeleton of it
+ * covers the old one (above the sticky page bar, below the phone header). Same page, new query:
+ * the page's sections (and anything marked data-busy-dim) dim a little after 200 ms and come back
+ * at once; filters and search fields are not sections, so what you type never dims.
+ */
+.route-skeleton[data-show] {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  overflow: hidden;
+  padding: inherit;
+  background: var(--background);
+  animation: route-skeleton-in 150ms ease-out 300ms both;
+}
+@keyframes route-skeleton-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-skeleton[data-show] {
+    animation: route-skeleton-in 0s 300ms both;
+  }
+}
+main :is([data-busy-dim], section) {
+  transition: opacity 150ms ease-out;
+}
+main[data-route-busy="data"] :is([data-busy-dim], section:not(section section)) {
+  opacity: 0.55;
+  transition-delay: 200ms;
+}
+

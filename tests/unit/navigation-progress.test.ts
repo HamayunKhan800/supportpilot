@@ -3,7 +3,9 @@ import {
   FINISH_MS,
   finishNavigation,
   getNavigationState,
+  getNavigationTarget,
   getServerNavigationState,
+  getServerNavigationTarget,
   GIVE_UP_MS,
   isTrackedNavigation,
   resetNavigationProgressForTests,
@@ -70,6 +72,32 @@ describe("navigation progress store", () => {
   it("is idle on the server and before anything happens", () => {
     expect(getServerNavigationState()).toBe("idle");
     expect(getNavigationState()).toBe("idle");
+  });
+
+  it("knows where a page change is going, and forgets it when it ends", () => {
+    expect(getServerNavigationTarget()).toBe("");
+    expect(getNavigationTarget()).toBe("");
+    startNavigation("https://app.example/app/tickets/24?view=open#top");
+    expect(getNavigationTarget()).toBe("/app/tickets/24?view=open");
+    finishNavigation();
+    expect(getNavigationTarget()).toBe("");
+  });
+
+  it("follows a second click to another page while the first is still loading", () => {
+    const seen: string[] = [];
+    startNavigation("/app/tickets/24");
+    subscribeNavigation(() => seen.push(getNavigationTarget()));
+    startNavigation("/app/knowledge");
+    expect(getNavigationState()).toBe("loading");
+    expect(getNavigationTarget()).toBe("/app/knowledge");
+    expect(seen).toEqual(["/app/knowledge"]);
+  });
+
+  it("gives up after a while and forgets the target", () => {
+    startNavigation("/app/tickets/24");
+    vi.advanceTimersByTime(GIVE_UP_MS);
+    expect(getNavigationState()).not.toBe("loading");
+    expect(getNavigationTarget()).toBe("");
   });
 
   it("ignores a start for the page already open", () => {

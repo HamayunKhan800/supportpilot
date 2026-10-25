@@ -11,7 +11,7 @@ export function SignOutButton() {
   return (
     <Button
       variant="ghost"
-      disabled={pending}
+      pending={pending}
       onClick={async () => {
         setPending(true);
         await authClient.signOut();

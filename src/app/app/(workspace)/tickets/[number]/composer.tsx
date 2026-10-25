@@ -104,7 +104,7 @@ export function Composer({
           className={cn(internal && "border-warning-border bg-warning-subtle")}
         />
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="lg" disabled={pending}>
+          <Button type="submit" size="lg" pending={pending}>
             {pending ? "Saving…" : internal ? "Add internal note" : "Send reply"}
           </Button>
           <p role="status" className="text-success-strong text-sm">

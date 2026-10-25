@@ -77,7 +77,7 @@ export function InviteForm() {
             ))}
           </select>
         </div>
-        <Button type="submit" size="lg" className="h-10" disabled={pending}>
+        <Button type="submit" size="lg" className="h-10" pending={pending}>
           {pending ? "Inviting…" : "Create invite link"}
         </Button>
       </form>

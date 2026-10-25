@@ -243,6 +243,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
           onClick={send}
           onBlur={() => setHint("")}
           disabled={pending !== null}
+          pending={pending === "send"}
         >
           <Send aria-hidden="true" />
           {pending === "send" ? "Sending…" : "Approve & send"}
@@ -278,6 +279,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
             setConfirmRegenerate(false);
           }}
           disabled={pending !== null}
+          pending={pending === "regenerate"}
         >
           <RefreshCw aria-hidden="true" />
           {pending === "regenerate"
@@ -295,6 +297,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
           variant="ghost"
           onClick={discard}
           disabled={pending !== null}
+          pending={pending === "discard"}
           className="sm:ml-auto"
         >
           <X aria-hidden="true" />

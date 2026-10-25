@@ -140,7 +140,7 @@ export function SearchPanel({ floor }: { floor: Floor }) {
           error={fieldError}
         />
         <div>
-          <Button type="submit" size="lg" className="h-10" disabled={pending}>
+          <Button type="submit" size="lg" className="h-10" pending={pending}>
             {pending ? "Searching…" : "Search"}
           </Button>
         </div>

@@ -36,7 +36,7 @@ export function AcceptSuggestion({ ticketId, version }: { ticketId: string; vers
           Load latest version
         </Button>
       ) : (
-        <Button type="button" onClick={accept} disabled={pending}>
+        <Button type="button" onClick={accept} pending={pending}>
           {pending ? "Accepting…" : "Accept suggestion"}
         </Button>
       )}

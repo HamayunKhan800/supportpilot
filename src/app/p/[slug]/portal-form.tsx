@@ -134,7 +134,7 @@ export function PortalForm({ slug }: { slug: string }) {
             <p className="text-muted-foreground text-xs">
               Please don&apos;t include passwords, card numbers or other sensitive personal data.
             </p>
-            <Button type="submit" size="lg" className="h-10 shrink-0 px-4" disabled={pending}>
+            <Button type="submit" size="lg" className="h-10 shrink-0 px-4" pending={pending}>
               {pending ? "Sending…" : "Send request"}
             </Button>
           </div>

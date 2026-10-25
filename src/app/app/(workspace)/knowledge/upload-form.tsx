@@ -173,7 +173,7 @@ export function UploadForm() {
               </p>
             )}
           </div>
-          <Button type="submit" size="lg" className="h-10 sm:mt-6 sm:self-start" disabled={pending}>
+          <Button type="submit" size="lg" className="h-10 sm:mt-6 sm:self-start" pending={pending}>
             <Upload aria-hidden="true" />
             {pending ? "Uploading…" : "Upload"}
           </Button>

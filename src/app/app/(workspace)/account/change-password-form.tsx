@@ -54,7 +54,7 @@ export function ChangePasswordForm() {
         maxLength={PASSWORD_MAX_LENGTH}
         hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
       />
-      <Button type="submit" size="lg" className="h-10 self-start" disabled={pending}>
+      <Button type="submit" size="lg" className="h-10 self-start" pending={pending}>
         {pending ? "Saving…" : "Change password"}
       </Button>
     </form>

@@ -85,7 +85,7 @@ export function CreateWorkspaceForm({ userName, hasWorkspace }: { userName: stri
             setSlug(e.target.value);
           }}
         />
-        <Button type="submit" size="lg" className="h-10" disabled={pending}>
+        <Button type="submit" size="lg" className="h-10" pending={pending}>
           {pending ? "Creating…" : "Create workspace"}
         </Button>
       </form>

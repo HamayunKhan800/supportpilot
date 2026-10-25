@@ -88,6 +88,7 @@ export function VerdictForm(props: Props) {
           className="h-12 text-base"
           aria-pressed={props.verdict === "agree"}
           disabled={saving !== null}
+          pending={saving === "agree"}
           onClick={() => answer("agree")}
         >
           <Check aria-hidden="true" /> {saving === "agree" ? "Saving…" : props.agreeLabel}
@@ -99,6 +100,7 @@ export function VerdictForm(props: Props) {
           className="h-12 text-base"
           aria-pressed={props.verdict === "disagree"}
           disabled={saving !== null}
+          pending={saving === "disagree"}
           onClick={() => answer("disagree")}
         >
           <X aria-hidden="true" /> {saving === "disagree" ? "Saving…" : props.disagreeLabel}
