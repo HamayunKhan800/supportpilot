@@ -207,11 +207,14 @@ export function RecentActivity({ entries, now }: { entries: readonly AuditEntry[
 export function WorkspaceLinks({
   kb,
   slug,
+  portalAddress,
   manage,
   writeKb,
 }: {
   kb: readonly KbDocument[];
   slug: string;
+  /** The portal's full address without https://, e.g. support.example.com/p/acme. */
+  portalAddress: string;
   /** The viewer can invite teammates. */
   manage: boolean;
   /** The viewer can add knowledge-base documents. */
@@ -243,10 +246,18 @@ export function WorkspaceLinks({
         </li>
         <li className="flex flex-col gap-1 py-3">
           <h3 className="font-medium">Customer portal</h3>
-          <p className="text-muted-foreground">Customers send requests here; they arrive in Tickets.</p>
-          <Link href={`/p/${slug}`} className={cn(quietLink, "text-foreground w-fit break-all underline")}>
-            /p/{slug}
+          <p className="text-muted-foreground">
+            Customers send requests here; they arrive in Tickets. Share this address with them:{" "}
+            <span className="text-foreground font-medium break-all">{portalAddress}</span>
+          </p>
+          <Link
+            href={`/p/${slug}`}
+            target="_blank"
+            className={cn(quietLink, "text-foreground w-fit underline")}
+          >
+            Open the customer portal
             <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
+            <span className="sr-only">(opens in a new tab)</span>
           </Link>
         </li>
         <li className="flex flex-col gap-1 py-3">

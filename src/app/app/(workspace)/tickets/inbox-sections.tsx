@@ -32,7 +32,7 @@ export function StatusTabs({
   tabCount: (t: TicketTab) => number;
 }) {
   return (
-    <nav aria-label="Ticket status" className="group/ind relative -mx-1 overflow-x-auto px-1">
+    <nav aria-label="Ticket status" className="group/ind relative -mx-1 scrollbar-none overflow-x-auto px-1">
       <SlidingIndicator variant="underline" className="bg-foreground" />
       <ul className="flex min-w-max gap-1 border-b">
         {TICKET_TABS.map((t) => {

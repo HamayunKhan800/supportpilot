@@ -11,6 +11,7 @@ import { listKbDocuments } from "@/server/modules/kb/service";
 import { getTicketCounts, listTicketsForAgent } from "@/server/modules/tickets/service";
 import { getAuditPage } from "@/server/modules/workspaces/service";
 import { can } from "@/server/platform/auth/permissions";
+import { getEnv } from "@/server/platform/env";
 import { LatestTickets, RecentActivity, TodayBand, WorkspaceLinks } from "./overview-sections";
 import { requireAppWorkspace } from "./workspace-context";
 
@@ -83,7 +84,13 @@ export default async function OverviewPage() {
 
         <div className="flex min-w-0 flex-col gap-10">
           {activity && <RecentActivity entries={activity.entries} now={now} />}
-          <WorkspaceLinks kb={kb.items} slug={ctx.workspace.slug} manage={manage} writeKb={writeKb} />
+          <WorkspaceLinks
+            kb={kb.items}
+            slug={ctx.workspace.slug}
+            portalAddress={`${new URL(getEnv().BETTER_AUTH_URL).host}/p/${ctx.workspace.slug}`}
+            manage={manage}
+            writeKb={writeKb}
+          />
         </div>
       </div>
     </div>

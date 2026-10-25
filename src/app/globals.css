@@ -450,6 +450,16 @@ html[data-theme="dark"] {
   }
 }
 
+/* Tab rows scroll sideways on narrow screens. The scrollbar is hidden: on Android it drew a second,
+   thicker grey line under the tabs. They still scroll by swiping, and keyboard focus scrolls a tab
+   into view; the cut-off last tab shows there is more. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Text fields and selects while editing: the border darkens to near-ink with a faint halo, in both
    themes and inside dark bands (colours are mixed from the element's own tokens). This is what
    Linear and Vercel do; a blue glow on every tap reads as the default shadcn look. The darkened

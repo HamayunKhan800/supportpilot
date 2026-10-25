@@ -217,7 +217,7 @@ export function TabNav({
   current: string;
 }) {
   return (
-    <nav aria-label={label} className="group/ind relative -mx-1 overflow-x-auto px-1">
+    <nav aria-label={label} className="group/ind relative -mx-1 scrollbar-none overflow-x-auto px-1">
       <SlidingIndicator variant="underline" className="bg-foreground" />
       <ul className="flex min-w-max gap-1 border-b">
         {tabs.map((t) => {
