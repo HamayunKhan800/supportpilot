@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { getAuthFeatures } from "@/server/platform/auth/features";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { VerifyEmailForm } from "./verify-email-form";
 
-export const metadata: Metadata = { title: "Check your email" };
+/** With email switched off the page is a 404, and the tab says so too. */
+export async function generateMetadata(): Promise<Metadata> {
+  await connection();
+  return { title: getAuthFeatures().email ? "Check your email" : "Page not found" };
+}
 
 /**
  * Where sign-up and an unverified sign-in land: enter the 6-digit code. The page looks the same

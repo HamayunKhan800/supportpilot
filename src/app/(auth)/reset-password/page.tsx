@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { getAuthFeatures } from "@/server/platform/auth/features";
 import { ResetPasswordForm } from "./reset-password-form";
 
-export const metadata: Metadata = { title: "Choose a new password" };
+/** With email switched off the page is a 404, and the tab says so too. */
+export async function generateMetadata(): Promise<Metadata> {
+  await connection();
+  return { title: getAuthFeatures().email ? "Choose a new password" : "Page not found" };
+}
 
 /**
  * The reset link (/api/auth/reset-password/<token>) checks the token and lands here with
