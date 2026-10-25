@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { setErrorReporter } from "@/server/platform/error-reporting";
 import { Errors } from "@/server/platform/errors";
 import { withRoute } from "@/server/platform/http";
+import { logger } from "@/server/platform/logger";
 
 const req = (headers: Record<string, string> = {}) =>
   new Request("http://localhost/api/v1/thing", { headers });
@@ -49,6 +50,25 @@ describe("withRoute", () => {
     const res = await handler(req());
     expect(res.status).toBe(500);
     expect(await res.text()).not.toContain("secret internal detail");
+  });
+
+  it("logs the error's cause, e.g. the database's reason under a query wrapper (M7-19)", async () => {
+    const error = vi.fn();
+    const child = vi
+      .spyOn(logger, "child")
+      .mockReturnValue({ error, warn: vi.fn(), info: vi.fn() } as unknown as ReturnType<typeof logger.child>);
+    try {
+      const handler = withRoute("t", async () => {
+        throw new Error("Failed query", {
+          cause: new Error("invalid byte sequence for encoding UTF8: 0x00"),
+        });
+      });
+      expect((await handler(req())).status).toBe(500);
+      const logged = error.mock.calls[0]![0] as { err: { cause?: { message: string } } };
+      expect(logged.err.cause?.message).toMatch(/invalid byte sequence/);
+    } finally {
+      child.mockRestore();
+    }
   });
 });
 

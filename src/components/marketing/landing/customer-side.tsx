@@ -162,6 +162,7 @@ export function CustomerSide() {
           </div>
         ) : (
           <form
+            method="post"
             ref={form}
             noValidate
             onSubmit={submit}

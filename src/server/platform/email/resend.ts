@@ -29,6 +29,8 @@ export function createResendSender(options: {
             text: message.text,
           }),
           signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+          // Fixed host: a redirect is never expected, so it fails instead of being followed (M7-16).
+          redirect: "error",
         });
       } catch {
         throw new EmailSendError("email provider unreachable or timed out");

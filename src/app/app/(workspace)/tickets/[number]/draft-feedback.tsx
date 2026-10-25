@@ -76,6 +76,7 @@ export function DraftFeedback({ draft, onSaved }: { draft: ApiDraft; onSaved: (d
       </div>
       {askReason && (
         <form
+          method="post"
           id={`${ids}-why`}
           className="flex flex-col gap-2"
           onSubmit={(e) => {

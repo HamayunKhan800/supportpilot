@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { getAuth } from "@/server/platform/auth";
 import { listAuditEvents } from "@/server/platform/auth/audit";
 import { getSessionContext, getWorkspaceContext, requireWorkspace } from "@/server/platform/auth/context";
 import { getDb } from "@/server/platform/db/client";
 import { invitation, member, session, workspaceSettings } from "@/server/platform/db/schema";
 import { AppError } from "@/server/platform/errors";
+import { logger } from "@/server/platform/logger";
 import { resetDatabase, signUpAndIn, type TestClient } from "./support/client";
 
 const handler = (req: Request) => getAuth().handler(req);
@@ -243,6 +244,29 @@ describe("role matrix enforced server-side (docs/01-requirements.md §2.1, T2)",
     await expect(requireWorkspace(agent.headers, { ticket: ["read"] })).resolves.toMatchObject({
       role: "agent",
     });
+  });
+
+  it("logs a refused permission with who, where and what, but no names or emails (M7-09)", async () => {
+    const warn = vi.spyOn(logger, "warn");
+    try {
+      await expect(requireWorkspace(agent.headers, { audit: ["read"] })).rejects.toMatchObject({
+        status: 403,
+      });
+      const entry = warn.mock.calls.find(
+        ([fields]) => (fields as { event?: string }).event === "authz.denied",
+      );
+      const agentId = (await getSessionContext(agent.headers))!.user.id;
+      expect(entry?.[0]).toEqual({
+        event: "authz.denied",
+        userId: agentId,
+        workspaceId: acmeId,
+        role: "agent",
+        permission: { audit: ["read"] },
+      });
+      expect(JSON.stringify(entry)).not.toContain("@");
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

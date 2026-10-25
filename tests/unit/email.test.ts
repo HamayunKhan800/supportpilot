@@ -44,6 +44,7 @@ describe("Resend sender", () => {
       text: "Body",
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect(init.redirect).toBe("error"); // never follows a redirect off the fixed host (M7-16)
   });
 
   it("reports a rejected message with the status only (the body can echo the address)", async () => {

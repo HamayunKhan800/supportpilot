@@ -98,6 +98,7 @@ export function UploadForm() {
           </span>
         </p>
         <form
+          method="post"
           ref={formRef}
           onSubmit={onSubmit}
           noValidate

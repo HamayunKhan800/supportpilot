@@ -767,6 +767,15 @@ describe("approving, discarding and rating (FR-AI5, FR-AI6)", () => {
 
     const bad = await call("rateDraft", { as: agent, params: { id: draft.id }, body: { rating: "meh" } });
     expect(bad.status).toBe(400);
+
+    // A NUL character used to reach Postgres and give 500 (ZAP active scan, M7-19).
+    const nul = await call("rateDraft", {
+      as: agent,
+      params: { id: draft.id },
+      body: { rating: "down", reason: "tone", note: "too\u0000 formal" },
+    });
+    expect(nul.status).toBe(200);
+    expect(nul.json.feedback.note).toBe("too formal");
   });
 
   it("a refused draft can be rated (e.g. it should have answered), but not one still being written", async () => {

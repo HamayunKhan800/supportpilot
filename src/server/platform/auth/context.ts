@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { member, organization } from "../db/schema";
 import { Errors } from "../errors";
+import { logger } from "../logger";
 import { getAuth } from ".";
 import { can, isRole, type Permission, type Role } from "./permissions";
 
@@ -83,11 +84,18 @@ export async function requireWorkspace(headers: Headers, permission?: Permission
   const session = await getSessionContext(headers);
   if (!session) throw Errors.unauthorized();
   const ctx = await getWorkspaceContext(headers);
-  if (!ctx) throw Errors.forbidden();
-  if (permission) authorize(ctx.role, permission);
+  if (!ctx) {
+    logAuthzDenied({ userId: session.user.id, reason: "no_workspace" });
+    throw Errors.forbidden();
+  }
+  if (permission && !can(ctx.role, permission)) {
+    logAuthzDenied({ userId: ctx.user.id, workspaceId: ctx.workspace.id, role: ctx.role, permission });
+    throw Errors.forbidden();
+  }
   return ctx;
 }
 
-export function authorize(role: string, permission: Permission): void {
-  if (!can(role, permission)) throw Errors.forbidden();
+/** Failed authorization, with who and what (M7-09, ASVS V16.3.2). IDs only, no names or emails. */
+function logAuthzDenied(fields: Record<string, unknown>): void {
+  logger.warn({ event: "authz.denied", ...fields }, "authorization denied");
 }

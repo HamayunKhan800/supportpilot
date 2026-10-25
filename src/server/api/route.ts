@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getEnv } from "@/server/platform/env";
 import { Errors } from "@/server/platform/errors";
 import { withRoute, type RouteContext } from "@/server/platform/http";
+import { stripNul, stripNulDeep } from "@/server/platform/text";
 import type { Operation } from "./operations";
 
 export const MAX_BODY_BYTES = 64 * 1024;
@@ -33,6 +34,7 @@ export const MULTIPART_ENVELOPE_BYTES = 64 * 1024;
  *   own origin (SameSite=Lax cookies and JSON-only bodies are the first layers)
  * - JSON bodies capped at 64 KB; file uploads (multipart) capped at the operation's file
  *   limit. Bodies are read incrementally and never buffered past the cap
+ * - NUL characters removed from JSON bodies and query strings (PostgreSQL rejects them, M7-19)
  * - params / query / body validated with the operation's Zod schemas
  *   (malformed path params are 404: they can't identify a resource)
  * - responses are never cached; tracking-token responses also send no Referer (T6)
@@ -56,7 +58,7 @@ export function apiRoute<P extends z.ZodType, Q extends z.ZodType, B extends z.Z
       if (op.method !== "GET") assertSameOrigin(req);
 
       const params = op.params ? parseParams(op.params, ctx.params ?? {}) : undefined;
-      const query = op.query ? op.query.parse(Object.fromEntries(new URL(req.url).searchParams)) : undefined;
+      const query = op.query ? op.query.parse(queryObject(req)) : undefined;
       const body = op.body ? op.body.parse(await readJson(req)) : undefined;
       const file = op.upload
         ? await readUploadedFile(req, op.upload.field, op.upload.maxFileBytes)
@@ -149,12 +151,18 @@ export async function readUploadedFile(
   return { name: value.name, bytes: Buffer.from(await value.arrayBuffer()) };
 }
 
+/** Query string as an object, NUL removed (the tickets route reads it the same way). */
+export function queryObject(req: Request): Record<string, string> {
+  const entries = [...new URL(req.url).searchParams].map(([k, v]) => [stripNul(k), stripNul(v)]);
+  return Object.fromEntries(entries);
+}
+
 export async function readJson(req: Request, maxBytes = MAX_BODY_BYTES): Promise<unknown> {
   const type = req.headers.get("content-type") ?? "";
   if (!/^application\/json\s*(;|$)/i.test(type)) throw Errors.unsupportedMediaType();
   const text = (await readBodyCapped(req, maxBytes, () => Errors.payloadTooLarge(maxBytes))).toString("utf8");
   try {
-    return JSON.parse(text);
+    return stripNulDeep(JSON.parse(text));
   } catch {
     throw Errors.badRequest("The request body is not valid JSON.");
   }

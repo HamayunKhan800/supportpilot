@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TICKET_PRIORITIES, TICKET_STATUSES } from "@/server/platform/db/schema";
+import { stripNul } from "@/server/platform/text";
 import { LIMITS, MIN } from "./limits";
 
 /**
@@ -7,11 +8,7 @@ import { LIMITS, MIN } from "./limits";
  * these, NFR-SEC3). Text is normalized before length checks: CRLF → LF, and NUL bytes
  * removed (PostgreSQL rejects \0 in text, which would otherwise surface as a 500).
  */
-const clean = (s: string) =>
-  s
-    .replace(/\r\n?/g, "\n")
-    .replace(/\u0000/g, "")
-    .trim();
+const clean = (s: string) => stripNul(s.replace(/\r\n?/g, "\n")).trim();
 const text = (min: number, max: number, label: string) =>
   z
     .string()
@@ -86,8 +83,8 @@ export const ticketListQuery = z.object({
     .describe('A member\'s user id, "me" or "unassigned".'),
   q: z
     .string()
-    .trim()
-    .max(LIMITS.query)
+    .transform((s) => stripNul(s).trim())
+    .pipe(z.string().max(LIMITS.query))
     .optional()
     .describe('Full-text search (websearch syntax, e.g. "refund -annual") or a ticket number like "#12".'),
   sort: z.enum(["newest", "oldest"]).default("newest"),

@@ -500,6 +500,13 @@ describe("request hygiene", () => {
     expect(res.status).toBe(415);
   });
 
+  it("removes NUL characters instead of failing with 500 (M7-19)", async () => {
+    const search = await call("listTickets", { as: owner, query: { q: "refund\u0000" } });
+    expect(search.status).toBe(200);
+    const key = await call("listTickets", { as: owner, query: { "q\u0000": "x", limit: "1" } });
+    expect(key.status).toBe(200);
+  });
+
   it("400 for malformed JSON", async () => {
     const res = await call("addCustomerReply", { params: { token }, raw: '{"message": ' });
     expect(res.status).toBe(400);

@@ -63,7 +63,7 @@ export function InviteForm() {
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={onSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">
           <FormField label="Email" name="email" type="email" autoComplete="off" required />
         </div>

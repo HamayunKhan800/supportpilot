@@ -55,7 +55,7 @@ export function CreateWorkspaceForm({ userName, hasWorkspace }: { userName: stri
           A workspace holds your team, tickets and help articles. You can invite teammates once it exists.
         </p>
       </div>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <FormAlert message={errors.form ?? ""} />
         <FormField
           label="Workspace name"

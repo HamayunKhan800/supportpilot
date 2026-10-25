@@ -59,7 +59,11 @@ export function withRoute<P = unknown>(name: string, handler: Handler<P>, option
   };
 }
 
-function serializeError(err: unknown) {
-  if (err instanceof Error) return { name: err.name, message: err.message, stack: err.stack };
+function serializeError(err: unknown, depth = 0): Record<string, unknown> {
+  if (err instanceof Error) {
+    // The cause holds the real reason, e.g. the database's error under a query wrapper (M7-19).
+    const cause = err.cause !== undefined && depth < 3 ? serializeError(err.cause, depth + 1) : undefined;
+    return { name: err.name, message: err.message, stack: err.stack, ...(cause && { cause }) };
+  }
   return { message: String(err) };
 }

@@ -5,7 +5,7 @@ import { createAccessControl } from "better-auth/plugins/access";
  * truth for authorization:
  *  - Better Auth's organization plugin uses `ac` + `roles` to guard its own endpoints
  *    (members, invitations, workspace settings).
- *  - Application services call `can()` / `authorize()` (see ./context.ts).
+ *  - Application services call `requireWorkspace()` / `can()` (see ./context.ts).
  *
  * Deny by default: anything not listed here is not allowed (threat model T2).
  * "Workspace" in the product = "organization" in Better Auth.
