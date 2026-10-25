@@ -302,6 +302,61 @@ function runDraft(input: RunInput, deps: DraftDeps): Promise<void> {
   );
 }
 
+/** The customer-visible thread (no internal notes, no system lines) in prompt form. */
+async function loadThread(workspaceId: string, ticketId: string): Promise<ThreadMessage[]> {
+  const messages = await listMessages(workspaceId, ticketId, { includeInternal: false });
+  return messages.flatMap((m) =>
+    m.authorType === "system" ? [] : [{ from: m.authorType, body: m.body, internal: m.isInternal }],
+  );
+}
+
+/** Hybrid KB search; a search failure becomes a draft error the agent can understand. */
+async function retrieve(workspaceId: string, query: string, embedder: Embedder): Promise<KbSearchResponse> {
+  try {
+    return await hybridSearch(workspaceId, query, embedder);
+  } catch (err) {
+    if (!(err instanceof AppError)) throw err;
+    throw new DraftPipelineError(err.status === 503 ? "retrieval_unavailable" : "retrieval_misconfigured");
+  }
+}
+
+/**
+ * The citation rows for a ready draft: one per cited marker, with the passage copied at
+ * generation time (D8) so it stays readable if the article is edited or deleted. Markers are
+ * 1-based positions in `results` (checkDraft only keeps markers that exist).
+ */
+export function citationRows(cited: readonly number[], results: KbSearchResponse["results"]) {
+  return cited.map((marker) => {
+    const hit = results[marker - 1]!;
+    return {
+      marker,
+      chunkId: hit.chunk.id,
+      documentId: hit.document.id,
+      documentTitle: hit.document.title,
+      headingPath: hit.chunk.headingPath,
+      content: hit.chunk.content,
+      similarity: hit.vector?.similarity ?? null,
+    };
+  });
+}
+
+/**
+ * How a failed run is recorded. AI and pipeline errors keep their own code. Anything else is a
+ * cancellation if the client left (a disconnect makes `emit` throw a plain Error), otherwise a bug.
+ */
+export function draftFailure(
+  err: unknown,
+  aborted: boolean,
+): { code: DraftErrorCode; status: "aborted" | "failed" } {
+  const code: DraftErrorCode =
+    err instanceof AiError || err instanceof DraftPipelineError
+      ? err.code
+      : aborted
+        ? "ai_aborted"
+        : "internal_error";
+  return { code, status: code === "ai_aborted" ? "aborted" : "failed" };
+}
+
 async function runDraftUntraced(input: RunInput, deps: DraftDeps): Promise<void> {
   const { workspaceId: ws, ticket, draftId, signal, emit } = input;
   const log = deps.logger ?? defaultLogger;
@@ -344,19 +399,10 @@ async function runDraftUntraced(input: RunInput, deps: DraftDeps): Promise<void>
     if (!policy?.aiEnabled) throw new AiError("ai_disabled");
     if (policy.tokensUsedThisMonth >= policy.monthlyTokenBudget) throw new AiError("ai_budget_exhausted");
 
-    const messages = await listMessages(ws, ticket.id, { includeInternal: false });
-    const thread: ThreadMessage[] = messages.flatMap((m) =>
-      m.authorType === "system" ? [] : [{ from: m.authorType, body: m.body, internal: m.isInternal }],
-    );
+    const thread = await loadThread(ws, ticket.id);
 
     const embedder = deps.embedder ?? webEmbedder();
-    let search: KbSearchResponse;
-    try {
-      search = await hybridSearch(ws, retrievalQuery(ticket.subject, thread), embedder);
-    } catch (err) {
-      if (!(err instanceof AppError)) throw err;
-      throw new DraftPipelineError(err.status === 503 ? "retrieval_unavailable" : "retrieval_misconfigured");
-    }
+    const search = await retrieve(ws, retrievalQuery(ticket.subject, thread), embedder);
     topScore = topVectorScore(search.results);
 
     // D7: refuse without calling the model.
@@ -438,23 +484,7 @@ async function runDraftUntraced(input: RunInput, deps: DraftDeps): Promise<void>
         latencyMs: elapsed(),
         ...usage,
       });
-      await repo.insertCitations(
-        tx,
-        ws,
-        draftId,
-        check.cited.map((n) => {
-          const hit = search.results[n - 1]!;
-          return {
-            marker: n,
-            chunkId: hit.chunk.id,
-            documentId: hit.document.id,
-            documentTitle: hit.document.title,
-            headingPath: hit.chunk.headingPath,
-            content: hit.chunk.content,
-            similarity: hit.vector?.similarity ?? null,
-          };
-        }),
-      );
+      await repo.insertCitations(tx, ws, draftId, citationRows(check.cited, search.results));
     });
     // Ids, counts and timings only: never prompt or draft text (D11).
     log.info(
@@ -476,16 +506,7 @@ async function runDraftUntraced(input: RunInput, deps: DraftDeps): Promise<void>
     );
     await done();
   } catch (err) {
-    // A client that disconnects makes `emit` throw a plain Error: that is a cancellation, not a bug.
-    const code: DraftErrorCode =
-      err instanceof AiError
-        ? err.code
-        : err instanceof DraftPipelineError
-          ? err.code
-          : signal.aborted
-            ? "ai_aborted"
-            : "internal_error";
-    const status = code === "ai_aborted" ? "aborted" : "failed";
+    const { code, status } = draftFailure(err, signal.aborted);
     let recorded = false;
     try {
       recorded = await finish({ status, errorCode: code });
