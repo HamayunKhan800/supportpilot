@@ -29,6 +29,9 @@ test("on a phone the menu opens, traps focus, closes with Escape and on a link",
   await page.goto("/");
   const button = page.getByRole("button", { name: "Menu" });
   await expect(button).toHaveAttribute("aria-expanded", "false");
+  // Scrolled first, so the header is frosted glass before the menu opens.
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await expect(page.locator("header")).toHaveCSS("backdrop-filter", /blur/);
   await button.click();
   await expect(button).toHaveAttribute("aria-expanded", "true");
   const nav = page.getByRole("navigation", { name: "Main" });
@@ -39,6 +42,8 @@ test("on a phone the menu opens, traps focus, closes with Escape and on a link",
   }
   // The page behind does not scroll while the menu is open.
   expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe("hidden");
+  // The header turns solid so page text does not show through it.
+  await expect(page.locator("header")).not.toHaveCSS("backdrop-filter", /blur/);
 
   // Tab from the last item comes back to the menu button.
   await nav.getByRole("link", { name: "Sign in" }).focus();

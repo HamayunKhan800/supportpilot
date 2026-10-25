@@ -26,6 +26,7 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
     const root = document.documentElement;
     const before = root.style.overflow;
     root.style.overflow = "hidden";
+    root.toggleAttribute("data-menu-open", true); // the header turns solid (globals.css)
     panel.current?.querySelector<HTMLElement>("a")?.focus();
 
     const close = (refocus: boolean) => {
@@ -56,6 +57,7 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
     wide.addEventListener("change", onWide);
     return () => {
       root.style.overflow = before;
+      root.removeAttribute("data-menu-open");
       document.removeEventListener("keydown", onKey);
       wide.removeEventListener("change", onWide);
     };

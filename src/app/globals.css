@@ -591,6 +591,12 @@ html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
 .menu-in {
   animation: menu-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
+/* While the menu is open the header is solid: page text must not show through the glass. */
+html[data-menu-open] .landing-header {
+  background-color: var(--band-bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .menu-in {
     animation: none;
