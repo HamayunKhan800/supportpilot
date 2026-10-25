@@ -207,6 +207,24 @@ describe("global daily call cap (D12b)", () => {
     );
     expect(rows[0]!.ok).toBe(true);
   });
+
+  it("reserves several units at once only when they all fit (embedding batches, M8)", async () => {
+    expect(await reserveDailyCall(db(), "embeddings", 10, 6)).toBe(true);
+    expect(await reserveDailyCall(db(), "embeddings", 10, 5)).toBe(false); // 11 > 10: nothing taken
+    expect(await reserveDailyCall(db(), "embeddings", 10, 4)).toBe(true);
+    expect(await dailyCallsToday(db(), "embeddings")).toBe(10);
+    expect(await reserveDailyCall(db(), "fresh", 3, 4)).toBe(false); // too big even for an empty day
+    expect(await dailyCallsToday(db(), "fresh")).toBe(0);
+    await expect(reserveDailyCall(db(), "embeddings", 10, 0)).rejects.toThrow(/units/);
+  });
+
+  it("never overshoots with batches under concurrency", async () => {
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => reserveDailyCall(db(), "embeddings", 20, 3)),
+    );
+    expect(results.filter(Boolean)).toHaveLength(6);
+    expect(await dailyCallsToday(db(), "embeddings")).toBe(18);
+  });
 });
 
 describe("gateway with the Postgres ledger and the mock provider", () => {

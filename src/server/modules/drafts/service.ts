@@ -4,10 +4,10 @@ import { AiError, type AiErrorCode } from "@/server/modules/ai/errors";
 import { createAiGatewayFromEnv, type AiGateway } from "@/server/modules/ai/gateway";
 import { getAiPolicy } from "@/server/modules/ai/repository";
 import { stripHiddenCharacters, type ThreadMessage } from "@/server/modules/ai/untrusted";
-import { createEmbedderFromEnv, type Embedder } from "@/server/modules/kb/embedder";
+import type { Embedder } from "@/server/modules/kb/embedder";
 import { KB_MAX_QUERY_LENGTH } from "@/server/modules/kb/limits";
 import { DEFAULT_RETRIEVAL_MIN_SCORE } from "@/server/modules/kb/retrieval";
-import { hybridSearch, type KbSearchResponse } from "@/server/modules/kb/service";
+import { hybridSearch, webEmbedder, type KbSearchResponse } from "@/server/modules/kb/service";
 import { canAgentPost } from "@/server/modules/tickets/lifecycle";
 import { findTicketById, listMessages, type Ticket } from "@/server/modules/tickets/repository";
 import { ticketId as ticketIdSchema } from "@/server/modules/tickets/schemas";
@@ -131,7 +131,6 @@ export interface DraftDeps {
 // One gateway per web process: its circuit breakers must outlive single requests (D13).
 const globalForDrafts = globalThis as unknown as {
   __spWebAiGateway?: AiGateway;
-  __spDraftEmbedder?: Embedder;
 };
 
 function webGateway(): AiGateway {
@@ -140,11 +139,6 @@ function webGateway(): AiGateway {
     triage: mockTriageResponder,
   });
   return globalForDrafts.__spWebAiGateway;
-}
-
-function webEmbedder(): Embedder {
-  globalForDrafts.__spDraftEmbedder ??= createEmbedderFromEnv(getEnv());
-  return globalForDrafts.__spDraftEmbedder;
 }
 
 async function limit(

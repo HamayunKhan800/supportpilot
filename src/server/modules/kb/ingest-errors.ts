@@ -49,6 +49,10 @@ export const INGEST_ERRORS = {
     message: "The embedding service rejected the request. Check the AI provider configuration.",
   },
   embedding_invalid: { permanent: true, message: "The embedding service returned an unexpected result." },
+  embedding_daily_limit: {
+    permanent: false,
+    message: "The daily AI limit has been reached. Try again tomorrow.",
+  },
   // Anything else
   internal_error: { permanent: false, message: "Something went wrong while processing the document." },
 } as const satisfies Record<string, { permanent: boolean; message: string }>;

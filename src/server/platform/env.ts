@@ -81,6 +81,13 @@ const aiFields = {
    * daily quota (M5 D12b). 0 turns AI generation off.
    */
   AI_DAILY_CALL_LIMIT: z.coerce.number().int().min(0).max(1_000_000).default(200),
+  /**
+   * Most texts the whole deployment may send to Gemini for embedding per Pacific-time day
+   * (uploads count one per chunk, every search and draft one). The free tier allowed 1,000
+   * per project per day when planned (plan M4 finding #70; check the project's limits in AI
+   * Studio), so the default leaves room. Gemini only; the offline mock is never capped.
+   */
+  AI_DAILY_EMBEDDING_LIMIT: z.coerce.number().int().min(0).max(10_000_000).default(800),
 };
 
 /** Treats `VAR=` (empty) as unset, so a template with blank optional entries still validates. */

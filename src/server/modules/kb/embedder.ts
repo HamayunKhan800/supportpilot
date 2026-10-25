@@ -237,12 +237,42 @@ export function embeddingCostMicros(modelId: string, tokens: number): number {
     : 0;
 }
 
-/** Chooses the embedder from validated settings (AI_PROVIDER, GEMINI_API_KEY). */
-export function createEmbedderFromEnv(env: {
-  AI_PROVIDER: "mock" | "gemini";
-  GEMINI_API_KEY?: string;
-}): Embedder {
+/**
+ * Reserves one unit per text against a daily cap before the provider is called (plan M8
+ * step 2), so a public demo can't use up the provider's free daily embedding quota. When the
+ * texts don't fit, nothing is sent and the call fails with `embedding_daily_limit`.
+ */
+export function withDailyEmbeddingCap(
+  embedder: Embedder,
+  reserve: (texts: number) => Promise<boolean>,
+): Embedder {
+  const ensure = async (texts: number) => {
+    if (!(await reserve(texts))) throw new IngestError("embedding_daily_limit");
+  };
+  return {
+    modelId: embedder.modelId,
+    similarityFloor: embedder.similarityFloor,
+    async embedDocuments(items, signal) {
+      if (items.length > 0) await ensure(items.length);
+      return embedder.embedDocuments(items, signal);
+    },
+    async embedQuery(query, signal) {
+      await ensure(1);
+      return embedder.embedQuery(query, signal);
+    },
+  };
+}
+
+/**
+ * Chooses the embedder from validated settings (AI_PROVIDER, GEMINI_API_KEY). With `dailyCap`,
+ * Gemini calls count against it; the offline mock costs nothing and is never capped.
+ */
+export function createEmbedderFromEnv(
+  env: { AI_PROVIDER: "mock" | "gemini"; GEMINI_API_KEY?: string },
+  dailyCap?: (texts: number) => Promise<boolean>,
+): Embedder {
   if (env.AI_PROVIDER === "mock") return createMockEmbedder();
   if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini");
-  return createGeminiEmbedder({ apiKey: env.GEMINI_API_KEY });
+  const gemini = createGeminiEmbedder({ apiKey: env.GEMINI_API_KEY });
+  return dailyCap ? withDailyEmbeddingCap(gemini, dailyCap) : gemini;
 }

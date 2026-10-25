@@ -86,19 +86,26 @@ export async function getAiPolicy(db: Executor, workspaceId: string): Promise<Ai
 }
 
 /**
- * Reserves one call against the deployment-wide daily cap with a single atomic upsert, so
- * concurrent web and worker processes can never overshoot it. Returns false when the cap is
- * reached. The day is the calendar date in America/Los_Angeles, matching Google's quota reset.
+ * Reserves `units` (default one call) against a deployment-wide daily cap with a single atomic
+ * upsert, so concurrent web and worker processes can never overshoot it. Returns false, and
+ * reserves nothing, when the units don't fit. The day is the calendar date in
+ * America/Los_Angeles, matching Google's quota reset.
  */
-export async function reserveDailyCall(db: Executor, scope: string, limit: number): Promise<boolean> {
-  if (limit <= 0) return false;
+export async function reserveDailyCall(
+  db: Executor,
+  scope: string,
+  limit: number,
+  units = 1,
+): Promise<boolean> {
+  if (!Number.isInteger(units) || units < 1) throw new Error("units must be a positive integer");
+  if (limit <= 0 || units > limit) return false;
   const rows = await db
     .insert(aiDailyCalls)
-    .values({ day: sql`(now() AT TIME ZONE 'America/Los_Angeles')::date`, scope, calls: 1 })
+    .values({ day: sql`(now() AT TIME ZONE 'America/Los_Angeles')::date`, scope, calls: units })
     .onConflictDoUpdate({
       target: [aiDailyCalls.day, aiDailyCalls.scope],
-      set: { calls: sql`${aiDailyCalls.calls} + 1` },
-      setWhere: sql`${aiDailyCalls.calls} < ${limit}`,
+      set: { calls: sql`${aiDailyCalls.calls} + ${units}` },
+      setWhere: sql`${aiDailyCalls.calls} + ${units} <= ${limit}`,
     })
     .returning({ calls: aiDailyCalls.calls });
   return rows.length === 1;

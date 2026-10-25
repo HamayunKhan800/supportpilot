@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { KbDocument, KbDocumentDetail, KbDocumentList, KbSearchResults, Problem } from "@/server/api/schemas";
-import { createGeminiEmbedder, createMockEmbedder, type Embedder } from "@/server/modules/kb/embedder";
+import {
+  createGeminiEmbedder,
+  createMockEmbedder,
+  withDailyEmbeddingCap,
+  type Embedder,
+} from "@/server/modules/kb/embedder";
 import { runIngestJob } from "@/server/modules/kb/ingest-job";
 import { IngestError } from "@/server/modules/kb/ingest-errors";
 import {
@@ -441,6 +446,26 @@ describe("FR-K4 test search (ranked by meaning, keyword matches labelled; ADR-00
     await expect(
       searchKnowledgeBase(owner.headers, { query: "refunds" }, { embedder: failing("embedding_rejected") }),
     ).rejects.toMatchObject({ status: 502 });
+  });
+
+  it("daily embedding cap reached → 503 'try again tomorrow', and the provider isn't called (M8)", async () => {
+    await uploadReady(owner, acmeId, "help.md", REFUNDS);
+    let called = false;
+    const provider: Embedder = {
+      ...embedder,
+      modelId: embedder.modelId,
+      embedQuery: async (q, s) => {
+        called = true;
+        return embedder.embedQuery(q, s);
+      },
+    };
+    const capped = withDailyEmbeddingCap(provider, async () => false);
+    const err = await searchKnowledgeBase(owner.headers, { query: "refunds" }, { embedder: capped }).catch(
+      (e) => e,
+    );
+    expect(err).toMatchObject({ status: 503, headers: { "retry-after": "3600" } });
+    expect(String(err.detail ?? err.message)).toContain("daily AI limit");
+    expect(called).toBe(false);
   });
 
   it("a hung AI provider is cut off by the search deadline → 503 (real Gemini adapter, fake network)", async () => {

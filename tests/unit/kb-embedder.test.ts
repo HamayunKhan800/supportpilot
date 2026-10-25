@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createEmbedderFromEnv,
   createGeminiEmbedder,
   createMockEmbedder,
   embeddingCostMicros,
@@ -8,6 +9,7 @@ import {
   formatQueryForEmbedding,
   mockTokens,
   validateEmbeddings,
+  withDailyEmbeddingCap,
 } from "@/server/modules/kb/embedder";
 import { IngestError } from "@/server/modules/kb/ingest-errors";
 
@@ -299,3 +301,66 @@ const hangingFetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
     if (signal?.aborted) reject(signal.reason);
     signal?.addEventListener("abort", () => reject(signal.reason));
   })) as typeof fetch;
+
+describe("daily embedding cap (plan M8 step 2)", () => {
+  const counting = () => {
+    const calls: number[] = [];
+    let allowed = true;
+    return {
+      calls,
+      deny: () => (allowed = false),
+      reserve: async (texts: number) => {
+        calls.push(texts);
+        return allowed;
+      },
+    };
+  };
+
+  it("reserves one unit per text before calling the provider", async () => {
+    const cap = counting();
+    const capped = withDailyEmbeddingCap(createMockEmbedder(), cap.reserve);
+    await capped.embedDocuments([
+      { title: "a", text: "one" },
+      { title: "b", text: "two" },
+      { title: "c", text: "three" },
+    ]);
+    await capped.embedQuery("refunds");
+    await capped.embedDocuments([]);
+    expect(cap.calls).toEqual([3, 1]);
+    expect(capped.modelId).toBe(createMockEmbedder().modelId);
+  });
+
+  it("refuses with a temporary 'daily limit' error and sends nothing when the cap is full", async () => {
+    const cap = counting();
+    cap.deny();
+    let providerCalled = false;
+    const inner = createMockEmbedder();
+    const capped = withDailyEmbeddingCap(
+      {
+        ...inner,
+        modelId: inner.modelId,
+        embedQuery: async (q, s) => {
+          providerCalled = true;
+          return inner.embedQuery(q, s);
+        },
+      },
+      cap.reserve,
+    );
+    await expect(capped.embedQuery("refunds")).rejects.toMatchObject({
+      code: "embedding_daily_limit",
+      permanent: false,
+    });
+    expect(providerCalled).toBe(false);
+  });
+
+  it("caps Gemini only: the offline mock costs nothing and is never counted", async () => {
+    const cap = counting();
+    const mock = createEmbedderFromEnv({ AI_PROVIDER: "mock" }, cap.reserve);
+    await mock.embedQuery("refunds");
+    expect(cap.calls).toEqual([]);
+    const gemini = createEmbedderFromEnv({ AI_PROVIDER: "gemini", GEMINI_API_KEY: "k" }, cap.reserve);
+    cap.deny();
+    await expect(gemini.embedQuery("refunds")).rejects.toMatchObject({ code: "embedding_daily_limit" });
+    expect(cap.calls).toEqual([1]);
+  });
+});

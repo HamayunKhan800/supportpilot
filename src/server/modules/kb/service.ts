@@ -252,13 +252,22 @@ export interface KbSearchResponse {
 
 const globalForEmbedder = globalThis as unknown as { __spSearchEmbedder?: Embedder };
 
-function webEmbedder(): Embedder {
-  globalForEmbedder.__spSearchEmbedder ??= createEmbedderFromEnv(getEnv());
+/** The web app's embedder (search and drafts), counted against the daily embedding cap. */
+export function webEmbedder(): Embedder {
+  if (!globalForEmbedder.__spSearchEmbedder) {
+    const env = getEnv();
+    globalForEmbedder.__spSearchEmbedder = createEmbedderFromEnv(env, (texts) =>
+      repo.reserveEmbeddingTexts(getDb().db, texts, env.AI_DAILY_EMBEDDING_LIMIT),
+    );
+  }
   return globalForEmbedder.__spSearchEmbedder;
 }
 
 function searchEmbeddingError(err: unknown): unknown {
   if (!(err instanceof IngestError)) return err;
+  if (err.code === "embedding_daily_limit") {
+    return Errors.serviceUnavailable("The daily AI limit has been reached. Try again tomorrow.", 3600);
+  }
   if (err.code === "embedding_unavailable") {
     return Errors.serviceUnavailable("The AI provider is unavailable. Try again shortly.", 30);
   }

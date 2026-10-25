@@ -9,7 +9,8 @@ import {
   type KbMimeType,
 } from "@/server/platform/db/schema";
 import type { Executor, Transaction } from "@/server/platform/db/tx";
-import { insertAiUsageRecord } from "@/server/modules/ai/repository";
+import { DAILY_EMBEDDING_SCOPE } from "@/server/modules/ai/config";
+import { insertAiUsageRecord, reserveDailyCall } from "@/server/modules/ai/repository";
 
 /**
  * Knowledge-base data access. Every function takes `workspaceId` and filters by it
@@ -461,4 +462,12 @@ export async function findChunksForDisplay(
       and(eq(kbDocument.id, kbChunk.documentId), eq(kbDocument.workspaceId, kbChunk.workspaceId)),
     )
     .where(and(eq(kbChunk.workspaceId, workspaceId), inArray(kbChunk.id, chunkIds)));
+}
+
+/**
+ * Reserves `texts` embedding calls against the deployment-wide daily cap
+ * (AI_DAILY_EMBEDDING_LIMIT, plan M8 step 2). False when they don't fit.
+ */
+export function reserveEmbeddingTexts(db: Executor, texts: number, limit: number): Promise<boolean> {
+  return reserveDailyCall(db, DAILY_EMBEDDING_SCOPE, limit, texts);
 }

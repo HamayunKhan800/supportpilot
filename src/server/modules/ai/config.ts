@@ -76,6 +76,9 @@ export const CIRCUIT_BREAKER = { failureThreshold: 5, cooldownMs: 60_000 } as co
 /** Counter scope in ai_daily_calls shared by all generation features (D12b). */
 export const DAILY_CALL_SCOPE = "generation";
 
+/** Counter scope in ai_daily_calls for texts sent to the embedding model (plan M8 step 2). */
+export const DAILY_EMBEDDING_SCOPE = "embeddings";
+
 /**
  * Paid-tier list prices in US dollars per million tokens, from
  * https://ai.google.dev/gemini-api/docs/pricing (checked 2026-10-22). The free tier costs

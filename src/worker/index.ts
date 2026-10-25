@@ -8,6 +8,7 @@
  */
 import { createAiGatewayFromEnv } from "@/server/modules/ai/gateway";
 import { createEmbedderFromEnv } from "@/server/modules/kb/embedder";
+import { reserveEmbeddingTexts } from "@/server/modules/kb/repository";
 import { mockTriageResponder } from "@/server/modules/triage/mock-responder";
 import { getDb } from "@/server/platform/db/client";
 import { EnvValidationError, getWorkerEnv, type WorkerEnv } from "@/server/platform/env";
@@ -56,7 +57,10 @@ async function startObservability(env: WorkerEnv): Promise<{ flush: () => Promis
 async function main(): Promise<void> {
   const env = getWorkerEnv();
   const observability = await startObservability(env);
-  const embedder = createEmbedderFromEnv(env);
+  // Gemini embeddings count against the deployment-wide daily cap (plan M8 step 2).
+  const embedder = createEmbedderFromEnv(env, (texts) =>
+    reserveEmbeddingTexts(getDb().db, texts, env.AI_DAILY_EMBEDDING_LIMIT),
+  );
   const boss = createBoss(env.DATABASE_URL, "worker", 4);
   // A few attempts so the worker can start alongside a database that is still booting.
   await boss.start({ attempts: 5 });
