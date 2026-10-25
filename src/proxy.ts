@@ -1,5 +1,6 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
+import { canonicalRedirect } from "@/server/platform/canonical-host";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/server/platform/request-id";
 import { createNonce, securityHeaders } from "@/server/platform/security-headers";
 
@@ -10,6 +11,7 @@ const PROTECTED_PREFIXES = ["/app"];
 
 /**
  * Runs before every matched request (Next.js 16 "Proxy", formerly Middleware).
+ * - In production, sends requests on the host's *.run.app address to the real domain.
  * - Assigns a request ID, forwarded to route handlers and echoed to the client.
  * - Generates a per-request CSP nonce. Next.js reads it from the request CSP header.
  * - Applies security headers.
@@ -21,6 +23,13 @@ export function proxy(request: NextRequest) {
   const requestId = resolveRequestId(request.headers.get(REQUEST_ID_HEADER));
   const nonce = createNonce();
   const { pathname, search } = request.nextUrl;
+  const canonical = canonicalRedirect({
+    host: request.headers.get("host"),
+    pathAndQuery: `${pathname}${search}`,
+    canonicalUrl: process.env.BETTER_AUTH_URL,
+    isProduction: process.env.NODE_ENV === "production",
+  });
+  if (canonical) return NextResponse.redirect(canonical, 308);
   const headers = securityHeaders({
     nonce,
     frameAncestors: process.env.CSP_FRAME_ANCESTORS,
