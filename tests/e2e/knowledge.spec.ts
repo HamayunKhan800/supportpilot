@@ -84,20 +84,21 @@ test("an owner adds, checks, searches and deletes a help article", async ({ page
   await expect(first.getByText(/≥ floor 0\.15$/)).toBeVisible();
   await expect(first.locator("mark").first()).toHaveText(/^refunds?$/i);
 
-  // Delete, keyboard only: the confirmation takes focus, Cancel returns it.
+  // Delete, keyboard only: the dialog opens on Cancel, Cancel returns focus, then confirm.
   await first.getByRole("link", { name: "billing refunds" }).click();
   const del = main.getByRole("button", { name: "Delete document" });
   await del.focus();
   await page.keyboard.press("Enter");
-  const confirm = main.getByRole("button", { name: "Yes, delete" });
-  await expect(confirm).toBeFocused();
-  await expect(main.getByRole("group")).toContainText("Delete “billing refunds”?");
-  await page.keyboard.press("Tab");
-  await expect(main.getByRole("button", { name: "Cancel" })).toBeFocused();
+  const dialog = page.getByRole("alertdialog", { name: "Delete “billing refunds”?" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
   await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
   await expect(del).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(confirm).toBeFocused();
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Delete document" })).toBeFocused();
   await page.keyboard.press("Enter");
 
   await expect(page).toHaveURL(/\/app\/knowledge\?deleted=1$/);

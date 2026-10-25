@@ -155,7 +155,8 @@ export function MemberActions({ memberId, name, role }: { memberId: string; name
         </select>
         <ConfirmDialog
           trigger={
-            <Button variant="destructive" className="h-10" disabled={pending} aria-label={`Remove ${name}`} />
+            // Neutral in the row; red only on the final button in the dialog (as on Vercel and Linear).
+            <Button variant="outline" className="h-10" disabled={pending} aria-label={`Remove ${name}`} />
           }
           triggerLabel="Remove"
           title={`Remove ${name}?`}

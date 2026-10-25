@@ -2,6 +2,7 @@
 
 import { CircleCheck, Pencil, RefreshCw, Send, TriangleAlert, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormAlert } from "@/components/form-alert";
 import { TextareaField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,8 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
   const [openSource, setOpenSource] = useState<number | null>(null);
   const [error, setError] = useState<{ form?: string; body?: string }>({});
   const [pending, setPending] = useState<"send" | "discard" | "regenerate" | null>(null);
-  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  // Edits would be lost, so Regenerate and Discard ask first (the app's usual confirm dialog).
+  const [confirming, setConfirming] = useState<"regenerate" | "discard" | null>(null);
   const [hint, setHint] = useState("");
   const approveRef = useRef<HTMLButtonElement>(null);
   const regenerateRef = useRef<HTMLButtonElement>(null);
@@ -89,6 +91,7 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
   }
 
   async function discard() {
+    if (edited) return setConfirming("discard");
     setPending("discard");
     const res = await postEmpty<ApiDraft>(`/api/v1/drafts/${draft.id}/discard`);
     setPending(null);
@@ -99,12 +102,9 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
     onDiscarded(res.data);
   }
 
-  /** Discards this draft, then asks for a new one. Edits are lost, so they need a second click. */
+  /** Discards this draft, then asks for a new one. */
   async function regenerate() {
-    if (edited && !confirmRegenerate) {
-      setConfirmRegenerate(true);
-      return;
-    }
+    if (edited) return setConfirming("regenerate");
     setPending("regenerate");
     const res = await postEmpty<ApiDraft>(`/api/v1/drafts/${draft.id}/discard`);
     setPending(null);
@@ -181,19 +181,12 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
           size="lg"
           variant="outline"
           onClick={regenerate}
-          onBlur={() => {
-            setHint("");
-            setConfirmRegenerate(false);
-          }}
+          onBlur={() => setHint("")}
           disabled={pending !== null}
           pending={pending === "regenerate"}
         >
           <RefreshCw aria-hidden="true" />
-          {pending === "regenerate"
-            ? "Starting over…"
-            : confirmRegenerate
-              ? "Discard edits and regenerate"
-              : "Regenerate"}
+          {pending === "regenerate" ? "Starting over…" : "Regenerate"}
           <Kbd aria-hidden="true" className="ml-1 hidden sm:inline-flex">
             R
           </Kbd>
@@ -212,8 +205,26 @@ export function DraftView({ draft, customerName, onSent, onDiscarded, onRegenera
         </Button>
       </div>
       <p role="status" className={cn("text-sm", hint ? "text-foreground" : "sr-only")}>
-        {confirmRegenerate ? "Your edits will be lost. Click Regenerate again to confirm." : hint}
+        {hint}
       </p>
+      <ConfirmDialog
+        open={confirming !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title="Discard your edits?"
+        description={
+          confirming === "regenerate"
+            ? "A new draft replaces this one, and the changes you made are lost."
+            : "The draft and the changes you made are removed. You can write the reply yourself."
+        }
+        cancelLabel="Keep editing"
+        confirmLabel={confirming === "regenerate" ? "Discard and regenerate" : "Discard draft"}
+        onConfirm={async () => {
+          const res = await postEmpty<ApiDraft>(`/api/v1/drafts/${draft.id}/discard`);
+          if (!res.ok) return res.message;
+          if (confirming === "regenerate") onRegenerate();
+          else onDiscarded(res.data);
+        }}
+      />
       <p className="text-muted-foreground text-xs">
         Written by AI from your knowledge base. It can be wrong: check it against the sources. Nothing is sent
         until you approve it.
