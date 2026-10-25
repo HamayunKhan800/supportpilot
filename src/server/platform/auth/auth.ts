@@ -70,7 +70,16 @@ export function withClientIp(req: Request, trustProxyHeaders: boolean): Request 
   headers.delete(CLIENT_IP_HEADER);
   const ip = clientIp(req.headers, trustProxyHeaders);
   if (ip !== "unknown") headers.set(CLIENT_IP_HEADER, ip);
-  return new Request(req, { headers });
+  // Built from parts: Next.js passes its own Request subclass, which `new Request(req, init)`
+  // can't copy in a production build.
+  const hasBody = req.method !== "GET" && req.method !== "HEAD";
+  return new Request(req.url, {
+    method: req.method,
+    headers,
+    body: hasBody ? req.body : null,
+    signal: req.signal,
+    ...(hasBody && { duplex: "half" }),
+  } as RequestInit);
 }
 
 /** T18: true while this address may get another account email (reset link or code). */

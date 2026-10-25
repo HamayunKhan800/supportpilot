@@ -334,6 +334,30 @@ describe("sign-up input rules (M7-08, M7-22)", () => {
   });
 });
 
+describe("session list (M7-05)", () => {
+  it("lists only the caller's own sessions, and a token alone can't sign anyone in", async () => {
+    const laptop = await signUpAndIn(handler, "sessions-list@example.com");
+    const phone = await signUpAndIn(handler, "sessions-other@example.com");
+    const list = await laptop.get("/list-sessions");
+    expect(list.status).toBe(200);
+    expect(list.json).toHaveLength(1);
+    const token = list.json[0].token as string;
+
+    // The cookie is "<token>.<signature>"; the bare token is refused.
+    const cookieName = [...laptop.cookies.keys()].find((k) => k.endsWith("session_token"))!;
+    const bare = await handler(
+      new Request("http://localhost:3000/api/auth/get-session", {
+        headers: { cookie: `${cookieName}=${token}` },
+      }),
+    );
+    expect(await bare.json()).toBeNull();
+
+    // Someone else's token can't be revoked.
+    await phone.post("/revoke-session", { token });
+    expect((await laptop.get("/get-session")).json?.user?.email).toBe("sessions-list@example.com");
+  });
+});
+
 describe("sign-out (M7-06, ASVS V14.3.1)", () => {
   it("tells the browser to clear cached pages", async () => {
     const c = await signUpAndIn(handler, "signout-cache@example.com");
