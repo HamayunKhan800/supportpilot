@@ -5,8 +5,49 @@
 export const PASSWORD_MIN_LENGTH = 15; // single-factor passwords (no MFA yet)
 export const PASSWORD_MAX_LENGTH = 128; // NIST: permit at least 64
 
+/**
+ * A session ends 7 days after sign-in, however active it is (M7-03, ASVS V7.3.2): sliding
+ * refresh is off, so this is an absolute lifetime. NIST SP 800-63B-4 asks AAL1 to re-authenticate
+ * at least every 30 days; 7 days is stricter.
+ */
 export const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7; // 7 days
-export const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24; // sliding refresh once per day
+
+/** Workspaces one person may own (M7-14, T20): stops one account creating unlimited tenants. */
+export const MAX_OWNED_WORKSPACES = 5;
+
+/**
+ * Account emails per address (T18): reset links and verification codes. The per-IP limits below
+ * don't stop many IPs flooding one inbox. Over the limit, nothing is sent and the response is
+ * unchanged, so this can't reveal whether an account exists.
+ */
+export const ACCOUNT_EMAIL_LIMIT = { windowSeconds: 60 * 60, max: 5 } as const;
+
+/** Display names: 1–100 characters, no control characters (M7-22). */
+export function validateUserName(name: unknown): string | null {
+  if (typeof name !== "string") return "Enter your name.";
+  const trimmed = name.trim();
+  if (trimmed.length < 1 || trimmed.length > 100) return "Name must be 1–100 characters.";
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return "Name can't contain control characters.";
+  return null;
+}
+
+/**
+ * Context-specific words a password must not contain (NIST SP 800-63B-4 §3.1.1.2, ASVS V6.2.11):
+ * the product name and the account's email name. Breached passwords are checked separately.
+ */
+export function passwordContextProblem(password: string, email?: string | null): string | null {
+  const squashed = password.toLowerCase().replace(/[\s._-]/g, "");
+  const words = ["supportpilot"];
+  const local = email
+    ?.split("@")[0]
+    ?.toLowerCase()
+    .replace(/[\s._-]/g, "");
+  if (local && local.length >= 4) words.push(local);
+  if (words.some((w) => squashed.includes(w))) {
+    return "Choose a password that doesn't include your email name or the product name.";
+  }
+  return null;
+}
 
 export const INVITATION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7; // FR-A3: 7 days
 

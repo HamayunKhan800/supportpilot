@@ -179,7 +179,8 @@ const envSchema = z
       .transform((v) => v === "true"),
     /**
      * Trust X-Forwarded-For for client IPs. Enable ONLY behind a proxy that overwrites the
-     * header (configured at deployment, M8). When off, per-IP limits share one bucket and
+     * header (configured at deployment, M8). Used by the portal and the auth library (M7-01).
+     * When off, per-IP limits share one bucket and
      * the per-workspace limit is the backstop: a spoofable header must never be trusted.
      */
     TRUST_PROXY_HEADERS: z

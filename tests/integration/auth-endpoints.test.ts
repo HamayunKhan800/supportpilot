@@ -49,10 +49,30 @@ describe("auth-library endpoints the UI never calls (T21)", () => {
     expect((await agent.post("/change-email", { newEmail: "takeover@example.test" })).status).toBe(400);
   });
 
-  it("update-user can't change the email address", async () => {
-    const res = await agent.post("/update-user", { email: "takeover@example.test" });
-    expect(res.status).toBe(400);
-    expect((await getSessionContext(agent.headers))!.user.email).toBe("agent@acme.test");
+  it("profile edits and workspace renames are closed (M7-21, M7-22)", async () => {
+    const user = await agent.post("/update-user", {
+      name: "x".repeat(5000),
+      image: "https://evil.test/a.png",
+    });
+    expect(user.status).toBe(404);
+    expect((await getSessionContext(agent.headers))!.user.name).toBe("agent");
+    const org = await owner.post("/organization/update", {
+      organizationId: orgId,
+      data: { name: "x".repeat(5000), logo: "https://evil.test/logo.png", metadata: { a: 1 } },
+    });
+    expect(org.status).toBe(404);
+  });
+
+  it("one person can own at most 5 workspaces (T20, M7-14)", async () => {
+    const founder = await signUpAndIn(handler, "founder@many.test");
+    for (let i = 1; i <= 5; i++) {
+      const res = await founder.post("/organization/create", { name: `Team ${i}`, slug: `team-${i}` });
+      expect(res.status).toBe(200);
+    }
+    const sixth = await founder.post("/organization/create", { name: "Team 6", slug: "team-6" });
+    expect(sixth.status).toBe(403);
+    // Being a member elsewhere doesn't count: the agent here can still create one.
+    expect((await agent.post("/organization/create", { name: "Side", slug: "agent-side" })).status).toBe(200);
   });
 });
 

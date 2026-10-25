@@ -57,6 +57,19 @@ async function tokenFromEmail(email: string) {
 }
 
 describe("forgot password (OWASP Forgot Password Cheat Sheet)", () => {
+  it("sends at most 5 reset emails per address per hour, with the same answer each time (T18)", async () => {
+    await verifiedUser("reset-flood@example.com");
+    const answers: Awaited<ReturnType<typeof requestReset>>[] = [];
+    for (let i = 0; i < 7; i++) answers.push(await requestReset("reset-flood@example.com"));
+    expect(
+      answers.every((a) => a.status === 200 && JSON.stringify(a.json) === JSON.stringify(answers[0]!.json)),
+    ).toBe(true);
+    const resets = () => readOutbox("reset-flood@example.com").filter((m) => m.subject.startsWith("Reset"));
+    await vi.waitFor(() => expect(resets()).toHaveLength(5));
+    await new Promise((r) => setTimeout(r, 200));
+    expect(resets()).toHaveLength(5);
+  });
+
   it("answers the same for an existing and an unknown email, and only emails the real one", async () => {
     await verifiedUser("reset-known@example.com");
     const known = await requestReset("reset-known@example.com");

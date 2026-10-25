@@ -3,11 +3,13 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { emailOTP, haveIBeenPwned, organization } from "better-auth/plugins";
+import { and, count, eq } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { createEmailSender, type EmailSender, sendInBackground } from "../email";
 import * as schema from "../db/schema";
 import type { Env } from "../env";
 import { logger } from "../logger";
+import { clientIp, consumeRateLimit, rateLimitKey } from "../rate-limit";
 import {
   passwordChangedEmail,
   resetPasswordEmail,
@@ -15,18 +17,22 @@ import {
   verificationCodeEmail,
 } from "./account-emails";
 import { auditEventFromAuthResponse, memberEvent, recordAuditEvent } from "./audit";
+import { hashPassword, needsRehash, verifyPassword } from "./password";
 import { ac, INVITABLE_ROLES, roles } from "./permissions";
 import {
+  ACCOUNT_EMAIL_LIMIT,
   AUTH_RATE_LIMITS,
+  MAX_OWNED_WORKSPACES,
   INVITATION_EXPIRES_IN_SECONDS,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   RESET_PASSWORD_EXPIRES_IN_SECONDS,
+  passwordContextProblem,
   SESSION_EXPIRES_IN_SECONDS,
-  SESSION_UPDATE_AGE_SECONDS,
   VERIFICATION_CODE_ATTEMPTS,
   VERIFICATION_CODE_EXPIRES_IN_SECONDS,
   VERIFICATION_CODE_LENGTH,
+  validateUserName,
   validateWorkspaceName,
   validateWorkspaceSlug,
 } from "./policy";
@@ -47,7 +53,33 @@ export type AuthEnv = Pick<
   | "EMAIL_PROVIDER"
   | "EMAIL_FROM"
   | "RESEND_API_KEY"
+  | "TRUST_PROXY_HEADERS"
 >;
+
+/** Header carrying the client IP the app decided on; any copy sent by the client is dropped. */
+const CLIENT_IP_HEADER = "x-sp-client-ip";
+
+/**
+ * M7-01 (T27): Better Auth reads X-Forwarded-For itself, and its rate limiter runs before any
+ * plugin, so a client could pick a new "IP" per request. Every request is rewritten here to
+ * carry only the IP from clientIp(), which trusts X-Forwarded-For only behind our own proxy
+ * (TRUST_PROXY_HEADERS). Without it, there is no client IP and the library uses one shared bucket.
+ */
+export function withClientIp(req: Request, trustProxyHeaders: boolean): Request {
+  const headers = new Headers(req.headers);
+  headers.delete(CLIENT_IP_HEADER);
+  const ip = clientIp(req.headers, trustProxyHeaders);
+  if (ip !== "unknown") headers.set(CLIENT_IP_HEADER, ip);
+  return new Request(req, { headers });
+}
+
+/** T18: true while this address may get another account email (reset link or code). */
+async function underAccountEmailLimit(kind: string, address: string): Promise<boolean> {
+  const key = rateLimitKey(`account-email-${kind}`, address.trim().toLowerCase());
+  const { allowed } = await consumeRateLimit(key, ACCOUNT_EMAIL_LIMIT);
+  if (!allowed) logger.warn({ event: "auth.account_email_limited", kind }, "account email limit reached");
+  return allowed;
+}
 
 export interface AuthDeps {
   /** Overrides the sender chosen from the settings (tests pass an outbox). null = email off. */
@@ -61,6 +93,12 @@ export interface AuthDeps {
  */
 export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
   const email = deps.email === undefined ? createEmailSender(env) : deps.email;
+  if (env.NODE_ENV === "production" && !env.TRUST_PROXY_HEADERS) {
+    logger.warn(
+      { event: "auth.no_client_ip" },
+      "TRUST_PROXY_HEADERS is off: sign-in limits share one bucket for all clients (set it behind a proxy)",
+    );
+  }
   const signInUrl = new URL("/sign-in", env.BETTER_AUTH_URL).toString();
   const github =
     env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
@@ -77,7 +115,7 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
         }
       : undefined;
 
-  return betterAuth({
+  const auth = betterAuth({
     appName: "SupportPilot",
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
@@ -103,6 +141,8 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       autoSignIn: false,
       minPasswordLength: PASSWORD_MIN_LENGTH,
       maxPasswordLength: PASSWORD_MAX_LENGTH,
+      // Stronger scrypt settings, versioned hashes, constant-time compare (M7-02, ./password.ts).
+      password: { hash: hashPassword, verify: verifyPassword },
       revokeSessionsOnPasswordReset: true,
       // With email on, an account must confirm its address with a code before it can sign in.
       // Sign-up still answers the same for a taken email (T3); that owner gets a notice instead.
@@ -117,6 +157,7 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       resetPasswordTokenExpiresIn: RESET_PASSWORD_EXPIRES_IN_SECONDS,
       ...(email && {
         sendResetPassword: async ({ user, url }) => {
+          if (!(await underAccountEmailLimit("reset", user.email))) return;
           sendInBackground(email, resetPasswordEmail(user.email, url), "password-reset");
         },
         onPasswordReset: async ({ user }) => {
@@ -142,6 +183,10 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       "/email-otp/request-email-change",
       "/email-otp/change-email",
       "/email-otp/check-verification-otp",
+      // No screen edits a profile or renames a workspace, so these are closed too (M7-21, M7-22):
+      // they accepted any name length, image URLs and workspace logo or metadata.
+      "/update-user",
+      "/organization/update",
     ],
     socialProviders: { ...(google && { google }), ...(github && { github }) },
     account: {
@@ -149,11 +194,15 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       // is verified AND the account here has verified it too, so nobody can pre-register someone
       // else's email with a password and wait (pre-account takeover). No trustedProviders.
       accountLinking: { enabled: true, requireLocalEmailVerified: true },
+      // Google/GitHub tokens are stored encrypted with the server secret (M7-07). The app never
+      // calls those APIs; older plain-text tokens still read and are replaced at the next sign-in.
+      encryptOAuthTokens: true,
     },
 
     session: {
       expiresIn: SESSION_EXPIRES_IN_SECONDS,
-      updateAge: SESSION_UPDATE_AGE_SECONDS,
+      // No sliding refresh: the lifetime above is absolute (M7-03).
+      disableSessionRefresh: true,
     },
 
     rateLimit: {
@@ -172,12 +221,27 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       // Force it on everywhere so tests exercise the real protection (T5).
       disableOriginCheck: false,
       disableCSRFCheck: false,
+      // Only the header set by withClientIp() (M7-01).
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
     },
 
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         // A password change always signs out every other session (T4), whatever the client sends.
+        if (ctx.path === "/sign-up/email") {
+          const problem =
+            validateUserName(ctx.body?.name) ??
+            passwordContextProblem(String(ctx.body?.password ?? ""), String(ctx.body?.email ?? ""));
+          if (problem) throw new APIError("BAD_REQUEST", { message: problem });
+        }
+        if (ctx.path === "/reset-password") {
+          const problem = passwordContextProblem(String(ctx.body?.newPassword ?? ""));
+          if (problem) throw new APIError("BAD_REQUEST", { message: problem });
+        }
         if (ctx.path === "/change-password") {
+          const session = await getSessionFromCtx(ctx);
+          const problem = passwordContextProblem(String(ctx.body?.newPassword ?? ""), session?.user.email);
+          if (problem) throw new APIError("BAD_REQUEST", { message: problem });
           return { context: { ...ctx, body: { ...ctx.body, revokeOtherSessions: true } } };
         }
         // Codes are only for confirming an email address; other code types are turned off.
@@ -194,11 +258,28 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
           if (failed) {
             logger.warn({ event: "auth.sign_in_failed", status: returned.statusCode }, "sign-in failed");
           } else if (ctx.context.newSession) {
-            logger.info({ event: "auth.sign_in", userId: ctx.context.newSession.user.id }, "sign-in");
+            const userId = ctx.context.newSession.user.id;
+            logger.info({ event: "auth.sign_in", userId }, "sign-in");
+            // Upgrade an older password hash now that the password is known to be right (M7-02).
+            const password = ctx.path === "/sign-in/email" ? ctx.body?.password : undefined;
+            if (typeof password === "string") {
+              const accounts = await ctx.context.internalAdapter.findAccounts(userId);
+              const stored = accounts.find((a) => a.providerId === "credential")?.password;
+              if (stored && needsRehash(stored)) {
+                await ctx.context.internalAdapter.updatePassword(userId, await hashPassword(password));
+              }
+            }
           }
           return;
         }
         if (failed) return;
+
+        // Sign-out tells the browser to drop cached pages (M7-06, ASVS V14.3.1). Only "cache":
+        // local storage holds just the theme choice, and cookies are cleared by the library.
+        if (ctx.path === "/sign-out") {
+          ctx.setHeader("Clear-Site-Data", '"cache"');
+          return;
+        }
 
         if (ctx.path === "/email-otp/verify-email") {
           logger.info({ event: "auth.email_verified" }, "email verified");
@@ -231,6 +312,14 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
         cancelPendingInvitationsOnReInvite: true,
         // Deletion needs a data-retention flow (tickets, KB). Deferred, so disabled for now.
         disableOrganizationDeletion: true,
+        // Owned workspaces only, so being invited to many never blocks anyone (M7-14).
+        organizationLimit: async (user) => {
+          const [row] = await db
+            .select({ n: count() })
+            .from(schema.member)
+            .where(and(eq(schema.member.userId, user.id), eq(schema.member.role, "owner")));
+          return (row?.n ?? 0) >= MAX_OWNED_WORKSPACES;
+        },
         organizationHooks: {
           beforeCreateOrganization: async ({ organization: org }) => {
             const name = org.name ?? "";
@@ -281,6 +370,7 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
               disableSignUp: true,
               sendVerificationOTP: async ({ email: to, otp, type }) => {
                 if (type !== "email-verification") return;
+                if (!(await underAccountEmailLimit("code", to))) return;
                 sendInBackground(email, verificationCodeEmail(to, otp), "verification-code");
               },
             }),
@@ -290,6 +380,10 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       nextCookies(), // must be last (docs: integrations/next)
     ],
   });
+
+  const handler = auth.handler;
+  auth.handler = (req: Request) => handler(withClientIp(req, env.TRUST_PROXY_HEADERS));
+  return auth;
 }
 
 export type Auth = ReturnType<typeof createAuth>;

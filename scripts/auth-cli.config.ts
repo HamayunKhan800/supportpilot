@@ -15,4 +15,5 @@ export const auth = createAuth(drizzle.mock({ schema }), {
   AUTH_PASSWORD_BREACH_CHECK: true,
   GITHUB_CLIENT_ID: undefined,
   GITHUB_CLIENT_SECRET: undefined,
+  TRUST_PROXY_HEADERS: false,
 });

@@ -53,3 +53,7 @@
 - **Step 3, ZAP baseline:** the job runs the official ZAP image (`ghcr.io/zaproxy/zaproxy:2.17.0`, pinned by digest) with Automation Framework plans in `.zap/`, instead of `zaproxy/action-baseline`. The action can't crawl signed in, and the plan files let the same scan run locally. The rules file became alert filters with reasons (`.zap/README.md`).
 - **Step 3, local runs:** both scans were also run in the dev sandbox, against a throwaway copy (its own database, `127.0.0.1` only), because results could not be iterated through CI before the final push. No real site was scanned.
 - **Step 3, API scan:** still manual-only in CI (`workflow_dispatch`), as planned.
+- **Step 4, M7-04 (no MFA):** recorded as accepted risk AR-002 (user approved), because 2FA is outside M7.
+- **Step 5, M7-03:** the library's session update hook doesn't receive the session's creation time, so a "created + 30 days" cap couldn't be enforced there. Sliding refresh is turned off instead (`disableSessionRefresh`): every session now ends 7 days after sign-in, which is stricter.
+- **Step 5, M7-21 and M7-22:** no screen edits a profile or renames a workspace, so `/update-user` and `/organization/update` are closed (`disabledPaths`) instead of validated. That's simpler and removes the attack surface.
+- **Step 5, account emails (T18):** reset links and verification codes are capped at 5 per address per hour. Over the cap nothing is sent and the response is unchanged. There's still no per-account sign-in lockout, because it would let anyone lock a known user out.

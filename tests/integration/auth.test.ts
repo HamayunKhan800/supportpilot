@@ -1,9 +1,10 @@
+import { hashPassword as legacyHash } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { getAuth } from "@/server/platform/auth";
 import { createAuth } from "@/server/platform/auth/auth";
 import { getDb } from "@/server/platform/db/client";
-import { account, rateLimit, session } from "@/server/platform/db/schema";
+import { account, rateLimit, session, user } from "@/server/platform/db/schema";
 import { getEnv } from "@/server/platform/env";
 import { PASSWORD, resetDatabase, signUpAndIn, TestClient } from "./support/client";
 
@@ -172,7 +173,11 @@ describe("CSRF protection (T5)", () => {
 
 describe("rate limiting (T3)", () => {
   it("limits sign-in attempts per IP using database storage", async () => {
-    const limited = createAuth(getDb().db, { ...getEnv(), AUTH_RATE_LIMIT_ENABLED: true });
+    const limited = createAuth(getDb().db, {
+      ...getEnv(),
+      AUTH_RATE_LIMIT_ENABLED: true,
+      TRUST_PROXY_HEADERS: true, // behind our proxy, so X-Forwarded-For is believed
+    });
     const h = (req: Request) => limited.handler(req);
     const attacker = new TestClient(h, "198.51.100.7");
     const statuses: number[] = [];
@@ -197,5 +202,143 @@ describe("rate limiting (T3)", () => {
 
     const { db } = getDb();
     expect((await db.select().from(rateLimit)).length).toBeGreaterThan(0);
+  });
+});
+
+/** Sends a header the browser could set itself: the app's internal client-IP header. */
+function spoofing(h: (req: Request) => Promise<Response>, value: () => string) {
+  return (req: Request) => {
+    const headers = new Headers(req.headers);
+    headers.set("x-sp-client-ip", value());
+    return h(new Request(req, { headers }));
+  };
+}
+
+async function guesses(client: (i: number) => TestClient, n: number) {
+  const statuses: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const res = await client(i).post("/sign-in/email", {
+      email: "victim@example.com",
+      password: `guess-${i}-xxxxxxxxxx`,
+    });
+    statuses.push(res.status);
+  }
+  return statuses;
+}
+
+describe("a client can't pick its own IP to dodge the limit (T27, M7-01)", () => {
+  it("ignores X-Forwarded-For when no trusted proxy sets it", async () => {
+    await getDb().db.delete(rateLimit);
+    const auth = createAuth(getDb().db, {
+      ...getEnv(),
+      AUTH_RATE_LIMIT_ENABLED: true,
+      TRUST_PROXY_HEADERS: false,
+    });
+    const h = spoofing(
+      (req) => auth.handler(req),
+      () => `192.0.2.${Math.floor(Math.random() * 250)}`,
+    );
+    // A new X-Forwarded-For value (and internal header) on every guess still hits one limit.
+    const statuses = await guesses((i) => new TestClient(h, `198.51.100.${20 + i}`), 6);
+    expect(statuses.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
+    expect(statuses[5]).toBe(429);
+  });
+
+  it("behind a trusted proxy, drops a client-sent internal IP header", async () => {
+    await getDb().db.delete(rateLimit);
+    const auth = createAuth(getDb().db, {
+      ...getEnv(),
+      AUTH_RATE_LIMIT_ENABLED: true,
+      TRUST_PROXY_HEADERS: true,
+    });
+    let n = 0;
+    const h = spoofing(
+      (req) => auth.handler(req),
+      () => `192.0.2.${++n}`,
+    );
+    const statuses = await guesses(() => new TestClient(h, "198.51.100.40"), 6);
+    expect(statuses[5]).toBe(429);
+  });
+});
+
+describe("password storage (M7-02, ASVS V11.4.2)", () => {
+  it("stores new passwords as versioned scrypt hashes with the stronger settings", async () => {
+    await signUpAndIn(handler, "hash-new@example.com");
+    const [u] = await getDb().db.select().from(user).where(eq(user.email, "hash-new@example.com"));
+    const [row] = await getDb().db.select().from(account).where(eq(account.userId, u!.id));
+    expect(row!.password).toMatch(/^\$scrypt\$n=16384,r=8,p=5\$[\w-]{22}\$[\w-]{43}$/);
+  });
+
+  it("still accepts a pre-M7 hash, and upgrades it only after a correct password", async () => {
+    await signUpAndIn(handler, "hash-old@example.com");
+    const { db } = getDb();
+    const [u] = await db.select().from(user).where(eq(user.email, "hash-old@example.com"));
+    const old = await legacyHash(PASSWORD);
+    await db.update(account).set({ password: old }).where(eq(account.userId, u!.id));
+
+    const wrong = await new TestClient(handler).post("/sign-in/email", {
+      email: "hash-old@example.com",
+      password: "not the right passphrase",
+    });
+    expect(wrong.status).toBe(401);
+    expect((await db.select().from(account).where(eq(account.userId, u!.id)))[0]!.password).toBe(old);
+
+    const right = await new TestClient(handler).post("/sign-in/email", {
+      email: "hash-old@example.com",
+      password: PASSWORD,
+    });
+    expect(right.status).toBe(200);
+    const [after] = await db.select().from(account).where(eq(account.userId, u!.id));
+    expect(after!.password).toMatch(/^\$scrypt\$n=16384,r=8,p=5\$/);
+    const again = await new TestClient(handler).post("/sign-in/email", {
+      email: "hash-old@example.com",
+      password: PASSWORD,
+    });
+    expect(again.status).toBe(200);
+  });
+});
+
+describe("session lifetime (M7-03, ASVS V7.3.2)", () => {
+  it("never extends a session: it ends at the time set at sign-in", async () => {
+    const c = await signUpAndIn(handler, "lifetime@example.com");
+    const { db } = getDb();
+    const [u] = await db.select().from(user).where(eq(user.email, "lifetime@example.com"));
+    // Pretend the session is 6 days and 23 hours old: one hour left.
+    const soon = new Date(Date.now() + 60 * 60 * 1000);
+    await db.update(session).set({ expiresAt: soon }).where(eq(session.userId, u!.id));
+    expect((await c.get("/get-session")).json?.user?.email).toBe("lifetime@example.com");
+    const [row] = await db.select().from(session).where(eq(session.userId, u!.id));
+    expect(row!.expiresAt.getTime()).toBe(soon.getTime());
+  });
+});
+
+describe("sign-up input rules (M7-08, M7-22)", () => {
+  const signUp = (body: Record<string, unknown>) =>
+    new TestClient(handler).post("/sign-up/email", { password: PASSWORD, name: "Test", ...body });
+
+  it("refuses passwords that contain the product name or the email name", async () => {
+    const product = await signUp({ email: "ctx-1@example.com", password: "my Support-Pilot password 2026" });
+    expect(product.status).toBe(400);
+    const local = await signUp({
+      email: "jordan.lee@example.com",
+      password: "jordanlee is my long passphrase",
+    });
+    expect(local.status).toBe(400);
+    expect(local.json.message).toMatch(/email name or the product name/);
+  });
+
+  it("refuses names that are too long or contain control characters", async () => {
+    expect((await signUp({ email: "name-1@example.com", name: "x".repeat(101) })).status).toBe(400);
+    expect((await signUp({ email: "name-2@example.com", name: "Bad\u0000Name" })).status).toBe(400);
+    expect((await signUp({ email: "name-3@example.com", name: "   " })).status).toBe(400);
+  });
+});
+
+describe("sign-out (M7-06, ASVS V14.3.1)", () => {
+  it("tells the browser to clear cached pages", async () => {
+    const c = await signUpAndIn(handler, "signout-cache@example.com");
+    const res = await c.post("/sign-out");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("clear-site-data")).toBe('"cache"');
   });
 });
