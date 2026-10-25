@@ -81,6 +81,7 @@ No table changes. No new runtime dependencies.
 - **Domain mapping is Preview** (AR-009). If it misbehaves, the fix is the load balancer (about $18 a month), with your approval.
 - **Free plans change.** Every limit above is re-checked on the official pages before step 3, and the week-1 bill is compared with this plan.
 - **Shared demo accounts** can still be used to make a mess between daily resets; anything harmful is blocked, the rest is reset.
+- **The daily reset spends AI quota:** it re-embeds 153 help-article chunks and re-triages 25 tickets (measured 2026-10-25), so 153 of the 800 daily embeddings and 25 of the 200 daily generation calls. It runs just after Google's daily quota reset (midnight Pacific time: 12:00 PKT in summer time, 13:00 PKT in winter) so visitors get the rest.
 - **Gemini free tier**: Google may use inputs to improve its products, so the demo stays on synthetic data, and the sign-up page says so.
 
 ## Not in M8
@@ -96,3 +97,4 @@ Multi-region, a paid database, CDN or Cloud Armor, two-factor sign-in (AR-007), 
 ## Change log
 
 - 2026-10-25: drafted; alternatives (Vercel, DigitalOcean) recorded; approved.
+- 2026-10-25: **step 2 done** (commits 2a launcher `1ee4340`, 2b demo safety `1bcdf70`, 2c one address `28777a6`, 2d embedding cap `a248aba`). Verified: production build; redirect checked against it (308 to the real domain, health and local unaffected); launcher run from the image layout (clean stop exit 0 in under a second, worker crash stops the container with exit 1, worker gets no web secrets); bundled seed and `--reset` run from the image layout against a scratch database; unit 1401/1401, integration 554/554, E2E 118 passed / 10 skipped by design. TRACE (item 5) is checked on the live site in step 6.
