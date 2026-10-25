@@ -154,7 +154,8 @@ The research behind these choices, with sources: [docs/00](docs/00-research-and-
   - Email and password following NIST SP 800-63B-4, with an optional breached-password check that fails closed.
   - Optional "Continue with Google / GitHub". A provider sign-in joins an existing account only when both sides have verified the email ([ADR-0020](docs/adr/0020-account-emails-and-social-sign-in.md)).
   - When email is configured: password reset by single-use link (OWASP) and email verification by 6-digit code, with tokens and codes stored hashed and the same answers for known and unknown emails.
-  - Database sessions; changing or resetting your password signs you out everywhere.
+  - Database sessions that end 7 days after sign-in; the Account page lists your signed-in devices and can sign them out. Changing or resetting your password signs you out everywhere.
+  - Passwords hashed with scrypt at an OWASP setting; sign-in limited per IP.
 - **Authorisation:**
   - Owner / admin / agent roles are checked on the server for every action.
   - Every tenant query is scoped by workspace, with cross-workspace tests for each route.
@@ -175,10 +176,13 @@ The research behind these choices, with sources: [docs/00](docs/00-research-and-
   - Prompts and answers are not logged.
   - Telemetry exports only allowlisted metadata.
 - **Supply chain:**
-  - CodeQL, gitleaks, dependency review and `pnpm audit` in CI.
+  - CodeQL, gitleaks, dependency review, `pnpm audit` and an OWASP ZAP baseline scan in CI.
+  - A CycloneDX SBOM (list of production dependencies) saved by every CI run, and fix time frames in [SECURITY.md](SECURITY.md).
   - All GitHub Actions pinned to commit SHAs; Dependabot.
 
-Threat model: [docs/03](docs/03-threat-model.md) (STRIDE, OWASP Top 10:2025, OWASP LLM Top 10 2026). Known gaps with mitigations and revisit dates: [accepted risks](docs/security/accepted-risks.md). Reporting a vulnerability: [SECURITY.md](SECURITY.md). A dedicated security review is milestone M7.
+Threat model: [docs/03](docs/03-threat-model.md) (STRIDE, OWASP Top 10:2025, OWASP LLM Top 10 2026). Known gaps with mitigations and revisit dates: [accepted risks](docs/security/accepted-risks.md). Reporting a vulnerability: [SECURITY.md](SECURITY.md).
+
+**Security review (M7).** Checked against [OWASP ASVS 5.0.0 Level 2](docs/security/asvs-l2.md): of 253 requirements, 174 pass, 8 partial, 2 fail (both accepted risks), 10 wait for deployment and 59 don't apply. It found 22 issues, none High or Critical; 19 are fixed or documented, 2 are accepted (no two-factor sign-in yet; a cookie-name rule the auth library doesn't support) and 1 waits for deployment. It was done by the developer with AI help, not by an independent tester. Full report: [m7-review.md](docs/security/m7-review.md).
 
 ## Testing and CI
 
@@ -219,8 +223,8 @@ AI coding assistants were used to build this project, under a written policy: AI
 | M6 · Evaluation and observability            | Finishing (baseline done)  |
 | Design system                                | Done                       |
 | Accounts: reset, verification, Google/GitHub | Done (email sending at M8) |
-| M7 · Security review                         | Next                       |
-| M8 · Deployment and live demo                | Planned                    |
+| M7 · Security review                         | Done                       |
+| M8 · Deployment and live demo                | Next                       |
 | M9 · Portfolio presentation                  | Planned                    |
 
 What was built and verified in each milestone: [milestone log](docs/milestones.md).

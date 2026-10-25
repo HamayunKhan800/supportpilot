@@ -697,3 +697,13 @@ Plan step 6, [ADR-0019](adr/0019-evaluation-method.md), [docs/eval/README.md](ev
   - Real sending (M8: domain, Resend key, production callback URLs, Google brand verification).
   - Per-account limits on reset requests (M7).
   - A connected-accounts page, email change, passwordless sign-in and two-factor authentication.
+
+## M7 · Security review: done (2026-10-25)
+
+- Plan: [m7-security-review](plans/m7-security-review.md). Report: [m7-review](security/m7-review.md). Checklist: [ASVS 5.0.0 Level 2](security/asvs-l2.md).
+- 22 findings (4 Medium, 15 Low, 3 Info; none High or Critical). 19 fixed or documented, 2 accepted ([AR-007, AR-008](security/accepted-risks.md)), 1 waits for M8.
+- ASVS Level 2: 174 pass, 8 partial, 2 fail (both accepted risks), 10 M8, 59 N/A. Before: 149 pass, 17 fail.
+- Main fixes: sign-in limits can't be dodged with a fake IP header; scrypt at an OWASP setting with upgrade on sign-in; sessions end 7 days after sign-in; an Active sessions list on the Account page; refused permissions logged; SBOM in CI.
+- Tests: unit 1381, integration 543, browser 118 passed (10 skipped on purpose); ZAP baseline exit code 0.
+- A production-only bug in the M7-01 fix (sign-up 500) was caught by the browser tests before commit.
+- Not tested: anything on a live deployment (M8), and no independent tester.

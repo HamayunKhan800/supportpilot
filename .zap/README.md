@@ -48,6 +48,12 @@ Informational alerts (`10109` modern web app, `10104` user-agent fuzzer) are lef
 - **API scan:** about 7,660 requests across all 17 paths, as the admin with the workspace active. The server log shows them reaching real code: 440 × 200, 5 × 201, 1 × 204, 5,683 × 400 (rejected by validation), 959 × 429 (rate limits), 303 × 404, 246 × 409, 24 × 415 (wrong content type). ZAP raised no injection, XSS, path traversal or other Low+ alert. The server log showed **one 500**: a NUL character in a draft-feedback note (**M7-19**, reproduced with curl; the ticket search `q` fails the same way).
 - Findings are tracked in [`docs/security/asvs-l2.md`](../docs/security/asvs-l2.md) and fixed in step 5.
 
+## Re-run after the fixes, 2026-10-25 (baseline only)
+
+- 63 public and 300 signed-in URLs crawled. **Exit code 0**: the only alert left is "Modern Web Application" (information only).
+- The first re-run still found `nosniff` missing on `/favicon.ico` (the request filter in `src/proxy.ts` skips it), so `next.config.ts` now covers it too. It also flagged the landing page's demo form under rule 10202 once that form used `method="post"`; the form never sends a request, so that alert is filtered as a false positive.
+- The API scan was not re-run; the NUL fix (M7-19) is covered by integration tests.
+
 ## Not covered
 
 - `/api/auth/*` (Better Auth) is crawled by the baseline but not attacked by the active scan; step 4 tests it by hand (rate limits, IP spoofing, open redirect).

@@ -26,6 +26,9 @@ jobs:
       # Sign-in/up forms post JSON with fetch; Better Auth checks Origin and the session
       # cookie is SameSite=Lax, so a hidden form token adds nothing (ASVS V3.5.1).
       - { ruleId: 10202, newRisk: False Positive, url: ".*/sign-(in|up)$", urlRegex: true }
+      # The landing page's demo support form is handled in the browser only (preventDefault,
+      # no request), so there is nothing to forge. `method="post"` just keeps typed text out of URLs.
+      - { ruleId: 10202, newRisk: False Positive, url: "^https?://[^/]+/$", urlRegex: true }
       # Matches "https://..." URLs in minified framework code and our footer link, not comments.
       - { ruleId: 10027, newRisk: False Positive }
       # Next.js 308 redirects for a trailing or doubled slash (`/api/`, `/portal//tickets`)

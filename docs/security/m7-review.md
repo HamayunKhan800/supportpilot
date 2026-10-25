@@ -1,6 +1,33 @@
 # M7 security review
 
-> In progress. Steps 1–4 done (2026-10-25); step 5 (fixes) and the final summary follow. Plan: [`docs/plans/m7-security-review.md`](../plans/m7-security-review.md). Findings and their fixes are tracked in [`asvs-l2.md`](asvs-l2.md#findings).
+> Done 2026-10-25. Plan: [`docs/plans/m7-security-review.md`](../plans/m7-security-review.md). Every finding, its ASVS link and its status: [`asvs-l2.md`](asvs-l2.md#findings).
+
+## Summary
+
+- **Standard:** OWASP ASVS 5.0.0 Level 2, plus OWASP Top 10:2025, the OWASP Top 10 for LLM Applications 2026 and the OWASP Web Security Testing Guide. Severity follows the OWASP Risk Rating idea (likelihood × impact).
+- **Result:** 22 findings: 4 Medium, 15 Low, 3 Info, and no High or Critical. 19 were fixed or documented in step 5, 2 are accepted risks ([AR-007](accepted-risks.md) no multi-factor sign-in, [AR-008](accepted-risks.md) cookie prefix), and 1 waits for the hosting platform (M7-11, `TRACE`, M8).
+- **ASVS Level 2 (253 requirements):** 174 pass, 8 partial, 2 fail (both accepted risks), 10 depend on the hosting platform (M8), 59 don't apply. Before the fixes: 149 pass, 18 partial, 17 fail.
+- **Exit gate met:** no High or Critical finding is open, and every open item is in [`accepted-risks.md`](accepted-risks.md).
+- **Limits of this review:** it was done by the developer with AI help, not by an independent tester, and not against a live deployment (that is M8). Anything not tested is listed below.
+
+## How it was done
+
+| Step | What                                                                                                                                                                                         | Output                                                                     |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1    | Scope and threat model refreshed (T1–T27)                                                                                                                                                    | [`03-threat-model.md`](../03-threat-model.md)                              |
+| 2    | Every ASVS Level 1 and 2 requirement checked against code, tests, library source and the production build                                                                                    | [`asvs-l2.md`](asvs-l2.md)                                                 |
+| 3    | OWASP ZAP 2.17.0 passive scan (64 public and 299 signed-in URLs) and active API scan (about 7,660 requests), against a throwaway copy                                                        | [`.zap/README.md`](../../.zap/README.md); M7-17 to M7-20; a CI job (`zap`) |
+| 4    | Hands-on attacks (WSTG) on a production build                                                                                                                                                | Below; M7-21, M7-22; M7-01 and M7-14 confirmed                             |
+| 5    | Fixes, each with a test, and documents ([crypto inventory](crypto-inventory.md), [data classification](data-classification.md), SBOM, fix time frames in [`SECURITY.md`](../../SECURITY.md)) | 4 local commits                                                            |
+| 6    | Full test suites, ZAP baseline re-run, this report                                                                                                                                           | Below                                                                      |
+
+## Main fixes (step 5)
+
+- **Sign-in limits can't be dodged (M7-01).** The auth library used to take the client IP from `X-Forwarded-For`, so a fake value gave a fresh limit on every try. It now reads only an IP the app sets, using the same rule as the rest of the app.
+- **Stronger password hashing (M7-02).** scrypt with an OWASP setting (N=2^14, r=8, p=5) and a versioned format; old hashes are upgraded at the next sign-in.
+- **Sessions end 7 days after sign-in (M7-03)**, however active they are, and users can see and sign out their other devices on the Account page (M7-05).
+- **Smaller fixes:** cache cleared on sign-out (M7-06), provider tokens encrypted (M7-07), passwords containing the product or email name refused (M7-08), refused permissions logged with who and what (M7-09), at most 5 workspaces per person (M7-14), no redirects on the email call (M7-16), `nosniff` on static files (M7-17), forms always post (M7-18), NUL characters can't cause a 500 (M7-19), two unused library endpoints closed (M7-21, M7-22), at most 5 account emails per address per hour (T18).
+- **One bug found along the way:** the M7-01 fix worked in tests but broke sign-up in the production build. The browser tests caught it before commit.
 
 ## Step 4: hands-on tests (OWASP WSTG)
 
@@ -44,6 +71,29 @@
 
 ### Not tested in step 4
 
-- Password-reset and code-sending floods per account. Email was off on the test server. These endpoints use the same IP-keyed limiter as sign-in, so M7-01 applies to them too; per-account limits are a step 5 item.
+- Password-reset and code-sending floods per account. Email was off on the test server. These endpoints use the same IP-keyed limiter as sign-in, so M7-01 applies to them too; per-address email limits were added in step 5 (5 an hour, `auth-email.test.ts`).
 - Real Google and GitHub sign-in (needs the live callback URLs, M8). Only the redirect and `state` checks above were run.
 - Timing differences between a wrong password and an unknown email (needs many samples on stable hardware).
+
+## Step 6: final checks (2026-10-25)
+
+All on one production build with mock AI. The ZAP scan used a throwaway database.
+
+| Check                                        | Result                                                                                                                            |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Unit tests                                   | 1381 passed                                                                                                                       |
+| Integration tests (real Postgres)            | 543 passed                                                                                                                        |
+| Browser tests (desktop and phone)            | 118 passed, 10 skipped on purpose (tests meant only for the other screen size or a fresh review database)                         |
+| ZAP baseline (63 public, 300 signed-in URLs) | Exit code 0; only "Modern Web Application" (information) left. Rule 10024 (M7-18) and rule 10021 on static files (M7-17) are gone |
+
+The first ZAP re-run found two more things, both handled before the commit:
+
+- `nosniff` was still missing on `/favicon.ico`, which the request filter skips. Added in `next.config.ts`, checked with curl, the scan re-run, and the security, landing and session browser tests re-run (39 passed).
+- Rule 10202 (no anti-CSRF token) flagged the landing page's demo form once it used `method="post"`. That form runs in the browser only and sends no request, so the alert is filtered as a false positive with that reason in `.zap/baseline.yaml`.
+
+## Not tested in M7
+
+- Anything on a live deployment: HTTPS, HSTS, the host's proxy and `TRUST_PROXY_HEADERS`, real email sending, real Google and GitHub sign-in, database TLS (all M8).
+- The ZAP API scan after the fixes (the NUL fix is covered by integration tests), and the CI `zap` job before its first run on this push.
+- Timing differences between a wrong password and an unknown email.
+- A review by an independent security tester.
