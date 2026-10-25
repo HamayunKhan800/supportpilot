@@ -247,3 +247,43 @@ describe("email verification by 6-digit code", () => {
     expect((await c.get("/verify-email", { token: "x" })).status).toBe(404);
   });
 });
+
+describe("Google and GitHub sign-in", () => {
+  const withKeys = createAuth(
+    getDb().db,
+    {
+      ...getEnv(),
+      GOOGLE_CLIENT_ID: "g-id",
+      GOOGLE_CLIENT_SECRET: "g-secret",
+      GITHUB_CLIENT_ID: "gh-id",
+      GITHUB_CLIENT_SECRET: "gh-secret",
+    },
+    { email: null },
+  );
+  const start = (a: typeof auth, provider: string) =>
+    new TestClient((req) => a.handler(req)).post("/sign-in/social", { provider, callbackURL: "/app" });
+
+  it("asks Google for openid, email and profile only, with account choice", async () => {
+    const res = await start(withKeys, "google");
+    expect(res.status).toBe(200);
+    const url = new URL(res.json.url);
+    expect(url.hostname).toBe("accounts.google.com");
+    expect(url.searchParams.get("scope")!.split(" ").sort()).toEqual(["email", "openid", "profile"]);
+    expect(url.searchParams.get("prompt")).toBe("select_account");
+    expect(url.searchParams.get("redirect_uri")).toBe("http://localhost:3000/api/auth/callback/google");
+    expect(url.searchParams.get("state")).toBeTruthy();
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+  });
+
+  it("sends GitHub sign-ins to GitHub with its callback", async () => {
+    const res = await start(withKeys, "github");
+    expect(res.status).toBe(200);
+    const url = new URL(res.json.url);
+    expect(url.hostname).toBe("github.com");
+    expect(url.searchParams.get("redirect_uri")).toBe("http://localhost:3000/api/auth/callback/github");
+  });
+
+  it("refuses a provider whose keys are not set", async () => {
+    expect((await start(auth, "google")).status).toBeGreaterThanOrEqual(400);
+  });
+});

@@ -9,6 +9,7 @@ import { PasswordField } from "@/components/password-field";
 import { Button } from "@/components/ui/button";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import type { AuthFeatures } from "@/server/platform/auth/features";
+import { SocialSignIn } from "../social-sign-in";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/server/platform/auth/policy";
 import { useProgressRouter } from "@/lib/use-progress-router";
 
@@ -49,6 +50,7 @@ export function SignUpForm({ next, features }: { next: string; features: AuthFea
         <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
         <p className="text-muted-foreground text-sm">Then set up a workspace for your support team.</p>
       </div>
+      <SocialSignIn providers={features.socialProviders} next={next} />
       <form method="post" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <FormAlert message={error} />

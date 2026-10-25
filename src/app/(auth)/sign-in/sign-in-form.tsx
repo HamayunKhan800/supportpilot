@@ -8,21 +8,25 @@ import { emailError } from "@/components/form-checks";
 import { PasswordField } from "@/components/password-field";
 import { Button } from "@/components/ui/button";
 import type { AuthFeatures } from "@/server/platform/auth/features";
+import { SocialSignIn } from "../social-sign-in";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { useProgressRouter } from "@/lib/use-progress-router";
 
 export function SignInForm({
   next,
   notice,
+  providerError,
   features,
 }: {
   next: string;
   /** A fixed success message from the page (account created, password changed). */
   notice: string;
+  /** A fixed message after a failed Google or GitHub sign-in. */
+  providerError: string;
   features: AuthFeatures;
 }) {
   const router = useProgressRouter();
-  const [error, setError] = useState("");
+  const [error, setError] = useState(providerError);
   const [pending, setPending] = useState(false);
   const [emailProblem, setEmailProblem] = useState("");
 
@@ -57,6 +61,7 @@ export function SignInForm({
         <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
         <p className="text-muted-foreground text-sm">Sign in to your support workspace.</p>
       </div>
+      <SocialSignIn providers={features.socialProviders} next={next} />
       <form method="post" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <FormAlert message={notice && !error ? notice : ""} tone="success" />

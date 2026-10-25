@@ -42,6 +42,8 @@ export type AuthEnv = Pick<
   | "AUTH_PASSWORD_BREACH_CHECK"
   | "GITHUB_CLIENT_ID"
   | "GITHUB_CLIENT_SECRET"
+  | "GOOGLE_CLIENT_ID"
+  | "GOOGLE_CLIENT_SECRET"
   | "EMAIL_PROVIDER"
   | "EMAIL_FROM"
   | "RESEND_API_KEY"
@@ -63,6 +65,16 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
   const github =
     env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
       ? { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET }
+      : undefined;
+  // Default scopes only (openid, email, profile): no Google app review needed for these.
+  // select_account lets people with several Google accounts pick one.
+  const google =
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+          prompt: "select_account" as const,
+        }
       : undefined;
 
   return betterAuth({
@@ -131,7 +143,13 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
       "/email-otp/change-email",
       "/email-otp/check-verification-otp",
     ],
-    socialProviders: github ? { github } : {},
+    socialProviders: { ...(google && { google }), ...(github && { github }) },
+    account: {
+      // A Google or GitHub sign-in joins an existing account only when the provider says the email
+      // is verified AND the account here has verified it too, so nobody can pre-register someone
+      // else's email with a password and wait (pre-account takeover). No trustedProviders.
+      accountLinking: { enabled: true, requireLocalEmailVerified: true },
+    },
 
     session: {
       expiresIn: SESSION_EXPIRES_IN_SECONDS,
