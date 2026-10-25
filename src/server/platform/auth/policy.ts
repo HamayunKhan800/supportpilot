@@ -10,6 +10,15 @@ export const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24; // sliding refresh once 
 
 export const INVITATION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7; // FR-A3: 7 days
 
+/** Password reset links work once, for 30 minutes (OWASP Forgot Password Cheat Sheet). */
+export const RESET_PASSWORD_EXPIRES_IN_SECONDS = 60 * 30;
+/** Email verification codes: 6 digits, 10 minutes, 3 wrong tries and the code is spent. */
+export const VERIFICATION_CODE_LENGTH = 6;
+export const VERIFICATION_CODE_EXPIRES_IN_SECONDS = 60 * 10;
+export const VERIFICATION_CODE_ATTEMPTS = 3;
+/** How long the "Send a new code" button waits between sends (matches the rate limit below). */
+export const VERIFICATION_RESEND_COOLDOWN_SECONDS = 60;
+
 /** Sign-in/sign-up limits per IP (Better Auth's default for sign-in is 3 per 10 s). */
 export const AUTH_RATE_LIMITS = {
   global: { window: 60, max: 100 },
@@ -17,6 +26,10 @@ export const AUTH_RATE_LIMITS = {
   "/sign-up/email": { window: 60, max: 3 },
   "/change-password": { window: 60, max: 5 },
   "/organization/invite-member": { window: 60, max: 10 },
+  "/request-password-reset": { window: 60, max: 3 },
+  "/reset-password": { window: 60, max: 5 },
+  "/email-otp/send-verification-otp": { window: 60, max: 3 },
+  "/email-otp/verify-email": { window: 60, max: 5 },
 } as const;
 
 /** Workspace slug: lowercase words separated by single hyphens, 3–48 chars. */

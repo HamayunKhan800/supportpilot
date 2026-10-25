@@ -4,9 +4,11 @@ import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/a
 import { nextCookies } from "better-auth/next-js";
 import { haveIBeenPwned, organization } from "better-auth/plugins";
 import type { Database } from "../db/client";
+import { createEmailSender, type EmailSender, sendInBackground } from "../email";
 import * as schema from "../db/schema";
 import type { Env } from "../env";
 import { logger } from "../logger";
+import { passwordChangedEmail, resetPasswordEmail } from "./account-emails";
 import { auditEventFromAuthResponse, memberEvent, recordAuditEvent } from "./audit";
 import { ac, INVITABLE_ROLES, roles } from "./permissions";
 import {
@@ -14,6 +16,7 @@ import {
   INVITATION_EXPIRES_IN_SECONDS,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
+  RESET_PASSWORD_EXPIRES_IN_SECONDS,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
   validateWorkspaceName,
@@ -31,14 +34,24 @@ export type AuthEnv = Pick<
   | "AUTH_PASSWORD_BREACH_CHECK"
   | "GITHUB_CLIENT_ID"
   | "GITHUB_CLIENT_SECRET"
+  | "EMAIL_PROVIDER"
+  | "EMAIL_FROM"
+  | "RESEND_API_KEY"
 >;
+
+export interface AuthDeps {
+  /** Overrides the sender chosen from the settings (tests pass an outbox). null = email off. */
+  email?: EmailSender | null;
+}
 
 /**
  * Better Auth configuration (ADR-0004). Security-relevant defaults are set explicitly,
  * even where they match the library default, so the intent is reviewable:
  * docs/03-threat-model.md T1–T5, T15.
  */
-export function createAuth(db: Database, env: AuthEnv) {
+export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
+  const email = deps.email === undefined ? createEmailSender(env) : deps.email;
+  const signInUrl = new URL("/sign-in", env.BETTER_AUTH_URL).toString();
   const github =
     env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
       ? { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET }
@@ -71,7 +84,21 @@ export function createAuth(db: Database, env: AuthEnv) {
       minPasswordLength: PASSWORD_MIN_LENGTH,
       maxPasswordLength: PASSWORD_MAX_LENGTH,
       revokeSessionsOnPasswordReset: true,
+      // Password reset by email link (OWASP Forgot Password Cheat Sheet): only when email is on.
+      // The response is the same whether or not the account exists, and sending isn't awaited.
+      resetPasswordTokenExpiresIn: RESET_PASSWORD_EXPIRES_IN_SECONDS,
+      ...(email && {
+        sendResetPassword: async ({ user, url }) => {
+          sendInBackground(email, resetPasswordEmail(user.email, url), "password-reset");
+        },
+        onPasswordReset: async ({ user }) => {
+          logger.info({ event: "auth.password_reset", userId: user.id }, "password reset");
+          sendInBackground(email, passwordChangedEmail(user.email, signInUrl), "password-changed");
+        },
+      }),
     },
+    // Reset tokens (and later verification codes) are stored hashed, not as plain text.
+    verification: { storeIdentifier: "hashed" },
     socialProviders: github ? { github } : {},
 
     session: {
@@ -85,12 +112,7 @@ export function createAuth(db: Database, env: AuthEnv) {
       storage: "database",
       window: AUTH_RATE_LIMITS.global.window,
       max: AUTH_RATE_LIMITS.global.max,
-      customRules: {
-        "/sign-in/email": AUTH_RATE_LIMITS["/sign-in/email"],
-        "/sign-up/email": AUTH_RATE_LIMITS["/sign-up/email"],
-        "/change-password": AUTH_RATE_LIMITS["/change-password"],
-        "/organization/invite-member": AUTH_RATE_LIMITS["/organization/invite-member"],
-      },
+      customRules: Object.fromEntries(Object.entries(AUTH_RATE_LIMITS).filter(([path]) => path !== "global")),
     },
 
     advanced: {
@@ -123,6 +145,13 @@ export function createAuth(db: Database, env: AuthEnv) {
           return;
         }
         if (failed) return;
+
+        // Tell the owner when their password changes (OWASP), reset or not.
+        if (ctx.path === "/change-password" && email) {
+          const changed = (returned as { user?: { email?: string } } | undefined)?.user?.email;
+          if (changed) sendInBackground(email, passwordChangedEmail(changed, signInUrl), "password-changed");
+          return;
+        }
 
         const event = auditEventFromAuthResponse(ctx.path, returned, null);
         if (!event) return;

@@ -54,10 +54,11 @@ export function contentSecurityPolicy(opts: {
 }
 
 /**
- * Paths whose URL contains a secret (the customer tracking token, plan D1). Browsers must
- * not leak them in the Referer header to any site, including links customers click there.
+ * Paths whose URL contains a secret: the customer tracking token (plan D1) and the password
+ * reset token (OWASP Forgot Password Cheat Sheet). Browsers must not leak them in the Referer
+ * header to any site, including links clicked there.
  */
-const SECRET_PATH_PREFIXES = ["/t/", "/api/v1/portal/t/"];
+const SECRET_PATH_PREFIXES = ["/t/", "/api/v1/portal/t/", "/reset-password", "/api/auth/reset-password/"];
 
 export function referrerPolicyFor(pathname: string): string {
   return SECRET_PATH_PREFIXES.some((p) => pathname.startsWith(p))

@@ -7,10 +7,20 @@ import { FormField } from "@/components/form-field";
 import { emailError } from "@/components/form-checks";
 import { PasswordField } from "@/components/password-field";
 import { Button } from "@/components/ui/button";
+import type { AuthFeatures } from "@/server/platform/auth/features";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { useProgressRouter } from "@/lib/use-progress-router";
 
-export function SignInForm({ next, registered }: { next: string; registered: boolean }) {
+export function SignInForm({
+  next,
+  notice,
+  features,
+}: {
+  next: string;
+  /** A fixed success message from the page (account created, password changed). */
+  notice: string;
+  features: AuthFeatures;
+}) {
   const router = useProgressRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -42,10 +52,7 @@ export function SignInForm({ next, registered }: { next: string; registered: boo
       </div>
       <form method="post" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
-          <FormAlert
-            message={registered && !error ? "Account created. Please sign in." : ""}
-            tone="success"
-          />
+          <FormAlert message={notice && !error ? notice : ""} tone="success" />
           <FormAlert message={error} />
           <FormField
             label="Email"
@@ -57,7 +64,17 @@ export function SignInForm({ next, registered }: { next: string; registered: boo
             onBlur={(e) => setEmailProblem(emailError(e.currentTarget))}
             onChange={(e) => emailProblem && setEmailProblem(emailError(e.currentTarget))}
           />
-          <PasswordField autoComplete="current-password" />
+          <div className="flex flex-col gap-2">
+            <PasswordField autoComplete="current-password" />
+            {features.email && (
+              <Link
+                href="/forgot-password"
+                className="text-muted-foreground hover:text-foreground self-end py-0.5 text-sm underline underline-offset-4"
+              >
+                Forgot password?
+              </Link>
+            )}
+          </div>
         </div>
         <div className="mt-6 flex flex-col gap-4">
           <Button type="submit" size="lg" className="h-10 w-full" pending={pending}>

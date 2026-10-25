@@ -82,16 +82,19 @@ describe("nonce-based CSP (T11 XSS)", () => {
   });
 });
 
-describe("Referrer-Policy (T6: tracking tokens must not leak via Referer)", () => {
-  it.each(["/t/abc", "/api/v1/portal/t/abc", "/api/v1/portal/t/abc/messages"])(
-    "no-referrer on %s",
-    (path) => {
-      expect(referrerPolicyFor(path)).toBe("no-referrer");
-      expect(securityHeaders({ nonce, isProduction: true, pathname: path })["Referrer-Policy"]).toBe(
-        "no-referrer",
-      );
-    },
-  );
+describe("Referrer-Policy (T6: tracking and reset tokens must not leak via Referer)", () => {
+  it.each([
+    "/t/abc",
+    "/api/v1/portal/t/abc",
+    "/api/v1/portal/t/abc/messages",
+    "/reset-password",
+    "/api/auth/reset-password/tok123",
+  ])("no-referrer on %s", (path) => {
+    expect(referrerPolicyFor(path)).toBe("no-referrer");
+    expect(securityHeaders({ nonce, isProduction: true, pathname: path })["Referrer-Policy"]).toBe(
+      "no-referrer",
+    );
+  });
 
   it.each(["/", "/app/tickets", "/api/v1/tickets", "/terms", "/tickets/t/x"])(
     "strict-origin-when-cross-origin on %s",
