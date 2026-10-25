@@ -10,7 +10,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   // Absolute URLs for the share image (src/app/opengraph-image.png); the public URL is already
-  // required for auth, so the deployed site needs no extra setting.
+  // required for auth, so the deployed site needs no extra setting. Read directly rather than via
+  // getEnv(): this object is evaluated during `next build`, which runs without secrets. At run
+  // time the server validates BETTER_AUTH_URL at startup and exits if it is missing
+  // (instrumentation-node.ts), so the fallback only ever applies to the build.
   metadataBase: new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
   title: { default: "SupportPilot", template: "%s · SupportPilot" },
   description:
