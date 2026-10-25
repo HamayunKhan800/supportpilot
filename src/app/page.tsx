@@ -242,8 +242,9 @@ export default async function Home() {
       <Reveal />
       <Spotlight />
       <LandingHeader>
-        <div className={cn(container, "flex h-14 items-center gap-8")}>
-          <Logo />
+        <div className={cn(container, "flex h-16 items-center gap-8")}>
+          {/* 64 px bar, 28 px mark and 18 px name, as on Vercel and Linear (measured 2026-10-25). */}
+          <Logo className="gap-2.5 text-lg [&_svg]:size-7" />
           {/* As on Vercel, Resend, Attio and Clerk: section links beside the logo, the two calls to
               action at the far right. On phones both move into the menu (mobile-menu.tsx). */}
           <nav aria-label="Main" className="hidden flex-1 items-center gap-1 md:flex">
@@ -276,7 +277,7 @@ export default async function Home() {
         <section
           data-theme="dark"
           aria-labelledby="hero-heading"
-          className="land-band text-foreground relative -mt-14 overflow-clip pt-14"
+          className="land-band text-foreground relative -mt-16 overflow-clip pt-16"
         >
           <div aria-hidden="true" className="land-grid pointer-events-none absolute inset-0" />
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
@@ -388,7 +389,7 @@ export default async function Home() {
         <section
           id="how-it-works"
           aria-labelledby="how-heading"
-          className="scroll-mt-14 border-t py-24 sm:py-32"
+          className="scroll-mt-16 border-t py-24 sm:py-32"
         >
           <div className={container}>
             <div data-reveal className="mb-12 flex max-w-2xl flex-col gap-4">
@@ -411,7 +412,7 @@ export default async function Home() {
           id="guardrails"
           data-theme="dark"
           aria-labelledby="guardrails-heading"
-          className="land-band text-foreground relative scroll-mt-14 overflow-clip py-24 sm:py-32"
+          className="land-band text-foreground relative scroll-mt-16 overflow-clip py-24 sm:py-32"
         >
           <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
           <div className={cn(container, "relative")}>
@@ -494,7 +495,7 @@ export default async function Home() {
         </section>
 
         {/* Evaluation */}
-        <section id="evaluation" aria-labelledby="evaluation-heading" className="scroll-mt-14 py-24 sm:py-32">
+        <section id="evaluation" aria-labelledby="evaluation-heading" className="scroll-mt-16 py-24 sm:py-32">
           <div className={cn(container, "flex flex-col gap-10")}>
             <div data-reveal className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-end">
               <h2 id="evaluation-heading" className={h2}>

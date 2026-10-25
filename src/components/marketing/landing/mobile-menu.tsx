@@ -72,9 +72,10 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className="text-foreground hover:bg-accent focus-visible:ring-ring -mr-2 inline-flex size-10 items-center justify-center rounded-md outline-none focus-visible:ring-2"
+        className="text-foreground hover:bg-accent focus-visible:ring-ring -mr-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-2"
       >
-        {/* Two thin lines, as on Vercel and Linear; they turn into a cross while the menu is open. */}
+        {/* Two thin 18 px lines 8 px apart in a 44 px target (Vercel: 16 px, Intercom: 18 px, Plain:
+            20 px; measured 2026-10-25); a cross while the menu is open. */}
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
@@ -84,7 +85,7 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
           strokeWidth="1.5"
           strokeLinecap="round"
         >
-          {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 9h16M4 15h16" />}
+          {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M3 8h18M3 16h18" />}
         </svg>
       </button>
       {/* Rendered at the top of the page: the header's backdrop blur would otherwise make it the
@@ -95,7 +96,7 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
             ref={panel}
             id={id}
             data-theme="dark"
-            className="menu-in text-foreground fixed inset-x-0 top-14 bottom-0 z-40 flex flex-col overflow-y-auto bg-[var(--band-bg)] px-5 pt-2 pb-8"
+            className="menu-in text-foreground fixed inset-x-0 top-16 bottom-0 z-40 flex flex-col overflow-y-auto bg-[var(--band-bg)] px-5 pt-2 pb-8"
           >
             <nav aria-label="Main" className="flex flex-col">
               <ul className="flex flex-col">
