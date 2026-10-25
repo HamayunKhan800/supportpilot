@@ -1,6 +1,6 @@
 # Architecture and code-quality audit (2026-10-25)
 
-Status: **P1–P3 approved and implemented (2026-10-25).** See section 6 for what changed and how it was verified.
+Status: **P1–P3 approved and implemented (2026-10-25).** See section 6 for what changed and how it was verified. A follow-up UI round (four workspace screens) is in section 7.
 
 Scope: everything under `src/` (280 TypeScript files, ~31.9k lines), `drizzle/`, `tests/`, and the
 architecture docs (`docs/02-architecture.md`, ADR-0001 to ADR-0019). Every finding below was checked
@@ -154,3 +154,24 @@ paths, `import type` excluded) and runs Tarjan's algorithm for cycles. It is kep
 | P3.1 | `perf(db): index ai_draft_citation chunk_id and document_id…`              | Migration `0014` contains only two `CREATE INDEX` statements. `EXPLAIN` with sequential scans disabled: Seq Scan before, Index Scan after, for both lookups. Dev data untouched (citation rows still present). `drizzle-kit check` OK; 112 KB/ledger integration tests pass, including "citations keep their snapshot when the article goes". |
 
 Remaining, by choice: `ai/gateway.ts` (`streamOnce`, complexity 31) and `triage/job.ts` (`runTriageJob`, 137 lines) are still long. Refactor them when they next need a feature change, with the same tests-first approach.
+
+## 7. UI round: four workspace screens (approved 2026-10-25)
+
+Source: react.dev, [Thinking in React](https://react.dev/learn/thinking-in-react): "a component should ideally only be concerned with one thing. If it ends up growing, it should be decomposed into smaller subcomponents." Same rule as P2: behaviour-preserving extraction (Fowler), tests first where there is logic, no visual or wording change, landing page, database and server code untouched.
+
+| Screen                         | Commit (prefix)                                                    | Largest function before → after (lines, complexity)                                                             | What moved where                                                                                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Usage analytics, AI evaluation | `refactor(analytics): split the usage and evaluation pages…`       | `AnalyticsPage` 362 L, c23 → under 50 L. `LatestRun` 224 L, c18 → `RunSummary` 87 L, c12. `MetricRow` c21 → c12 | `analytics/usage-sections.tsx` (one component per panel); `evaluation/latest-run.tsx`, `trend.tsx`, `report-parts.tsx`                                                      |
+| AI draft panel                 | `refactor(drafts): pure draft-panel state with tests…`             | `DraftPanel` 200 L, c23 → 103 L, c14. `DraftView` 261 L → 175 L                                                 | `draft-state.ts` (pure: what the panel shows and announces after a generation; 14 new unit tests written first); `draft-outcomes.tsx`; `draft-sources.tsx`; `useEditToggle` |
+| AI settings form               | `refactor(settings): pure AI-settings decisions with tests…`       | `AiSettingsForm` 305 L, c19 → 174 L, under 15                                                                   | `ai-settings-fields.ts` (pure: changed fields, number checks, category rules, server error mapping, unsaved flag; 13 new unit tests written first); `category-editor.tsx`   |
+| Overview, inbox, ticket        | `refactor(workspace): split the overview, inbox and ticket pages…` | `OverviewPage` 244 L, c16 → 52 L. `TicketsPage` 226 L → 65 L. `TicketPage` 187 L, c17 → 74 L, c12               | `overview-sections.tsx`, `tickets/inbox-sections.tsx`, `tickets/[number]/ticket-sections.tsx`                                                                               |
+
+Measured with ESLint `max-lines-per-function` (blank lines and comments skipped) and `complexity`, run ad hoc as in F4.
+
+**How "no visual change" was checked.** Before any edit, a script signed in to the demo workspace on a production build and saved a full-page screenshot and the normalized HTML of 8 screens (overview, inbox, a ticket with a ready draft, a ticket with a sent draft, analytics for 30 and 90 days, evaluation, settings) in 3 variants (desktop light, desktop dark, phone): 24 captures. Two captures of the unchanged code differed only in relative times, which set the noise floor. After the refactor, one production build and the same captures: 21 of 24 identical to the pixel and in the HTML. The other 3 (overview) differed only in a relative time ("56m" → "1h"). Settings had identical pixels; its HTML differed only in React's generated `useId` values (the new-category hint's id now comes from `CategoryEditor`), and labels still point to their inputs. After replacing generated ids and relative times with placeholders, all 24 HTML captures match.
+
+**Other checks (all passed).** Lint, Prettier and typecheck on the whole repo. Unit tests 1341 / 1341 (27 new). One production build. Browser tests before the refactor: analytics, settings, feedback, triage, accessibility (axe), visual and workspace-journey, 45 passed and 2 skipped. After: the same specs plus drafts, agent-inbox and keyboard, 54 passed and the same 2 skipped (conditional), 0 failed. The visual specs compare screenshots, and the accessibility specs run axe on both themes.
+
+Kept long by choice: `DraftView` (175 L) and `AiSettingsForm` (174 L). What remains is the action buttons (wired to the A / E / R shortcuts through refs) and three declarative number fields. Moving them out would mean passing about a dozen props, which is harder to follow than the current code.
+
+Noticed, not changed (no behaviour change in this round): if a generation finishes with a status other than ready, refused or blocked, the panel shows an error but screen readers hear "The draft was blocked for safety." The server only ends a stream with those three statuses, so this is latent. It is pinned in `tests/unit/draft-panel-state.test.ts` so a fix is a deliberate change.
