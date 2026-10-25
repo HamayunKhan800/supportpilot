@@ -102,21 +102,30 @@ test("the workflow tabs switch scenes with the mouse and the keyboard", async ({
   await expect(page.locator("#how-it-works").getByRole("tabpanel")).toContainText("Sent an AI-drafted reply");
 });
 
-test("sections below the fold reveal as they scroll into view", async ({ page }) => {
+test("sections below the fold come into focus as they scroll into view", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("html")).toHaveAttribute("data-reveal", "");
+  // Chromium supports scroll-driven animations, so the scroll-linked version runs (not the timed
+  // fallback): blurred below the fold, sharp once well into view, never faded.
+  await expect(page.locator("html")).toHaveAttribute("data-scroll-focus", "");
+  await expect(page.locator("html")).not.toHaveAttribute("data-reveal");
   const tile = page.locator("#guardrails li[data-reveal]").first();
   await expect(tile).not.toHaveAttribute("data-revealed");
-  await tile.scrollIntoViewIfNeeded();
-  await expect(tile).toHaveAttribute("data-revealed", "");
+  await expect(tile).toHaveCSS("filter", /blur\(\d/);
   await expect(tile).toHaveCSS("opacity", "1");
+  await tile.scrollIntoViewIfNeeded();
+  await expect(tile).toHaveCSS("filter", /^(none|blur\(0px\))$/);
+  // Content already on screen when the page opens is never blurred.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("filter", "none");
 });
 
 test("with reduced motion nothing is hidden or animated", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveAttribute("data-reveal");
+  await expect(page.locator("html")).not.toHaveAttribute("data-scroll-focus");
   await expect(page.locator("#guardrails li[data-reveal]").first()).toHaveCSS("opacity", "1");
+  await expect(page.locator("#guardrails li[data-reveal]").first()).toHaveCSS("filter", "none");
   const running = await page.evaluate(
     () =>
       document

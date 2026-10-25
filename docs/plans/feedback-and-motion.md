@@ -103,3 +103,24 @@ An audit of the code confirms it:
   performance 94 (89 before; single runs vary) and 100 for the rest. 19 README screenshots retaken, and
   `docs/screenshots/app/feedback-demo.gif` (14 s, 51 frames, 1.8 MB) recorded from the app with Playwright frames
   and assembled with Pillow, at real timing. Demo data was put back afterwards.
+
+## Design step 12: premium feedback pass (2026-10-25)
+
+- **Loading feedback.** `Button` has a `pending` prop (spinner in place of its icon, `aria-busy`, disabled, full
+  opacity); every form and async button uses it. Links being opened show a thin running line (`<LinkPending />`,
+  React's `useLinkStatus`, after 120 ms). On a page change that takes over 300 ms, `<RouteBusy />` covers the old page
+  with a skeleton shaped like the page being opened (client-side, so the CSP finding above still holds) and marks
+  `<main aria-busy>`. A new query on the same page dims its sections after 200 ms instead; filters and search fields
+  never dim. Background refreshes (`router.refresh()`) show nothing. GET forms whose script takes over are no longer
+  tracked as page changes (the knowledge search used to leave the bar running until the 15 s give-up).
+- **Sliding indicators.** `<SlidingIndicator />` measures the active item and slides one highlight to it (220 ms,
+  ease-out, transform and size only, no inline styles in server HTML). It follows the navigation target, so the sidebar,
+  tabs, period and status filters move on tap rather than when the page arrives. Without JavaScript, the static active
+  styles remain. Rows, tiles and lists got 150 ms colour transitions and a pressed colour.
+- **Scroll focus.** On the landing page, where `animation-timeline: view()` is supported, content below the fold starts
+  blurred 6 px and 16 px low and is sharp 40% of a screen into view. No fading, so contrast never drops. Elsewhere the
+  timed reveal stays; with reduced motion, nothing moves. The sticky headers already had frosted glass, so no new glass
+  was added.
+- Verified on a production build: 88 passed and 9 skipped across the affected specs. The only failures (axe on the
+  knowledge search, caused by the form-tracking bug above) were fixed and rerun: 27/27. Unit 1290/1290; lint, types,
+  formatting and gitleaks clean.

@@ -95,9 +95,14 @@ export async function settle(page: Page) {
   await page
     .waitForFunction(
       () =>
-        document
-          .getAnimations()
-          .every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity),
+        document.getAnimations().every(
+          (a) =>
+            a.playState !== "running" ||
+            a.effect?.getTiming().iterations === Infinity ||
+            // Scroll-linked animations (the landing page's focus effect) follow the scroll and
+            // never "finish"; at rest they are already in their final state for the scroll position.
+            !(a.timeline instanceof DocumentTimeline),
+        ),
       null,
       { timeout: reveals ? 3000 : 1000 },
     )

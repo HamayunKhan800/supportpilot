@@ -723,3 +723,29 @@ main[data-route-busy="data"] :is([data-busy-dim], section:not(section section)) 
   transition-delay: 200ms;
 }
 
+/*
+ * Scroll-linked focus on the landing page (reveal.tsx): content below the fold starts softly
+ * blurred and sharpens as it scrolls in, finishing 40% of a screen into view, so text is crisp
+ * long before it reaches reading height. Tied to scroll position, run by the browser (no scroll
+ * listeners). Only where supported and without reduced motion; elsewhere the timed reveal applies.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html[data-scroll-focus] [data-reveal]:not([data-revealed]) {
+      animation: scroll-focus linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40vh;
+    }
+  }
+}
+@keyframes scroll-focus {
+  /* Blur and a small rise only: no fading, so contrast is never reduced. */
+  from {
+    filter: blur(6px);
+    translate: 0 16px;
+  }
+  to {
+    filter: blur(0);
+    translate: 0 0;
+  }
+}
