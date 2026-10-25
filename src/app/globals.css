@@ -348,7 +348,13 @@ html[data-theme="dark"] {
       linear-gradient(to right, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px),
       linear-gradient(to bottom, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px);
     background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse 70% 65% at 50% 0%, #000 30%, transparent 100%);
+    /* No grid line on the hero's top edge, and a short fade in, so the header (which has no
+       divider at the top of the page) flows into the hero, as on Vercel and Linear. */
+    background-position: 50% 28px; /* lines at 28, 84, 140 px: none on the 56 px header's edge */
+    mask-image:
+      linear-gradient(to bottom, transparent 40px, #000 120px),
+      radial-gradient(ellipse 70% 65% at 50% 0%, #000 30%, transparent 100%);
+    mask-composite: intersect;
   }
   /* Soft white light from above: ink only, no coloured glow. */
   .land-glow {

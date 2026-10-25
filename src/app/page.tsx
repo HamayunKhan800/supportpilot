@@ -10,6 +10,7 @@ import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
 import { HeroField } from "@/components/marketing/landing/hero-field";
 import { HeroLive } from "@/components/marketing/landing/hero-live";
+import { LandingHeader } from "@/components/marketing/landing/landing-header";
 import { MobileMenu } from "@/components/marketing/landing/mobile-menu";
 import { Reveal } from "@/components/marketing/landing/reveal";
 import { Spotlight } from "@/components/marketing/landing/spotlight";
@@ -191,10 +192,7 @@ export default async function Home() {
     <>
       <Reveal />
       <Spotlight />
-      <header
-        data-theme="dark"
-        className="glass-bar text-foreground sticky top-0 z-40 border-b [--glass-alpha:88%] [--glass-base:var(--band-bg)]"
-      >
+      <LandingHeader>
         <div className={cn(container, "flex h-14 items-center gap-8")}>
           <Logo />
           {/* As on Vercel, Resend, Attio and Clerk: section links beside the logo, the two calls to
@@ -222,7 +220,7 @@ export default async function Home() {
             <MobileMenu links={NAV_LINKS} />
           </div>
         </div>
-      </header>
+      </LandingHeader>
 
       <main id="main" className="flex-1">
         {/* Hero */}

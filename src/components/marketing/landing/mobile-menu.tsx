@@ -1,6 +1,5 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -73,7 +72,18 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
         onClick={() => setOpen((o) => !o)}
         className="text-foreground hover:bg-accent focus-visible:ring-ring -mr-2 inline-flex size-10 items-center justify-center rounded-md outline-none focus-visible:ring-2"
       >
-        {open ? <X aria-hidden="true" className="size-5" /> : <Menu aria-hidden="true" className="size-5" />}
+        {/* Two thin lines, as on Vercel and Linear; they turn into a cross while the menu is open. */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="size-6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        >
+          {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 9h16M4 15h16" />}
+        </svg>
       </button>
       {/* Rendered at the top of the page: the header's backdrop blur would otherwise make it the
           containing block of this fixed panel. Same dark ink as the header. */}
