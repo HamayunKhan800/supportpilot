@@ -7,6 +7,7 @@
  *   .build/worker.mjs      background worker
  *   .build/pdf-thread.mjs  PDF parsing thread, started by the worker (separate file by design)
  *   .build/start.mjs       container launcher: web server + worker in one container (plan M8 D2)
+ *   .build/seed-demo.mjs   demo workspace seed and daily reset (plan M8 step 2)
  */
 import { build } from "esbuild";
 
@@ -16,6 +17,7 @@ build({
     worker: "src/worker/index.ts",
     "pdf-thread": "src/server/modules/kb/pdf/thread.ts",
     start: "scripts/start-container.ts",
+    "seed-demo": "scripts/seed-demo.ts",
   },
   outdir: ".build",
   outExtension: { ".js": ".mjs" },

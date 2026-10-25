@@ -17,6 +17,13 @@ import {
   verificationCodeEmail,
 } from "./account-emails";
 import { auditEventFromAuthResponse, memberEvent, recordAuditEvent } from "./audit";
+import {
+  DEMO_LOCKED_MESSAGE,
+  DEMO_LOCKED_PATHS,
+  DEMO_SIGN_UP_MESSAGE,
+  isDemoEmail,
+  skipDemoRecipients,
+} from "./demo";
 import { hashPassword, needsRehash, verifyPassword } from "./password";
 import { ac, INVITABLE_ROLES, roles } from "./permissions";
 import {
@@ -54,6 +61,7 @@ export type AuthEnv = Pick<
   | "EMAIL_FROM"
   | "RESEND_API_KEY"
   | "TRUST_PROXY_HEADERS"
+  | "DEMO_EMAIL_DOMAIN"
 >;
 
 /** Header carrying the client IP the app decided on; any copy sent by the client is dropped. */
@@ -101,7 +109,9 @@ export interface AuthDeps {
  * docs/03-threat-model.md T1–T5, T15.
  */
 export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
-  const email = deps.email === undefined ? createEmailSender(env) : deps.email;
+  const sender = deps.email === undefined ? createEmailSender(env) : deps.email;
+  // Demo addresses are never emailed, whichever sender is used (auth/demo.ts).
+  const email = sender && skipDemoRecipients(sender, env.DEMO_EMAIL_DOMAIN);
   if (env.NODE_ENV === "production" && !env.TRUST_PROXY_HEADERS) {
     logger.warn(
       { event: "auth.no_client_ip" },
@@ -236,8 +246,11 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
 
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        // A password change always signs out every other session (T4), whatever the client sends.
         if (ctx.path === "/sign-up/email") {
+          // HTTP only: the seed script creates the demo accounts through auth.api (no request).
+          if (ctx.request && isDemoEmail(String(ctx.body?.email ?? ""), env.DEMO_EMAIL_DOMAIN)) {
+            throw new APIError("BAD_REQUEST", { message: DEMO_SIGN_UP_MESSAGE });
+          }
           const problem =
             validateUserName(ctx.body?.name) ??
             passwordContextProblem(String(ctx.body?.password ?? ""), String(ctx.body?.email ?? ""));
@@ -247,6 +260,15 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
           const problem = passwordContextProblem(String(ctx.body?.newPassword ?? ""));
           if (problem) throw new APIError("BAD_REQUEST", { message: problem });
         }
+        // Shared demo accounts can't change anything that affects other visitors (plan M8 step 2).
+        if (DEMO_LOCKED_PATHS.has(ctx.path)) {
+          const session = await getSessionFromCtx(ctx);
+          if (isDemoEmail(session?.user.email, env.DEMO_EMAIL_DOMAIN)) {
+            logger.info({ event: "auth.demo_action_blocked", path: ctx.path }, "demo account action blocked");
+            throw new APIError("FORBIDDEN", { message: DEMO_LOCKED_MESSAGE });
+          }
+        }
+        // A password change always signs out every other session (T4), whatever the client sends.
         if (ctx.path === "/change-password") {
           const session = await getSessionFromCtx(ctx);
           const problem = passwordContextProblem(String(ctx.body?.newPassword ?? ""), session?.user.email);

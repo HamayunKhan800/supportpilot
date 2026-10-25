@@ -40,6 +40,8 @@ COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/.build ./.build
 COPY --from=build /app/drizzle ./drizzle
+# The synthetic help centre, read by the demo seed (node .build/seed-demo.mjs [--reset]).
+COPY --from=build /app/eval/corpus/nimbus ./eval/corpus/nimbus
 RUN mkdir -p .next/cache && chown 1000:1000 .next/cache
 
 # Unprivileged "node" user from the official image, by numeric UID so
@@ -55,4 +57,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 #   worker:         node .build/worker.mjs   (run with --no-healthcheck: the check probes the web port)
 #   web + worker:   node .build/start.mjs    (one container runs both, e.g. Cloud Run scaled to zero; plan M8 D2)
 #   release step:   node .build/migrate.mjs  (SQL migrations + job queues, before new code serves traffic)
+#   demo data:      node .build/seed-demo.mjs [--reset]  (needs DEMO_PASSWORD and ALLOW_DEMO_SEED=true)
 CMD ["node", "server.js"]

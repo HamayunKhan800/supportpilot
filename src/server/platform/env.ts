@@ -213,6 +213,19 @@ const envSchema = z
           : [],
       )
       .pipe(z.array(z.email({ error: "EVAL_REVIEWER_EMAILS entries must be email addresses" })).max(10)),
+    /**
+     * Email domain of the shared demo accounts (scripts/seed-demo.ts). Accounts on it can't
+     * change their password, sessions, linked sign-ins or members, and are never emailed
+     * (auth/demo.ts, plan M8 step 2). Deployments set a subdomain of their own domain.
+     */
+    DEMO_EMAIL_DOMAIN: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/, {
+        error: "DEMO_EMAIL_DOMAIN must be a domain name such as demo.example.com",
+      })
+      .default("demo.supportpilot.dev"),
     /** Optional GitHub sign-in. Both values or neither. */
     GITHUB_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
