@@ -1,0 +1,137 @@
+# Architecture and code-quality audit (2026-10-25)
+
+Status: **audit complete, plan awaiting approval.** No application code has been changed yet.
+
+Scope: everything under `src/` (280 TypeScript files, ~31.9k lines), `drizzle/`, `tests/`, and the
+architecture docs (`docs/02-architecture.md`, ADR-0001 to ADR-0019). Every finding below was checked
+against the code or the database. Where a check was a script, the method is given so it can be repeated.
+
+## 1. Sources used
+
+| Topic | Source | What we take from it |
+| --- | --- | --- |
+| Dependency rule | Robert C. Martin, [The Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) (2012) | "Source code dependencies can only point inwards": frameworks, web and DB depend on business rules, never the reverse. The circles are schematic, so the number of layers is not fixed. |
+| Data access in Next.js | Next.js, [How to think about data security](https://nextjs.org/docs/app/guides/data-security) | Pick one data-access approach. A server-only Data Access Layer performs authorization checks and returns minimal DTOs. Only that layer should read `process.env`. |
+| Module boundaries | Shopify Engineering, [Enforcing modularity with Packwerk](https://shopify.engineering/enforcing-modularity-rails-apps-packwerk) (2020) and [A Packwerk retrospective](https://shopify.engineering/a-packwerk-retrospective) (2024) | Boundaries should be statically checked in CI. Record existing violations as a baseline ("todo" list) and fail only on new ones. Privacy checks were removed in v3 because they turned the tool into "an API design tool": the dependency graph matters more than ceremonial public layers. |
+| Foreign keys and indexes | PostgreSQL 18, [5.5 Constraints](https://www.postgresql.org/docs/current/ddl-constraints.html) | Referencing columns are not indexed automatically. Deleting a referenced row scans the referencing table, so "it is often a good idea to index the referencing columns too", but "this is not always needed". CASCADE suits dependent parts; SET NULL suits optional references. |
+| Refactoring | Martin Fowler, [Extract Function](https://refactoring.com/catalog/extractFunction.html) | Behaviour-preserving extraction of a named step out of a long function. |
+| Testing | Ham Vocke on martinfowler.com, [The Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) | Many fast unit tests, fewer integration tests, very few end-to-end tests. Avoid duplicating the same check at several levels. |
+| Errors | [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details (already ADR-0007) | One machine-readable error format for every API error. |
+
+## 2. Architecture as it actually is
+
+```
+Browser ──fetch──▶ src/app/api/**/route.ts ──apiRoute()──▶ modules/*/service.ts ──▶ modules/*/repository.ts ──▶ Postgres
+                   src/app/**/page.tsx (server components) ─┘        │                     ▲
+                                                                     ├─▶ ai/gateway.ts ──▶ Gemini / mock
+src/worker (pg-boss) ──▶ modules/triage/job.ts, kb/ingest-job.ts ────┘
+Cross-cutting: src/server/platform/{auth, db, jobs, telemetry, errors, http, logger, env, rate-limit}
+```
+
+Modular monolith (ADR-0001) with two processes (web and worker) built from one image. Feature modules:
+`ai, analytics, drafts, eval, eval-review, kb, settings, tickets, triage, workspaces`.
+
+### What is already strong (keep it)
+
+| Area | Evidence |
+| --- | --- |
+| One entry point for writes | There are no server actions (`grep "use server"`: 0 hits). Every UI change goes through the REST API. |
+| Centralized API handling | 18 of 21 route files use `apiRoute()` (`src/server/api/route.ts`), which handles Zod validation, body caps, the same-origin check and no-store. `withRoute()` (`src/server/platform/http.ts`) adds the request ID, one log line per request and RFC 9457 errors (5xx details are logged, never returned). The 3 exceptions are health, ready and the auth library's own handler. |
+| Authorization close to the data | Services take the request headers and call `requireWorkspace(headers, { resource: [action] })` themselves (`platform/auth/context.ts:82`), with 25 call sites that each name a permission. This matches the Next.js DAL guidance. |
+| DB layer not reachable from routes | ESLint `no-restricted-imports` on `src/app/**` (`eslint.config.mjs`). Import graph: the only `app/` file that touches the DB is `app/api/ready/route.ts` (the documented health probe). |
+| No server code imports UI code | Import graph: 0 edges from `src/server` to `src/app` or `src/components`. |
+| Data integrity | 24 FKs, each with an explicit `onDelete` (13 cascade, 11 set null); 56 CHECK constraints; 5 composite same-workspace FKs; uniques on natural keys. |
+| Transactions | Every multi-write path checked uses `transaction()`: ticket create, update and reply, triage accept, KB upload, delete, retry and ingest, settings, draft save. |
+| Concurrent edits | Optimistic locking with a `version` column on tickets (`tickets/service.ts:254, 312`) and AI settings (`settings/repository.ts:44-54`), returning 409. Row locks (`FOR UPDATE`) on drafts and KB documents. |
+| AI resilience | Total and first-text timeouts, a circuit breaker, a daily cap, no SDK retries, 429 never retried (`ai/gateway.ts:35-44, 493-502`). |
+| Logging | pino with `redact` paths (`platform/logger.ts:7, 45`). Draft logs carry ids, counts and timings, never prompt or reply text. |
+| Config | Validated in `platform/env.ts`. Only one other `process.env` read in app code (finding F6). |
+| Test coverage by file | All server modules except `auth-schema.ts`, constants files and the PDF worker thread are named by at least one test (64 unit, 28 integration, 18 E2E, 3 smoke spec files). |
+
+## 3. Findings (highest risk first)
+
+Method for F1 to F3: a Node script resolves every static and dynamic import (`@/` alias and relative
+paths, `import type` excluded) and runs Tarjan's algorithm for cycles. It is kept as the planned architecture test (P1.1).
+
+| # | Finding | Evidence | Risk | Decision |
+| --- | --- | --- | --- | --- |
+| F1 | **Boundaries are only partly enforced.** The lint rule covers `src/app/**` only. Nothing stops a future change from importing the DB into `src/components`, importing UI into `src/server`, adding an import cycle, or reaching into another module's repository. | `eslint.config.mjs` (`files: ["src/app/**"]`) | Medium: rules that aren't checked decay. | **Fix (P1.1)** |
+| F2 | **One runtime import cycle.** `shell-context.tsx` imports `CommandPalette`; `command-palette.tsx` imports `useShell` from `shell-context.tsx`. | `shell-context.tsx:8`, `command-palette.tsx:10` | Low to medium: works today, but cycles cause undefined imports when load order changes. | **Fix (P1.2)** |
+| F3 | **Cross-module reads of repositories.** 10 import edges, e.g. drafts → `tickets/repository` (`findTicketById`, `listMessages`), tickets ↔ triage repositories (both directions), analytics → `eval/repository`, kb → `ai/repository` (usage records written in the same transaction). | `drafts/service.ts:5,12,15`, `drafts/actions.ts:4`, `tickets/service.ts:10,12`, `triage/job.ts:5`, `analytics/service.ts:2`, `kb/repository.ts:12` | Low today: these are reads, or writes that must share the caller's transaction. Uncontrolled growth is the real risk. | **Baseline, not rewrite (P1.1).** Record the current edges as an allowlist; CI fails on new ones. Per Shopify's retrospective, no per-module "public API" layer. |
+| F4 | **Long, branchy functions on critical paths.** ESLint `complexity` (>12) and `max-lines-per-function` (>100), run ad hoc: `runDraftUntraced` 182 lines / 32 (`drafts/service.ts:305`); `streamOnce` 105 / 31 (`ai/gateway.ts:368`); `runTriageJob` 137 / 21 (`triage/job.ts:94`); `streamDraft` 23 (`lib/draft-stream.ts:22`). | ESLint JSON report | Medium: hard to review and change safely. | **Fix the two with the best payoff-to-risk (P2.1, P2.2).** Gateway and triage job: leave for now (heavily tested, recently stabilized). |
+| F5 | **The browser draft-stream reader has no direct test.** It parses NDJSON and maps network, HTTP, stream and abort failures. Covered only indirectly by E2E. | `src/lib/draft-stream.ts` (only importer: `draft-panel.tsx`) | Medium: it sits on the main AI flow. | **Regression tests first, then refactor (P2.1)** |
+| F6 | Root layout reads `process.env.BETTER_AUTH_URL` directly, with a silent `http://localhost:3000` fallback. | `src/app/layout.tsx:14` | Low: wrong share-card URLs if misconfigured. | **Fix (P2.3)** if it is build-safe; otherwise document. |
+| F7 | Duplicate transaction helper: `tickets/repository.ts:61` re-implements `platform/db/tx.ts`. | Both files | Low | **Fix (P2.3)** |
+| F8 | **No index on `ai_draft_citation.chunk_id` and `.document_id`** (both `ON DELETE SET NULL`). Deleting or re-processing a KB document deletes its chunks (`kb/repository.ts:241, 301`), and for every deleted chunk Postgres must find matching citations. Without an index that is a full scan of a table that grows with every draft. | FK/index query on the dev DB; PostgreSQL docs §5.5.5 | Low now (small tables), grows with use. | **Proposal only (P3): additive migration, needs your explicit approval.** |
+| F9 | The other 16 FKs without a leading-column index. | Same query | None in practice | **No change.** Most point to `user`, which the app never deletes. Workspaces can't be deleted (`disableOrganizationDeletion: true`, `auth.ts:145`). The busy ones (messages, drafts, citations → draft, chunks → document) are already covered by composite indexes. No speculative indexes. |
+| F10 | `platform/db/schema.ts` imports constants from 4 modules (`schema.ts:23-36`). | Import graph | None | **Keep.** The schema (persistence) depends on domain constants (inner), which is the direction the dependency rule allows, and it keeps the CHECK constraints in sync with the code. |
+| F11 | Services take `Headers` (an HTTP detail). | Most agent-facing service functions | Low | **Keep.** It puts authorization inside the data layer (Next.js guidance). Changing dozens of signatures would be churn without a user-visible benefit. |
+
+## 4. Plan (one local commit per item)
+
+### P1: Make the architecture rules executable
+
+**P1.1: Architecture test** (`tests/unit/architecture.test.ts`, no new packages)
+- Change: run the import-graph script as a Vitest test that fails on:
+  1. any runtime import cycle;
+  2. `src/server` importing `src/app` or `src/components`;
+  3. `src/components` or `src/lib` importing `server/platform/db` or any repository;
+  4. a cross-module import of `*/repository` that is not in the allowlist. The allowlist is the 9 edges in F3, each with a one-line reason.
+- Also extend the existing ESLint DB rule from `src/app/**` to `src/components/**` and `src/lib/**`, so editors flag violations immediately.
+- Tests: the test itself, plus a quick sanity check that it fails on a planted violation (not committed).
+- Verify: `npx vitest run --project unit tests/unit/architecture.test.ts` and `pnpm lint`.
+- Note: this test fails until P1.2 lands, so P1.2 lands first.
+
+**P1.2: Remove the shell import cycle**
+- Change: move the context object and `useShell` hook into `shell/use-shell.ts`. The provider (`shell-context.tsx`) and the palette both import from it, so the cycle disappears and behaviour is unchanged.
+- Verify: typecheck, lint, the architecture test, plus targeted E2E for the shell (palette, shortcuts, sidebar), run once with the final build.
+
+### P2: Make the hottest code easier to read, behaviour unchanged
+
+**P2.1: Draft stream reader (`src/lib/draft-stream.ts`)**
+- Tests first: new unit tests with a stubbed `fetch` returning real `Response`/`ReadableStream` objects. Only the network boundary is stubbed. Cases:
+  - start → delta → done;
+  - an event split across chunks;
+  - two events in one chunk;
+  - a server error event;
+  - HTTP 429 with Retry-After;
+  - HTTP 500;
+  - offline (fetch rejects);
+  - aborted;
+  - stream ends without `done` → interrupted, keeping the draftId.
+- Then: Extract Function, pulling the NDJSON line splitting into a small `readNdjson()` async generator. Complexity goes from 23 to about 10.
+- Verify: the same tests pass before and after.
+
+**P2.2: Draft pipeline (`drafts/service.ts` `runDraftUntraced`)**
+- Change: Extract Function only, for three named steps:
+  - `citationRows(cited, results)`: the mapping inside the save transaction;
+  - `draftFailure(err, aborted)`: the nested ternary that picks the error code and status;
+  - `saveReadyDraft(...)`: the transaction.
+- No change to the order of operations, the logs or the events.
+- Tests: unit tests for the two pure helpers. The existing draft integration tests act as the regression net (run before and after).
+- Verify: targeted `drafts` integration tests and unit tests.
+
+**P2.3: Small cleanups**
+- F7: the tickets repository uses the shared `transaction()` helper.
+- F6: the layout reads the site URL through the validated config, if that is safe during the build (the build runs without `.env.local`); otherwise keep it and add a comment explaining why.
+- Verify: typecheck, the tickets integration tests, and the single final build.
+
+### P3: Database (needs your explicit approval; additive only)
+
+**P3.1: Two indexes on `ai_draft_citation`** (`chunk_id`, `document_id`)
+- New Drizzle migration with `CREATE INDEX` only. No table is dropped, renamed or rewritten, and no data changes.
+- Evidence check: `EXPLAIN` the citation lookup before and after on the test DB, then delete a KB document in an integration test.
+- Rollback: `DROP INDEX`.
+- If you'd rather wait for real production data first, this item is skipped and stays documented here.
+
+### Deliberately not doing
+
+- Rewriting modules into ports and adapters or adding per-module public-API layers (F3, F10, F11; see the Shopify retrospective).
+- Refactoring `ai/gateway.ts` or `triage/job.ts` now: well tested and recently stabilized, so the risk outweighs the readability gain. Revisit when they next need a feature change.
+- New dependencies, speculative indexes, or schema renames.
+
+## 5. Verification budget
+
+- Per item: the targeted unit and integration tests listed above, plus lint and typecheck.
+- At the end: **one** production build plus targeted E2E (shell, tickets, draft flow). No repeated full runs.
+- Report: what passed, what failed, and any failure that already existed before these changes.
