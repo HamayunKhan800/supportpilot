@@ -14,16 +14,11 @@ import { can } from "@/server/platform/auth/permissions";
 import { getEnv } from "@/server/platform/env";
 import { LatestTickets, RecentActivity, TodayBand, WorkspaceLinks } from "./overview-sections";
 import { requireAppWorkspace } from "./workspace-context";
+import { formatWeekday } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Overview" };
 
 const requestTime = () => Date.now();
-const today = new Intl.DateTimeFormat("en-GB", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  timeZone: "UTC",
-});
 
 /**
  * The workspace home (design step 10.4), laid out like Stripe's: a greeting, a "Today" band with
@@ -68,7 +63,7 @@ export default async function OverviewPage() {
       <div className="-mt-2 flex flex-col gap-1">
         <p className="text-2xl font-semibold tracking-tight">Welcome back, {firstName}</p>
         <p className="text-muted-foreground text-sm">
-          {today.format(now)} · signed in as {ctx.role}
+          {formatWeekday(new Date(now))} · signed in as {ctx.role}
         </p>
       </div>
 

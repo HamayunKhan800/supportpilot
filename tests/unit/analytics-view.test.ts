@@ -95,8 +95,8 @@ describe("formatting", () => {
   });
 
   it("days are UTC calendar days", () => {
-    expect(formatDay("2026-10-23")).toBe("23 Oct");
-    expect(formatDay("2026-01-01")).toBe("1 Jan");
+    expect(formatDay("2026-10-23")).toBe("Oct 23");
+    expect(formatDay("2026-01-01")).toBe("Jan 1");
     expect(formatDay("not a day")).toBe("not a day");
   });
 });

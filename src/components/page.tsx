@@ -41,6 +41,7 @@ export function PageHeader({
                 href={breadcrumb.href}
                 className="text-muted-foreground hover:text-foreground shrink-0 rounded-sm text-sm transition-colors"
               >
+                {/* Same look as <Breadcrumb>; here the current page is the bar's h1. */}
                 {breadcrumb.label}
               </Link>
               <ChevronRight aria-hidden="true" className="text-muted-foreground size-3.5 shrink-0" />
@@ -53,6 +54,39 @@ export function PageHeader({
       </div>
       {description && <p className="text-muted-foreground -mt-4 max-w-prose text-sm">{description}</p>}
     </>
+  );
+}
+
+/**
+ * "Parent › Current" above a sub-page's title (ticket, document), the way Linear and Vercel show
+ * where a page sits. The same link and chevron as the breadcrumb in PageHeader, so every
+ * sub-page leads back the same way.
+ */
+export function Breadcrumb({
+  parent,
+  current,
+  className,
+}: {
+  parent: { href: string; label: string };
+  current: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <nav aria-label="Breadcrumb" className={cn("min-w-0", className)}>
+      <ol className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-sm">
+        <li className="shrink-0">
+          <Link href={parent.href} className="hover:text-foreground rounded-sm transition-colors">
+            {parent.label}
+          </Link>
+        </li>
+        <li aria-hidden="true" className="shrink-0">
+          <ChevronRight className="size-3.5" />
+        </li>
+        <li aria-current="page" className="text-foreground min-w-0 truncate">
+          {current}
+        </li>
+      </ol>
+    </nav>
   );
 }
 

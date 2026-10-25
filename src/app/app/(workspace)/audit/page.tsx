@@ -10,10 +10,9 @@ import { requireAppWorkspace } from "../workspace-context";
 import { getAuditPage } from "@/server/modules/workspaces/service";
 import { AppError } from "@/server/platform/errors";
 import { actorLabel, detail, iconFor, labelFor } from "./describe";
+import { formatDateTime } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Audit log" };
-
-const fmt = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 
 export default async function AuditPage({ searchParams }: PageProps<"/app/audit">) {
   const { after } = await searchParams;
@@ -30,7 +29,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Audit log"
-        description="Who changed what: members, tickets, knowledge and AI settings, newest first. Times are UTC."
+        description="Who changed what: members, tickets, knowledge and AI settings, newest first."
       />
       {page.entries.length === 0 ? (
         <EmptyState
@@ -72,7 +71,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
                 return (
                   <tr key={e.id} className="border-t align-top">
                     <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
-                      <time dateTime={e.createdAt.toISOString()}>{fmt.format(e.createdAt)}</time>
+                      <time dateTime={e.createdAt.toISOString()}>{formatDateTime(e.createdAt)}</time>
                     </td>
                     <td className="px-4 py-3">{actorLabel(e)}</td>
                     <td className="px-4 py-3">

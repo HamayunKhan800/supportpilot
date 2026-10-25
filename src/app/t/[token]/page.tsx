@@ -7,6 +7,7 @@ import { CUSTOMER_STATUS_LABEL } from "@/server/modules/tickets/limits";
 import { getCustomerTicket } from "@/server/modules/tickets/service";
 import { AppError } from "@/server/platform/errors";
 import { ReplyForm } from "./reply-form";
+import { formatDateTime } from "@/lib/format";
 
 /**
  * The customer's private tracking page (plan D1). The URL holds a secret, so:
@@ -19,8 +20,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };
-
-const fmt = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 
 async function load(token: string) {
   try {
@@ -50,7 +49,7 @@ export default async function TrackingPage({ params }: PageProps<"/t/[token]">) 
             <span className="text-muted-foreground">{STATUS_HINT[ticket.status]}</span>
           </div>
           <p className="text-muted-foreground text-sm">
-            Opened <time dateTime={ticket.createdAt.toISOString()}>{fmt.format(ticket.createdAt)} UTC</time>
+            Opened <time dateTime={ticket.createdAt.toISOString()}>{formatDateTime(ticket.createdAt)}</time>
           </p>
         </header>
 
@@ -87,7 +86,7 @@ export default async function TrackingPage({ params }: PageProps<"/t/[token]">) 
                     <p className="flex flex-wrap items-baseline gap-x-2 pt-1.5 text-sm">
                       <span className="font-medium">{who}</span>
                       <time dateTime={m.createdAt.toISOString()} className="text-muted-foreground text-xs">
-                        {fmt.format(m.createdAt)} UTC
+                        {formatDateTime(m.createdAt)}
                       </time>
                     </p>
                     {/* Plain text (plan D8): React escapes it; whitespace is preserved for readability. */}

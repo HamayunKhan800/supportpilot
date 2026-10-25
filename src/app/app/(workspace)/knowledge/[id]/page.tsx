@@ -1,23 +1,23 @@
-import { ArrowLeft, CircleAlert } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
+import { cache } from "react";
 import { notFound } from "next/navigation";
-import { Section } from "@/components/page";
+import { Breadcrumb, Section } from "@/components/page";
 import { ingestErrorMessage } from "@/server/modules/kb/ingest-errors";
 import { getKbDocument } from "@/server/modules/kb/service";
 import { can } from "@/server/platform/auth/permissions";
 import { AppError } from "@/server/platform/errors";
-import { dateFormat } from "../../tickets/labels";
 import { requireAppWorkspace } from "../../workspace-context";
 import { AutoRefresh } from "../auto-refresh";
 import { DocumentActions } from "../document-actions";
 import { formatBytes, isInProgress, typeLabel } from "../labels";
 import { DocumentStatusBadge } from "../status-badge";
+import { formatDateTime } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Document" };
-
-async function load(id: string) {
+/** Cached per request, so the title and the page share one query. */
+const load = cache(async (id: string) => {
+  await requireAppWorkspace(); // signed-out visitors are redirected, here and in the title
   try {
     return await getKbDocument(await headers(), id);
   } catch (err) {
@@ -25,6 +25,12 @@ async function load(id: string) {
     if (err instanceof AppError && err.status === 404) return null;
     throw err;
   }
+});
+
+/** The tab shows the document's own title, as ticket pages show theirs. */
+export async function generateMetadata({ params }: PageProps<"/app/knowledge/[id]">): Promise<Metadata> {
+  const data = await load((await params).id);
+  return { title: data ? data.document.title : "Document not found" };
 }
 
 export default async function DocumentPage({ params }: PageProps<"/app/knowledge/[id]">) {
@@ -50,28 +56,18 @@ export default async function DocumentPage({ params }: PageProps<"/app/knowledge
     [
       "Added",
       <time key="added" dateTime={d.createdAt.toISOString()}>
-        {dateFormat.format(d.createdAt)}
+        {formatDateTime(d.createdAt)}
       </time>,
     ],
     [
       "Processed",
-      d.ingestedAt ? (
-        <time dateTime={d.ingestedAt.toISOString()}>{dateFormat.format(d.ingestedAt)}</time>
-      ) : (
-        "—"
-      ),
+      d.ingestedAt ? <time dateTime={d.ingestedAt.toISOString()}>{formatDateTime(d.ingestedAt)}</time> : "—",
     ],
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href="/app/knowledge"
-        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
-      >
-        <ArrowLeft aria-hidden="true" className="size-4" />
-        Knowledge base
-      </Link>
+      <Breadcrumb parent={{ href: "/app/knowledge", label: "Knowledge base" }} current={d.title} />
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">

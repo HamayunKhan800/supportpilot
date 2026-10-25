@@ -14,7 +14,8 @@ import { LatestRun } from "./latest-run";
 import { Block, PROVIDER_LABELS } from "./report-parts";
 import { Trend } from "./trend";
 
-export const metadata: Metadata = { title: "AI evaluation" };
+// Named like its sidebar link and tab.
+export const metadata: Metadata = { title: "Evaluation" };
 
 /** What the numbers mean and what they don't, in plain words, at the end of the report. */
 function AboutNumbers() {

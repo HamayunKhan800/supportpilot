@@ -41,19 +41,39 @@ export function formatUsd(usd: number | null): string {
 
 export const formatMicros = (micros: number | null) => formatUsd(micros === null ? null : micros / 1e6);
 
-const dayFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+/*
+ * Dates: one style across the app, US English and UTC, like Linear, Vercel and Stripe
+ * ("Oct 25", "Oct 25, 2026", "Oct 25, 2026, 9:50 AM UTC"). Fixed locale and time zone, so the
+ * server and the browser always print the same text. Before 2026-10-25 some pages used en-GB
+ * ("25 October", "26 Sept") and others en-US.
+ */
+const dayFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const dateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" });
+const longDateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
+const weekdayFormat = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  timeZone: "UTC",
+});
+const dateTimeFormat = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "UTC",
+});
 
-/** "2026-10-23" → "23 Oct". Anything else is returned unchanged. */
+/** "2026-10-23" → "Oct 23". Anything else is returned unchanged. */
 export function formatDay(isoDay: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDay);
   if (!m) return isoDay;
   return dayFormat.format(new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))));
 }
 
-const dateTimeFormat = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
-
+/** "Oct 25, 2026" */
+export const formatDate = (d: Date) => dateFormat.format(d);
+/** "October 25, 2026" */
+export const formatLongDate = (d: Date) => longDateFormat.format(d);
+/** "Sunday, October 25" */
+export const formatWeekday = (d: Date) => weekdayFormat.format(d);
+/** "Oct 25, 2026, 9:50 AM UTC" */
 export const formatDateTime = (d: Date) => `${dateTimeFormat.format(d)} UTC`;

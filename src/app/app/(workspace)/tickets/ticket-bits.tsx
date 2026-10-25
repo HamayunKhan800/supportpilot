@@ -2,7 +2,8 @@ import { CircleCheck, CircleDot, Clock, Flame, Lock } from "lucide-react";
 import { relativeAge } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 import type { TicketPriority, TicketStatus } from "@/server/modules/tickets/types";
-import { dateFormat, PRIORITY_LABEL, STATUS_LABEL } from "./labels";
+import { PRIORITY_LABEL, STATUS_LABEL } from "./labels";
+import { formatDateTime } from "@/lib/format";
 
 /**
  * Small, server-safe pieces shared by the ticket list and the ticket page. Status and priority
@@ -134,7 +135,7 @@ export function Age({
   return (
     <time
       dateTime={date.toISOString()}
-      title={`${dateFormat.format(date)} UTC`}
+      title={formatDateTime(date)}
       className={cn("text-muted-foreground tabular-nums", className)}
     >
       <span aria-hidden="true">{age.short}</span>

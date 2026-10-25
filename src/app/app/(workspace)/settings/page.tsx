@@ -8,6 +8,7 @@ import { getAiSettingsPage } from "@/server/modules/settings/service";
 import { AppError } from "@/server/platform/errors";
 import { requireAppWorkspace } from "../workspace-context";
 import { AiSettingsForm } from "./ai-settings-form";
+import { formatLongDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "AI settings" };
 
@@ -25,12 +26,6 @@ const OUTCOME_LABELS: Record<string, string> = {
 
 const int = new Intl.NumberFormat("en-US");
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 4 });
-const day = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 function outcomes(o: Record<string, number | undefined>) {
   const parts = Object.entries(o)
@@ -69,7 +64,7 @@ export default async function AiSettingsPage() {
       <Section
         id="usage"
         title="This month's usage"
-        description={`Since ${day.format(since)} (UTC). The budget resets on ${day.format(nextReset)}.`}
+        description={`Since ${formatLongDate(since)} (UTC). The budget resets on ${formatLongDate(nextReset)}.`}
         bodyClassName="flex flex-col gap-4"
       >
         {!settings.aiEnabled ? (
@@ -82,7 +77,8 @@ export default async function AiSettingsPage() {
           exhausted && (
             <Alert variant="destructive">
               <AlertDescription>
-                The monthly budget is used up, so triage and drafts are paused until {day.format(nextReset)}
+                The monthly budget is used up, so triage and drafts are paused until{" "}
+                {formatLongDate(nextReset)}
                 {canEdit ? " or until you raise the budget below." : " or until an admin raises it."}
               </AlertDescription>
             </Alert>

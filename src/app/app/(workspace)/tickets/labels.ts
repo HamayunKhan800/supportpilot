@@ -22,12 +22,6 @@ export const PRIORITY_CLASS: Record<TicketPriority, string> = {
   urgent: "border-danger-border bg-danger-subtle text-danger-strong",
 };
 
-export const dateFormat = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
-
 export const selectClass =
   "border-input bg-background field-focus h-10 w-full min-w-0 rounded-md border px-2 text-sm";
 

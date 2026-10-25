@@ -1,11 +1,12 @@
 import { ChevronDown, ChevronUp, Lock } from "lucide-react";
 import Link from "next/link";
+import { Breadcrumb } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
 import { listHref, type Neighbours, type Queue, ticketHref } from "@/lib/ticket-queue";
 import { cn } from "@/lib/utils";
 import type { getTicketByNumberForAgent, listTicketsForAgent } from "@/server/modules/tickets/service";
-import { dateFormat } from "../labels";
 import { Age, Avatar, PriorityLabel, StatusIcon, StatusLabel } from "../ticket-bits";
+import { formatDateTime } from "@/lib/format";
 
 /** The read-only parts of the ticket page (page.tsx loads the data and lays them out). */
 
@@ -32,22 +33,10 @@ export function TicketHeader({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <nav aria-label="Breadcrumb">
-          <ol className="text-muted-foreground flex items-center gap-1.5 text-sm">
-            <li>
-              <Link
-                href={listHref(queue)}
-                className="hover:text-foreground underline-offset-4 hover:underline"
-              >
-                All tickets
-              </Link>
-            </li>
-            <li aria-hidden="true">/</li>
-            <li aria-current="page" className="text-foreground font-mono text-xs">
-              #{t.number}
-            </li>
-          </ol>
-        </nav>
+        <Breadcrumb
+          parent={{ href: listHref(queue), label: "Tickets" }}
+          current={<span className="font-mono text-xs">#{t.number}</span>}
+        />
         {nav && (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground mr-1 text-xs tabular-nums">
@@ -140,7 +129,7 @@ function MessageItem({ m, customerName, last }: { m: Message; customerName: stri
             )}
           </span>
           <time dateTime={m.createdAt.toISOString()} className="text-muted-foreground text-xs">
-            {dateFormat.format(m.createdAt)} UTC
+            {formatDateTime(m.createdAt)}
           </time>
         </p>
         <div

@@ -8,10 +8,9 @@ import { initials } from "@/lib/initials";
 import { getMembersPage } from "@/server/modules/workspaces/service";
 import { requireAppWorkspace } from "../workspace-context";
 import { InvitationRow, InviteForm, MemberActions } from "./member-controls";
+import { formatDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Members" };
-
-const dateFmt = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
 
 const ROLE_BADGE: Record<string, string> = {
   owner: "",
@@ -91,7 +90,7 @@ export default async function MembersPage() {
                     </Badge>
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap sm:table-cell">
-                    {dateFmt.format(m.joinedAt)}
+                    {formatDate(m.joinedAt)}
                   </td>
                   {canManage && (
                     <td className="px-4 py-3 text-right">
@@ -130,7 +129,7 @@ export default async function MembersPage() {
                   id={i.id}
                   email={i.email}
                   role={i.role ?? "agent"}
-                  expires={dateFmt.format(i.expiresAt)}
+                  expires={formatDate(i.expiresAt)}
                 />
               ))}
             </ul>

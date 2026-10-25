@@ -91,7 +91,7 @@ test("agent works a ticket end to end", async ({ page, browser, playwright, base
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Refund for duplicate charge");
   await page.getByRole("link", { name: "Previous ticket" }).click();
   await expect(page).toHaveURL(/\/app\/tickets\/2$/);
-  await page.getByRole("link", { name: "All tickets" }).click();
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Tickets" }).click();
   await expect(results).toHaveCount(2);
 
   // Ticket page: public reply, then an internal note.
