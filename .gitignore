@@ -60,3 +60,6 @@ eval/state/
 # Mock evaluation results (pnpm eval): rewritten every run, kept as a CI artifact instead
 eval/results/eval-mock*.json
 eval/results/eval-mock*.md
+
+# ZAP scan reports (.zap/run.sh)
+/zap-out/

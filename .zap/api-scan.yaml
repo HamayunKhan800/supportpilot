@@ -1,0 +1,59 @@
+# ZAP active API scan, M7 step 3. Imports the app's own OpenAPI file and attacks every
+# operation (injection, path traversal, XSS, and more) as the demo admin. It writes junk
+# data, so run it ONLY against a throwaway copy with its own database (never a real site).
+# ZAP_TARGET, ZAP_COOKIE (admin session with the demo workspace active), ZAP_REPORT_DIR and
+# ZAP_API_FILE (written by prepare-api-spec.mjs, real IDs filled in) come from the environment.
+# ZAP does not expand ${...} inside the replacer job, so expand the whole file first.
+env:
+  contexts:
+    - name: api
+      urls: ["${ZAP_TARGET}/api/v1"]
+      includePaths: ["${ZAP_TARGET}/api/v1/.*"]
+  parameters:
+    failOnError: true
+    progressToStdout: true
+jobs:
+  # Reviewed alerts (M7 step 3). Each is a false positive here; the reason is next to it.
+  # Filters apply as alerts are raised, so this job must come first.
+  - type: alertFilter
+    alertFilters:
+      # Sign-in/up forms post JSON with fetch; Better Auth checks Origin and the session
+      # cookie is SameSite=Lax, so a hidden form token adds nothing (ASVS V3.5.1).
+      - { ruleId: 10202, newRisk: False Positive, url: ".*/sign-(in|up)$", urlRegex: true }
+      # Matches "https://..." URLs in minified framework code and our footer link, not comments.
+      - { ruleId: 10027, newRisk: False Positive }
+      # Next.js 308 redirects for a trailing or doubled slash (`/api/`, `/portal//tickets`)
+      # with a tiny plain body.
+      - { ruleId: 10019, newRisk: False Positive, url: ".*(/$|//.*)", urlRegex: true }
+      # CI runs plain HTTP on localhost; production is HTTPS-only with HSTS (checked at M8).
+      - { ruleId: 10106, newRisk: False Positive }
+  - type: replacer
+    rules:
+      - description: demo admin session
+        matchType: req_header
+        matchString: Cookie
+        matchRegex: false
+        replacementString: "${ZAP_COOKIE}"
+      # Writes need a same-origin Origin header (CSRF check); without it every attack
+      # would only reach the 403 and test nothing else.
+      - description: same-origin writes
+        matchType: req_header
+        matchString: Origin
+        matchRegex: false
+        replacementString: "${ZAP_TARGET}"
+  - type: openapi
+    parameters: { apiFile: "${ZAP_API_FILE}", targetUrl: "${ZAP_TARGET}", context: api }
+  - type: passiveScan-wait
+    parameters: { maxDuration: 2 }
+  - type: activeScan
+    parameters: { context: api, maxScanDurationInMins: 25, threadPerHost: 2 }
+  - type: passiveScan-wait
+    parameters: { maxDuration: 2 }
+  - type: report
+    parameters: { template: traditional-json, reportDir: "${ZAP_REPORT_DIR}", reportFile: zap-api.json }
+  - type: report
+    parameters: { template: traditional-md, reportDir: "${ZAP_REPORT_DIR}", reportFile: zap-api.md }
+  # Any Low or higher alert left after the filters fails the run (exit 1); Informational only
+  # warns (exit 2).
+  - type: exitStatus
+    parameters: { errorLevel: Low, warnLevel: Informational }

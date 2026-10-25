@@ -59,3 +59,98 @@ jobs:
         with:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
+
+  zap:
+    name: ZAP scans (passive + active API, throwaway copy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # A fresh database and server that exist only for this job: the active scan writes junk
+    # data, so it must never point at a real deployment (docs/plans/m7-security-review.md).
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17-trixie
+        env:
+          POSTGRES_USER: supportpilot
+          POSTGRES_PASSWORD: supportpilot
+          POSTGRES_DB: supportpilot
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U supportpilot"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://supportpilot:supportpilot@localhost:5432/supportpilot
+      BETTER_AUTH_URL: http://localhost:3000
+      AI_PROVIDER: mock
+      ZAP_TARGET: http://localhost:3000
+      # ZAP 2.17.0 (same image as :stable on 2026-10-25), pinned by digest.
+      ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:5ccfff9a411743ab2615136a2edd7416bec9ce41572fa94e935df38c14adb2b6
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build (without runtime secrets)
+        run: env -u DATABASE_URL pnpm build && pnpm build:scripts
+      - name: Assemble standalone server
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+      - run: node .build/migrate.mjs
+      - name: Throwaway secrets for this run
+        run: |
+          echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          pw="$(openssl rand -hex 16)"; echo "::add-mask::$pw"; echo "DEMO_PASSWORD=$pw" >> "$GITHUB_ENV"
+      - name: Seed demo data
+        run: pnpm db:seed-demo
+      - name: Start worker and server
+        run: |
+          NODE_ENV=production node .build/worker.mjs > "$RUNNER_TEMP/worker.log" 2>&1 &
+          (cd .next/standalone && NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 node server.js > "$RUNNER_TEMP/server.log" 2>&1 &)
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:3000/api/health
+          sleep 20 # let the worker index the help articles so drafts reach the model path
+      - name: Prepare report folder (the ZAP container runs as its own user)
+        run: mkdir -p zap-out && chmod 777 zap-out && docker pull -q "$ZAP_IMAGE"
+      - name: ZAP baseline (passive crawl, visitor + agent)
+        id: baseline
+        continue-on-error: true
+        run: .zap/run.sh baseline
+        env:
+          ZAP_REPORT_DIR: ${{ github.workspace }}/zap-out
+          ZAP_CMD: docker run --rm --network host -v ${{ github.workspace }}/zap-out:${{ github.workspace }}/zap-out ${{ env.ZAP_IMAGE }} zap.sh
+      # Active attacks run only when started by hand (Actions → Security → Run workflow), as
+      # agreed in the M7 plan; the passive baseline runs on every push and pull request.
+      - name: ZAP API scan (active, every /api/v1 operation as admin)
+        id: api
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: .zap/run.sh api
+        env:
+          ZAP_REPORT_DIR: ${{ github.workspace }}/zap-out
+          ZAP_CMD: docker run --rm --network host -v ${{ github.workspace }}/zap-out:${{ github.workspace }}/zap-out ${{ env.ZAP_IMAGE }} zap.sh
+      - name: No server errors during the scans
+        id: no500
+        continue-on-error: true
+        run: |
+          if grep -a '"status":500' "$RUNNER_TEMP/server.log"; then echo "::error::the server returned 500 during the ZAP scans"; exit 1; fi
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zap-reports
+          path: zap-out/zap-*
+          retention-days: 14
+      - name: Result
+        run: |
+          echo "baseline=${{ steps.baseline.outcome }} api=${{ steps.api.outcome }} no500=${{ steps.no500.outcome }}"
+          test "${{ steps.baseline.outcome }}" = success
+          test "${{ steps.api.outcome }}" = success || test "${{ steps.api.outcome }}" = skipped
+          test "${{ steps.no500.outcome }}" = success
+      - name: Server logs
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/server.log"

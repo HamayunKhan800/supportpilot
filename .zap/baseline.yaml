@@ -1,0 +1,58 @@
+# ZAP baseline (passive) scan, M7 step 3. Crawls the site as a visitor, then signed in as the
+# demo agent, and reports what ZAP sees in the traffic. It sends no attacks.
+# Run against a throwaway copy only: ZAP_TARGET (e.g. http://localhost:3000) and ZAP_COOKIE
+# (`better-auth.session_token=...` from a demo sign-in, with the demo workspace set active)
+# and ZAP_REPORT_DIR come from the environment. ZAP does not expand ${...} inside the replacer
+# job, so expand the whole file first (see .zap/README.md).
+# Reviewed false positives are filtered below; CI fails on any other Low+ alert.
+env:
+  contexts:
+    - name: public
+      urls: ["${ZAP_TARGET}/"]
+      includePaths: ["${ZAP_TARGET}/.*"]
+      excludePaths: ["${ZAP_TARGET}/api/auth/sign-out.*", "${ZAP_TARGET}/app.*"]
+    - name: agent
+      urls: ["${ZAP_TARGET}/app"]
+      includePaths: ["${ZAP_TARGET}/app.*", "${ZAP_TARGET}/api/v1/.*"]
+      excludePaths: ["${ZAP_TARGET}/api/auth/sign-out.*"]
+  parameters:
+    failOnError: true
+    progressToStdout: true
+jobs:
+  # Reviewed alerts (M7 step 3). Each is a false positive here; the reason is next to it.
+  # Filters apply as alerts are raised, so this job must come first.
+  - type: alertFilter
+    alertFilters:
+      # Sign-in/up forms post JSON with fetch; Better Auth checks Origin and the session
+      # cookie is SameSite=Lax, so a hidden form token adds nothing (ASVS V3.5.1).
+      - { ruleId: 10202, newRisk: False Positive, url: ".*/sign-(in|up)$", urlRegex: true }
+      # Matches "https://..." URLs in minified framework code and our footer link, not comments.
+      - { ruleId: 10027, newRisk: False Positive }
+      # Next.js 308 redirects for a trailing or doubled slash (`/api/`, `/portal//tickets`)
+      # with a tiny plain body.
+      - { ruleId: 10019, newRisk: False Positive, url: ".*(/$|//.*)", urlRegex: true }
+      # CI runs plain HTTP on localhost; production is HTTPS-only with HSTS (checked at M8).
+      - { ruleId: 10106, newRisk: False Positive }
+  - type: passiveScan-config
+    parameters: { maxAlertsPerRule: 10, scanOnlyInScope: true }
+  - type: spider
+    parameters: { context: public, maxDuration: 2, postForm: false }
+  - type: replacer
+    rules:
+      - description: demo agent session
+        matchType: req_header
+        matchString: Cookie
+        matchRegex: false
+        replacementString: "${ZAP_COOKIE}"
+  - type: spider
+    parameters: { context: agent, maxDuration: 3, postForm: false }
+  - type: passiveScan-wait
+    parameters: { maxDuration: 5 }
+  - type: report
+    parameters: { template: traditional-json, reportDir: "${ZAP_REPORT_DIR}", reportFile: zap-baseline.json }
+  - type: report
+    parameters: { template: traditional-md, reportDir: "${ZAP_REPORT_DIR}", reportFile: zap-baseline.md }
+  # Any Low or higher alert left after the filters fails the run (exit 1); Informational only
+  # warns (exit 2).
+  - type: exitStatus
+    parameters: { errorLevel: Low, warnLevel: Informational }

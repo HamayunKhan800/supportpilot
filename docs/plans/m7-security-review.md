@@ -47,3 +47,9 @@
 - A paid or external penetration test (listed as a limitation).
 - Two-factor sign-in, connected-accounts page (product features, later).
 - Production checks that need the live site (HTTPS, real email, real OAuth callbacks): M8.
+
+## Changes during execution
+
+- **Step 3, ZAP baseline:** the job runs the official ZAP image (`ghcr.io/zaproxy/zaproxy:2.17.0`, pinned by digest) with Automation Framework plans in `.zap/`, instead of `zaproxy/action-baseline`. The action can't crawl signed in, and the plan files let the same scan run locally. The rules file became alert filters with reasons (`.zap/README.md`).
+- **Step 3, local runs:** both scans were also run in the dev sandbox, against a throwaway copy (its own database, `127.0.0.1` only), because results could not be iterated through CI before the final push. No real site was scanned.
+- **Step 3, API scan:** still manual-only in CI (`workflow_dispatch`), as planned.
