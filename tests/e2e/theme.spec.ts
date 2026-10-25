@@ -107,6 +107,8 @@ test("ignores a tampered theme cookie", async ({ page, baseURL }) => {
 });
 
 test("dark theme has no serious accessibility violations", async ({ page, baseURL }) => {
+  // Scans a dozen settled pages, about 2 s each: close to the default 30 s on a small machine.
+  test.slow();
   await page.context().addCookies([{ name: "sp_theme", value: "dark", url: baseURL! }]);
   for (const path of ["/", "/sign-in", "/sign-up"]) {
     await page.goto(path);

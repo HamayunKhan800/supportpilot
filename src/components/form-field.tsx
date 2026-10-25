@@ -34,7 +34,7 @@ function FieldMessages({
   return (
     <>
       {hint && (
-        <p id={hintId} className="text-muted-foreground text-sm">
+        <p id={hintId} className="text-muted-foreground max-w-prose text-sm">
           {hint}
         </p>
       )}

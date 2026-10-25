@@ -96,7 +96,7 @@ export function MetricTabs({ label, metrics }: { label: string; metrics: Metric[
                 {m.value}
               </span>
               {m.change && Icon && (
-                <span className="text-muted-foreground flex items-start gap-1 text-[11px] leading-4 sm:text-xs">
+                <span className="text-muted-foreground flex items-start gap-1 text-xs leading-4">
                   <Icon aria-hidden="true" className="mt-px size-3.5 shrink-0" />
                   <span>{m.change.text}</span>
                 </span>

@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { audit, expect, test } from "./fixtures";
 
 /**
  * The landing page (docs/design/landing.md): calls to action, section links, the workflow tabs,
@@ -7,7 +7,7 @@ import { expect, test } from "./fixtures";
  * no Content Security Policy violations from the new styles, and the live demo in the hero.
  */
 
-test("the calls to action lead to sign-up and sign-in", async ({ page }) => {
+test("the calls to action lead to sign-up and sign-in", async ({ page, isMobile }) => {
   await page.goto("/");
   await expect(
     page.getByRole("heading", { level: 1, name: "Support replies drafted by AI, approved by your team." }),
@@ -15,12 +15,51 @@ test("the calls to action lead to sign-up and sign-in", async ({ page }) => {
   await page.getByRole("link", { name: "Create a workspace" }).first().click();
   await expect(page).toHaveURL(/\/sign-up$/);
   await page.goto("/");
+  // On phones the header holds only the logo and a menu button (design step 11).
+  if (isMobile) await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
 });
 
+test("on a phone the menu opens, traps focus, closes with Escape and on a link", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "wide screens show the links in the header");
+  await page.goto("/");
+  const button = page.getByRole("button", { name: "Menu" });
+  await expect(button).toHaveAttribute("aria-expanded", "false");
+  await button.click();
+  await expect(button).toHaveAttribute("aria-expanded", "true");
+  const nav = page.getByRole("navigation", { name: "Main" });
+  await expect(nav.getByRole("link", { name: "How it works" })).toBeFocused();
+  for (const theme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    await audit(page, `landing menu (${theme})`);
+  }
+  // The page behind does not scroll while the menu is open.
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe("hidden");
+
+  // Tab from the last item comes back to the menu button.
+  await nav.getByRole("link", { name: "Sign in" }).focus();
+  await page.keyboard.press("Tab");
+  await expect(button).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(nav).toBeHidden();
+  await expect(button).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe("");
+
+  await button.click();
+  await nav.getByRole("link", { name: "Guardrails" }).click();
+  await expect(nav).toBeHidden();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Guardrails you can see on every draft" }),
+  ).toBeInViewport();
+});
+
 test("section links scroll to their sections", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the section links are in the header on wide screens and in the footer on phones");
+  test.skip(isMobile, "on phones the section links are in the menu (tested above)");
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Main" });
   for (const [link, heading] of [

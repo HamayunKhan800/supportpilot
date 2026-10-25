@@ -215,7 +215,7 @@ export function HeroField({ className, quiet = false }: { className?: string; qu
       ref={ref}
       aria-hidden="true"
       className={cn(
-        "hero-field text-foreground pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-700 data-[ready]:opacity-100",
+        "hero-field text-foreground pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-300 ease-out data-[ready]:opacity-100 motion-reduce:transition-none",
         className,
       )}
     />

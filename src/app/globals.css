@@ -574,3 +574,19 @@ html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
 .hero-field.auth-backdrop {
   mask-image: radial-gradient(ellipse 60% 65% at 50% 48%, #000 15%, transparent 100%);
 }
+
+/* Design step 11: the landing page's phone menu opens with a short fade and drop. */
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+}
+.menu-in {
+  animation: menu-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-in {
+    animation: none;
+  }
+}

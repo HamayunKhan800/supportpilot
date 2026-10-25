@@ -23,7 +23,7 @@ export function FormSection({
         <h3 id={`${id}-title`} className="text-sm font-semibold">
           {title}
         </h3>
-        {description && <p className="text-muted-foreground mt-1 text-sm">{description}</p>}
+        {description && <p className="text-muted-foreground mt-1 max-w-prose text-sm">{description}</p>}
       </div>
       <div className="flex min-w-0 flex-col gap-5">{children}</div>
     </div>

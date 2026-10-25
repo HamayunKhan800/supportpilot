@@ -10,6 +10,7 @@ import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
 import { HeroField } from "@/components/marketing/landing/hero-field";
 import { HeroLive } from "@/components/marketing/landing/hero-live";
+import { MobileMenu } from "@/components/marketing/landing/mobile-menu";
 import { Reveal } from "@/components/marketing/landing/reveal";
 import { Spotlight } from "@/components/marketing/landing/spotlight";
 import { PaletteScene } from "@/components/marketing/landing/team-tools";
@@ -129,13 +130,19 @@ const FOOTER_PROJECT = [
   { label: "API description (OpenAPI)", href: API_SPEC_PATH },
 ];
 
+const NAV_LINKS = [
+  { href: "#how-it-works", label: "How it works" },
+  { href: "#guardrails", label: "Guardrails" },
+  { href: "#evaluation", label: "Evaluation" },
+  { href: REPO_URL, label: "GitHub" },
+];
 const navLink =
   "text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1.5 text-sm transition-colors";
 const textLink =
   "text-foreground decoration-foreground/30 hover:decoration-foreground rounded-sm underline underline-offset-4 transition-colors";
 const container = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 const h2 = "text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-[2.5rem] sm:leading-[1.1]";
-const lead = "text-muted-foreground text-lg leading-relaxed text-pretty";
+const lead = "text-muted-foreground text-base leading-relaxed text-pretty sm:text-lg";
 
 /** The Handoff mark drawn as two outlines, large and faint: the closing section's backdrop. */
 function HandoffMotif({ className }: { className?: string }) {
@@ -188,29 +195,32 @@ export default async function Home() {
         data-theme="dark"
         className="glass-bar text-foreground sticky top-0 z-40 border-b [--glass-alpha:88%] [--glass-base:var(--band-bg)]"
       >
-        <div className={cn(container, "flex h-14 items-center justify-between gap-4")}>
+        <div className={cn(container, "flex h-14 items-center gap-8")}>
           <Logo />
-          <nav aria-label="Main" className="flex items-center gap-1">
-            <a href="#how-it-works" className={cn(navLink, "hidden md:inline")}>
-              How it works
-            </a>
-            <a href="#guardrails" className={cn(navLink, "hidden md:inline")}>
-              Guardrails
-            </a>
-            <a href="#evaluation" className={cn(navLink, "hidden md:inline")}>
-              Evaluation
-            </a>
-            <a href={REPO_URL} className={cn(navLink, "hidden lg:inline")}>
-              GitHub
-            </a>
-            <span aria-hidden="true" className="bg-border mx-2 hidden h-5 w-px md:block" />
-            <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "lg" })}>
-              Sign in
-            </Link>
-            <Link href="/sign-up" className={buttonVariants({ size: "lg" })}>
-              Create account
-            </Link>
+          {/* As on Vercel, Resend, Attio and Clerk: section links beside the logo, the two calls to
+              action at the far right. On phones both move into the menu (mobile-menu.tsx). */}
+          <nav aria-label="Main" className="hidden flex-1 items-center gap-1 md:flex">
+            {NAV_LINKS.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                className={cn(navLink, l.href === REPO_URL && "hidden lg:inline")}
+              >
+                {l.label}
+              </a>
+            ))}
+            <div className="ml-auto flex items-center gap-2">
+              <Link href="/sign-in" className={buttonVariants({ variant: "ghost", className: "px-3" })}>
+                Sign in
+              </Link>
+              <Link href="/sign-up" className={buttonVariants({ className: "px-3" })}>
+                Sign up
+              </Link>
+            </div>
           </nav>
+          <div className="ml-auto md:hidden">
+            <MobileMenu links={NAV_LINKS} />
+          </div>
         </div>
       </header>
 
@@ -227,7 +237,7 @@ export default async function Home() {
           <div className={cn(container, "relative pt-16 sm:pt-24 lg:pt-28")}>
             <h1
               id="hero-heading"
-              className="max-w-4xl text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.045em] text-balance sm:text-6xl lg:max-w-none lg:text-[4.75rem]"
+              className="max-w-4xl text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.035em] text-balance sm:text-[3.25rem] lg:max-w-none lg:text-[4rem]"
             >
               {HEADLINE_A.map((w, i) => (
                 <Fragment key={w}>
@@ -470,7 +480,7 @@ export default async function Home() {
               </p>
             </div>
             <div className="flex flex-col gap-3">
-              <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
+              <p className="text-muted-foreground max-w-prose text-sm leading-relaxed">
                 {LANDING_METRICS_NOTE}
               </p>
               <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">

@@ -165,7 +165,7 @@ export function Section({
           >
             {title}
           </Heading>
-          {description && <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>}
+          {description && <p className="text-muted-foreground mt-0.5 max-w-prose text-sm">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>

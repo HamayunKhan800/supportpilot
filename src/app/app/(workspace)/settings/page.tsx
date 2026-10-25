@@ -153,7 +153,7 @@ export default async function AiSettingsPage() {
             </tbody>
           </table>
         </TableScroll>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground max-w-prose text-sm">
           Costs are estimates at Gemini&apos;s paid-tier list prices; on the free tier these calls cost
           nothing. This deployment also allows at most {int.format(dailyCallLimit)} AI calls a day across all
           workspaces (resets at midnight Pacific time).

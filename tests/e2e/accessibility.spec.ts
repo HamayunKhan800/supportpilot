@@ -103,6 +103,8 @@ test("customer portal and tracking pages have no serious accessibility violation
 });
 
 test("knowledge pages have no serious accessibility violations", async ({ page, baseURL }) => {
+  // Scans a dozen settled pages, about 2 s each: close to the default 30 s on a small machine.
+  test.slow();
   const project = test.info().project.name;
   const who = email(`a11y-kb-${project}`);
   await signUp(page, "Ada Access", who);

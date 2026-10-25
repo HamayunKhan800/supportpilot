@@ -39,7 +39,7 @@ export function ThemeToggle({ initial }: { initial: ThemePreference }) {
           title={label}
           onClick={() => choose(value)}
           className={cn(
-            "text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-ring inline-flex size-7 items-center justify-center rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1",
+            "text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-ring inline-flex size-8 items-center justify-center rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1",
             preference === value &&
               "bg-brand-subtle text-brand-strong hover:bg-brand-subtle hover:text-brand-strong",
           )}
