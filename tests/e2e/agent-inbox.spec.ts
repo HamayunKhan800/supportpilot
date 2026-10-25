@@ -97,10 +97,9 @@ test("agent works a ticket end to end", async ({ page, browser, playwright, base
   // Ticket page: public reply, then an internal note.
   await page.getByRole("link", { name: /Refund for duplicate charge/ }).click();
   await expect(page).toHaveURL(/\/app\/tickets\/1$/);
-  await expect(page.getByRole("link", { name: "Tickets", exact: true })).toHaveAttribute(
-    "aria-current",
-    "true",
-  );
+  await expect(
+    page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Tickets", exact: true }),
+  ).toHaveAttribute("aria-current", "true");
   await page.getByRole("button", { name: "Send reply" }).click();
   await expect(page.getByLabel("Reply to Casey Customer", { exact: true })).toBeFocused();
   await page
