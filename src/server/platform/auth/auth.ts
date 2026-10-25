@@ -284,7 +284,7 @@ export function createAuth(db: Database, env: AuthEnv, deps: AuthDeps = {}) {
         if (failed) return;
 
         // Sign-out tells the browser to drop cached pages (M7-06, ASVS V14.3.1). Only "cache":
-        // local storage holds just the theme choice, and cookies are cleared by the library.
+        // the app keeps nothing in browser storage, and the library clears the session cookies.
         if (ctx.path === "/sign-out") {
           ctx.setHeader("Clear-Site-Data", '"cache"');
           return;

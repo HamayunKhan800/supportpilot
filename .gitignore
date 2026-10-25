@@ -63,3 +63,4 @@ eval/results/eval-mock*.md
 
 # ZAP scan reports (.zap/run.sh)
 /zap-out/
+/sbom.cdx.json

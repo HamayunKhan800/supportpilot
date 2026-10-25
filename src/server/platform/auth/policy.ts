@@ -9,6 +9,9 @@ export const PASSWORD_MAX_LENGTH = 128; // NIST: permit at least 64
  * A session ends 7 days after sign-in, however active it is (M7-03, ASVS V7.3.2): sliding
  * refresh is off, so this is an absolute lifetime. NIST SP 800-63B-4 asks AAL1 to re-authenticate
  * at least every 30 days; 7 days is stricter.
+ *
+ * Concurrent sessions (ASVS V7.1.2): no limit, so a phone and a laptop can both stay signed in.
+ * Every session is listed on the Account page, where any or all others can be signed out (M7-05).
  */
 export const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
