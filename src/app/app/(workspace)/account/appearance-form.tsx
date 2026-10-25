@@ -1,7 +1,7 @@
 "use client";
 
 import { THEME_OPTIONS } from "../shell/parts";
-import { useShell } from "../shell/shell-context";
+import { useShell } from "../shell/use-shell";
 
 const HINTS: Record<string, string> = {
   system: "Follows your phone or computer",

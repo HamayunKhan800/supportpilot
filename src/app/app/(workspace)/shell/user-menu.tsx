@@ -7,7 +7,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { parseThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { initials, THEME_OPTIONS, useSignOut } from "./parts";
-import { useShell } from "./shell-context";
+import { useShell } from "./use-shell";
 
 const ITEM =
   "flex h-8 cursor-default items-center gap-2 rounded-md px-2 text-sm outline-none select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0";

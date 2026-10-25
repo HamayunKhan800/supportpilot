@@ -1,30 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NavItem } from "@/lib/navigation";
 import { applyTheme, saveSidebarCollapsed } from "@/lib/preferences-client";
 import { isTypingTarget, shellActionFor } from "@/lib/shortcuts";
 import type { ThemePreference } from "@/lib/theme";
 import { CommandPalette } from "./command-palette";
 import { ShortcutSheet } from "./shortcut-sheet";
-
-interface ShellContextValue {
-  theme: ThemePreference;
-  setTheme: (next: ThemePreference) => void;
-  /** Wide screens only: the sidebar shows icons without labels. */
-  collapsed: boolean;
-  toggleSidebar: () => void;
-  openPalette: () => void;
-  openShortcuts: () => void;
-}
-
-const ShellContext = createContext<ShellContextValue | null>(null);
-
-export function useShell(): ShellContextValue {
-  const value = useContext(ShellContext);
-  if (!value) throw new Error("useShell must be used inside <ShellProvider>");
-  return value;
-}
+import { ShellContext } from "./use-shell";
 
 const WIDE = "(min-width: 64rem)"; // Tailwind's lg breakpoint, where the sidebar is shown
 

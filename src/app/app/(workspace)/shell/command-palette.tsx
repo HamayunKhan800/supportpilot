@@ -7,7 +7,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { type Command, matchCommands, type NavItem, parseTicketNumber } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_ICON, THEME_OPTIONS, useSignOut } from "./parts";
-import { useShell } from "./shell-context";
+import { useShell } from "./use-shell";
 import { useProgressRouter } from "@/lib/use-progress-router";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");

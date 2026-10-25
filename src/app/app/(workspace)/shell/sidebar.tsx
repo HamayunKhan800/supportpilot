@@ -11,7 +11,7 @@ import { activeHref, groupNav, NAV_GROUP_LABEL, type NavItem } from "@/lib/navig
 import { cn } from "@/lib/utils";
 import { WorkspaceSwitcher } from "../workspace-switcher";
 import { LogoMark, ModKey, NAV_ICON } from "./parts";
-import { useShell } from "./shell-context";
+import { useShell } from "./use-shell";
 import { UserMenu } from "./user-menu";
 
 export interface SidebarProps {
