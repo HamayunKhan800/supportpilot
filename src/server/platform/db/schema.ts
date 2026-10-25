@@ -654,6 +654,11 @@ export const aiDraftCitation = pgTable(
       foreignColumns: [aiDraft.id, aiDraft.workspaceId],
     }).onDelete("cascade"),
     uniqueIndex("ai_draft_citation_draft_marker_uq").on(t.draftId, t.marker),
+    // Deleting or re-processing an article deletes its chunks, and Postgres then finds the
+    // citations to set to null. Without these that is a full scan per deleted row (PostgreSQL
+    // docs 5.5.5; docs/plans/architecture-audit.md, F8).
+    index("ai_draft_citation_chunk_idx").on(t.chunkId),
+    index("ai_draft_citation_document_idx").on(t.documentId),
     check("ai_draft_citation_marker_ck", sql`${t.marker} BETWEEN 1 AND 20`),
   ],
 );
