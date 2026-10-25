@@ -21,7 +21,7 @@ flowchart LR
   GH[GitHub Actions] -->|build · test · scan · deploy| Host
 ```
 
-**Style:** a modular monolith. One codebase and one image with two process types (`web`, `worker`). Module boundaries are enforced by folder structure and lint rules, not network calls.
+**Style:** a modular monolith. One codebase and one image with two process types (`web`, `worker`). Module boundaries are enforced by folder structure, lint rules and `tests/unit/architecture.test.ts`, not network calls. The test fails on runtime import cycles, server code importing UI code, UI code importing the database layer, and any cross-module repository import that is not on its reviewed list (see `docs/plans/architecture-audit.md`).
 
 ## 2. Code structure (planned)
 

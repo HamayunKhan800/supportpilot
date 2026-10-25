@@ -43,8 +43,8 @@ const eslintConfig = defineConfig([
   {
     // Architecture rule (docs/02-architecture.md §2): route handlers and UI must go
     // through services and never touch the database layer directly. Health probes are the
-    // documented exception.
-    files: ["src/app/**/*.{ts,tsx}"],
+    // documented exception. tests/unit/architecture.test.ts checks the same rule (and more).
+    files: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}", "src/lib/**/*.{ts,tsx}"],
     ignores: ["src/app/api/ready/route.ts"],
     rules: {
       "no-restricted-imports": [
