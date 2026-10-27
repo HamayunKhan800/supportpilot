@@ -33,7 +33,6 @@ jobs:
     environment: production
     permissions:
       contents: read
-      id-token: write
       actions: read # check that CI passed for this commit
     env:
       AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
@@ -58,7 +57,12 @@ jobs:
           persist-credentials: false
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
+          # The environment's IAM user key (github-keys.sh); GitHub hands environment secrets
+          # only to jobs the owner approved, on main. It may do nothing but assume this role.
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/supportpilot/supportpilot-deploy
+          role-skip-session-tagging: true
           role-session-name: deploy-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
           mask-aws-account-id: true

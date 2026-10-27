@@ -19,9 +19,11 @@ locals {
   worker_alias_arn = "${local.function_arn.worker}:${local.alias_name}"
 
   # Made by the bootstrap script, outside Terraform (see infra/README.md).
-  oidc_provider_arn = "arn:aws:iam::${local.account}:oidc-provider/token.actions.githubusercontent.com"
-  boundary_arn      = "arn:aws:iam::${local.account}:policy/supportpilot-boundary"
-  role_path         = "/supportpilot/"
+  # The IAM user GitHub's protected "production" environment signs in as: it may only assume
+  # the deploy role. (New-experience AWS accounts deny OIDC providers; plan M8 change log.)
+  deploy_user_arn = "arn:aws:iam::${local.account}:user/supportpilot/supportpilot-github-deploy"
+  boundary_arn    = "arn:aws:iam::${local.account}:policy/supportpilot-boundary"
+  role_path       = "/supportpilot/"
 
   # SSM Parameter Store folders (plan M8 R6). Each parameter directly inside a folder becomes
   # one environment variable named after it (scripts/lib/ssm-env.ts).

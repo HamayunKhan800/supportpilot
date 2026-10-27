@@ -85,23 +85,18 @@ run "first_apply_creates_registry_and_roles_only" {
   }
 }
 
-run "deploy_role_trusts_only_the_production_environment_of_this_repository" {
+run "deploy_role_trusts_only_the_production_environment_user" {
   command = plan
 
+  # The account denies OIDC providers (new AWS sign-up), so the production environment signs
+  # in as its own IAM user (bootstrap.sh), whose only permission is assuming this role.
   assert {
-    condition = jsondecode(aws_iam_role.deploy.assume_role_policy).Statement[0].Condition.StringEquals == {
-      "token.actions.githubusercontent.com:aud"                 = "sts.amazonaws.com"
-      "token.actions.githubusercontent.com:sub"                 = "repo:HamayunKhan800/supportpilot:environment:production"
-      "token.actions.githubusercontent.com:environment"         = "production"
-      "token.actions.githubusercontent.com:repository_id"       = "1428261530"
-      "token.actions.githubusercontent.com:repository_owner_id" = "345785392"
-    }
-    error_message = "The deploy role must check audience, subject, environment and both numeric IDs."
-  }
-
-  assert {
-    condition     = jsondecode(aws_iam_role.deploy.assume_role_policy).Statement[0].Principal.Federated == "arn:aws:iam::111122223333:oidc-provider/token.actions.githubusercontent.com"
-    error_message = "Only GitHub's OIDC provider may assume the deploy role."
+    condition = jsondecode(aws_iam_role.deploy.assume_role_policy).Statement == [{
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::111122223333:user/supportpilot/supportpilot-github-deploy" }
+      Action    = "sts:AssumeRole"
+    }]
+    error_message = "Only the production environment's IAM user may assume the deploy role."
   }
 
   # Only sign-in uses "*"; everything else names this app's repository and functions.

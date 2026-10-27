@@ -15,21 +15,9 @@ variable "region" {
 }
 
 variable "github_repository" {
-  description = "owner/name of the repository, used in the OIDC subject (AWS requires a subject check for GitHub)."
+  description = "owner/name of the repository (resource tags)."
   type        = string
   default     = "HamayunKhan800/supportpilot"
-}
-
-variable "github_repository_id" {
-  description = "Numeric ID of the repository. Unlike the name it never changes, so a look-alike repository can't match."
-  type        = string
-  default     = "1428261530"
-}
-
-variable "github_repository_owner_id" {
-  description = "Numeric ID of the repository owner."
-  type        = string
-  default     = "345785392"
 }
 
 variable "image_tag" {

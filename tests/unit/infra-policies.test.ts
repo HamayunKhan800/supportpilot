@@ -18,6 +18,7 @@ interface Statement {
   Effect: "Allow" | "Deny";
   Action: string | string[];
   Resource: string | string[];
+  Principal?: Record<string, string>;
   Condition?: Record<string, Record<string, string | string[]>>;
 }
 interface PolicyDocument {
@@ -44,10 +45,12 @@ const actionsOf = (doc: PolicyDocument, effect: "Allow" | "Deny" = "Allow") =>
 const boundary = render("boundary-policy.json");
 const infraPolicy = render("infra-role-policy.json");
 const infraTrust = render("infra-role-trust.json");
+const infraUserPolicy = render("github-infra-user-policy.json");
+const deployUserPolicy = render("github-deploy-user-policy.json");
 
 describe("bootstrap policies", () => {
   it("are complete policy documents once the account and Region are filled in", () => {
-    for (const doc of [boundary, infraPolicy, infraTrust]) {
+    for (const doc of [boundary, infraPolicy, infraTrust, infraUserPolicy, deployUserPolicy]) {
       expect(doc.Version).toBe("2012-10-17");
       expect(doc.Statement.length).toBeGreaterThan(0);
       for (const s of doc.Statement) expect(s.Sid).toMatch(/^[A-Za-z0-9]+$/);
@@ -59,6 +62,9 @@ describe("bootstrap policies", () => {
     for (const file of ["boundary-policy.json", "infra-role-policy.json", "infra-role-trust.json"]) {
       expect(script).toContain(`render ${file}`);
     }
+    // The two GitHub Actions users' policies: render "github-${kind}-user-policy.json".
+    expect(script).toContain("for kind in infra deploy; do");
+    expect(script).toContain('render "github-${kind}-user-policy.json"');
   });
 });
 
@@ -87,19 +93,15 @@ describe("Terraform (infra) role", () => {
   const allows = infraPolicy.Statement.filter((s) => s.Effect === "Allow");
   const boundaryArn = `arn:aws:iam::${ACCOUNT}:policy/supportpilot-boundary`;
 
-  it("trusts only the protected infra environment of this repository, by numeric IDs", () => {
+  it("trusts only the infra environment's IAM user", () => {
     expect(infraTrust.Statement).toHaveLength(1);
     const s = infraTrust.Statement[0]!;
-    expect(s.Action).toBe("sts:AssumeRoleWithWebIdentity");
-    expect(s.Condition).toEqual({
-      StringEquals: {
-        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": "repo:HamayunKhan800/supportpilot:environment:infra",
-        "token.actions.githubusercontent.com:environment": "infra",
-        "token.actions.githubusercontent.com:repository_id": "1428261530",
-        "token.actions.githubusercontent.com:repository_owner_id": "345785392",
-      },
+    expect(s.Effect).toBe("Allow");
+    expect(s.Action).toBe("sts:AssumeRole");
+    expect(s.Principal).toEqual({
+      AWS: `arn:aws:iam::${ACCOUNT}:user/supportpilot/supportpilot-github-infra`,
     });
+    expect(s.Condition).toBeUndefined();
   });
 
   it("can create or change role permissions only on roles that carry the boundary", () => {
@@ -161,5 +163,46 @@ describe("Terraform (infra) role", () => {
     for (const s of allows) {
       if (list(s.Resource).includes("*")) expect(list(s.Action)).toEqual(["ssm:DescribeParameters"]);
     }
+  });
+});
+
+/**
+ * Accounts from the new AWS sign-up deny OIDC providers by organization policy, so each
+ * protected GitHub environment signs in with its own IAM user's access key
+ * (github-keys.sh). A leaked key must be worth nothing beyond assuming that one role.
+ */
+describe("GitHub Actions users", () => {
+  const cases = [
+    { policy: infraUserPolicy, role: "role/supportpilot-infra", workflow: "infra.yml" },
+    { policy: deployUserPolicy, role: "role/supportpilot/supportpilot-deploy", workflow: "deploy.yml" },
+  ];
+
+  it("may do nothing but assume their own role", () => {
+    for (const { policy, role } of cases) {
+      expect(policy.Statement).toHaveLength(1);
+      const s = policy.Statement[0]!;
+      expect(s.Effect).toBe("Allow");
+      expect(s.Action).toBe("sts:AssumeRole");
+      expect(s.Resource).toBe(`arn:aws:iam::${ACCOUNT}:${role}`);
+      expect(s.Condition).toBeUndefined();
+    }
+  });
+
+  it("assume the same role the workflow names, with the environment's secrets", () => {
+    for (const { role, workflow } of cases) {
+      const yml = read(`.github/workflows/${workflow}`);
+      expect(yml).toContain(`role-to-assume: arn:aws:iam::\${{ vars.AWS_ACCOUNT_ID }}:${role}`);
+      expect(yml).toContain("aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}");
+      expect(yml).not.toContain("id-token: write");
+    }
+  });
+
+  it("are the users Terraform's deploy role and the infra role trust", () => {
+    expect(read("infra/terraform/main.tf")).toContain(
+      'deploy_user_arn = "arn:aws:iam::${local.account}:user/supportpilot/supportpilot-github-deploy"',
+    );
+    expect(infraTrust.Statement[0]!.Principal!.AWS).toMatch(
+      /:user\/supportpilot\/supportpilot-github-infra$/,
+    );
   });
 });

@@ -6,20 +6,21 @@ SupportPilot runs on **AWS Lambda in Sydney** with **Neon Postgres** in the same
 visitor ──https──▶ Function URL (streaming) ──▶ supportpilot-web:live ──▶ Neon (pooled)
                                                       │ async Invoke {"task":"drain"}
 EventBridge Scheduler 00:05 LA {"task":"seed-reset"} ─▶ supportpilot-worker:live ──▶ Neon (direct)
-GitHub Actions (OIDC, approved) ──▶ ECR image · migrate · move `live`
+GitHub Actions (approved; IAM user → role) ──▶ ECR image · migrate · move `live`
 ```
 
 ## What it creates
 
-| Where                                                              | What                                                                                                                                                    |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`bootstrap/bootstrap.sh`](bootstrap/)                             | S3 state bucket (versioned, private, TLS only) · GitHub OIDC provider · permissions boundary · `supportpilot-infra` role · $5 Budgets email alert       |
-| [`terraform/registry.tf`](terraform/)                              | ECR repository: immutable tags, scan on push, keeps the 3 newest images, pull grant for Lambda                                                          |
-| `terraform/functions.tf`                                           | `supportpilot-web` and `supportpilot-worker` (one arm64 image, two launcher modes), `live` aliases, public streaming Function URL, log groups (14 days) |
-| `terraform/schedule.tf`                                            | Nightly demo reset at 00:05 America/Los_Angeles, just after Gemini's free quota resets                                                                  |
-| `terraform/iam.tf`                                                 | Function roles, scheduler role, `supportpilot-deploy` role for GitHub's `production` environment                                                        |
-| `terraform/settings.tf`                                            | `BETTER_AUTH_URL` (the app's own address) in Parameter Store                                                                                            |
-| [`../.github/workflows/infra.yml`](../.github/workflows/infra.yml) | Plan → approve → apply the saved plan                                                                                                                   |
+| Where                                                              | What                                                                                                                                                      |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`bootstrap/bootstrap.sh`](bootstrap/)                             | S3 state bucket (versioned, private, TLS only) · two GitHub Actions IAM users · permissions boundary · `supportpilot-infra` role · $5 Budgets email alert |
+| [`terraform/registry.tf`](terraform/)                              | ECR repository: immutable tags, scan on push, keeps the 3 newest images, pull grant for Lambda                                                            |
+| `terraform/functions.tf`                                           | `supportpilot-web` and `supportpilot-worker` (one arm64 image, two launcher modes), `live` aliases, public streaming Function URL, log groups (14 days)   |
+| `terraform/schedule.tf`                                            | Nightly demo reset at 00:05 America/Los_Angeles, just after Gemini's free quota resets                                                                    |
+| `terraform/iam.tf`                                                 | Function roles, scheduler role, `supportpilot-deploy` role for GitHub's `production` environment                                                          |
+| `terraform/settings.tf`                                            | `BETTER_AUTH_URL` (the app's own address) in Parameter Store                                                                                              |
+| [`bootstrap/github-keys.sh`](bootstrap/github-keys.sh)             | Access keys for those users, stored straight into the GitHub environments' secrets (run again to rotate)                                                  |
+| [`../.github/workflows/infra.yml`](../.github/workflows/infra.yml) | Plan → approve → apply the saved plan                                                                                                                     |
 
 Not managed here: **Neon** (made in its console), **secret values** (added by the owner, below), the **domain** (step 6).
 
@@ -29,13 +30,13 @@ A Lambda function made from a container needs the image to exist first. So the f
 
 ## Security choices
 
-- **No stored AWS keys.** GitHub Actions signs in with short-lived OIDC tokens. Each role trusts one protected GitHub environment of this repository only, checked by name _and_ by the repository's numeric IDs (`1428261530`, owner `345785392`), which survive renames ([IAM condition keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html)).
+- **GitHub signs in with one narrow key per environment.** The keyless route (GitHub OIDC) is blocked on this account: AWS's new sign-up puts accounts under an organization policy that denies creating identity providers (`DenyIAMRestrictedActions`, `iam:*Provider*`), and only "advanced features" lift it, which needs the paid plan, removes the spending limit and can't be undone ([AWS: managed policies](https://docs.aws.amazon.com/accounts/latest/reference/scps-and-rcps-for-projects.html), [activate advanced features](https://docs.aws.amazon.com/accounts/latest/reference/activate-advanced-features.html)). So each protected environment has its own IAM user (`supportpilot-github-infra`, `supportpilot-github-deploy`) whose only permission is assuming its role, which in turn trusts only that user. The keys sit in the environment's secrets, which GitHub releases only to jobs on `main` that the owner approved. A leaked key still only reaches that one role. Trade-off: the keys are long-lived, so `github-keys.sh` rotates them (new key stored, then the old one deleted); move to OIDC if the account ever activates advanced features.
 - **Approval before any change.** `infra` (Terraform) and `production` (deploys) both require the owner's approval.
 - **A ceiling on everything Terraform makes.** The infra role can create roles only if they carry `supportpilot-boundary`, can't attach managed policies, and can't edit the boundary or itself. Whatever a role's own policy says, it can't exceed the boundary: logs, the app's Parameter Store folders, the app's functions and its image repository ([permissions boundaries](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)). A unit test (`tests/unit/infra-policies.test.ts`) keeps the boundary equal to what the roles use.
 - **Least privilege per function.** The web function reads `shared`, `web` and `settings` and may invoke only the worker's `live` alias. The worker reads `shared`, `worker` and `settings`: it never sees the sign-in secrets.
-- **Secret values never enter Terraform state or GitHub.** They are SecureString parameters typed in CloudShell. Terraform writes only the non-secret `settings` folder, and the infra role can't read the others.
+- **App secrets never enter Terraform state or GitHub.** They are SecureString parameters typed in CloudShell. Terraform writes only the non-secret `settings` folder, and the infra role can't read the others.
 - **Public URL, private function.** The Function URL needs two grants since October 2025; the second is limited to calls through the URL, so the function can't be invoked directly ([Lambda docs](https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html)).
-- **Client IPs:** `TRUST_PROXY_HEADERS` stays `false` until step 4 checks that the Function URL overwrites `X-Forwarded-For`.
+- **Client IPs:** a Function URL passes the client's own `X-Forwarded-For` through ([test write-up](https://speedrun.nobackspacecrew.com/blog/2026/03/06/obtaining-caller-ip-address-with-lambda-furls.html)), so `TRUST_PROXY_HEADERS` stays `false` and per-IP limits share one bucket until CloudFront (step 6); per-account and per-workspace limits still apply.
 - **Deliberately not done:** customer-managed KMS keys for logs and images (Trivy LOW findings). They cost $1 a month each and protect nothing extra here: no secret is in either.
 
 ## Checks without an AWS account
@@ -61,11 +62,15 @@ trivy config --severity MEDIUM,HIGH,CRITICAL .
    bash supportpilot/infra/bootstrap/bootstrap.sh
    ```
 
-   It asks for the budget email and prints one value, `AWS_ACCOUNT_ID`.
+   It asks for the budget email. Type it on the page itself: CloudShell can reconnect while you are away and feed its own text to the prompt.
 
-2. **GitHub** → repository → Settings:
-   - _Secrets and variables → Actions → Variables_: add `AWS_ACCOUNT_ID`.
-   - _Environments_: `infra` and `production`, each with yourself as required reviewer and deployments limited to the `main` branch.
+2. **GitHub access**: first, the repository's _Environments_ `infra` and `production` exist, each with the owner as required reviewer and deployments limited to `main`. Then, in CloudShell:
+
+   ```bash
+   bash supportpilot/infra/bootstrap/github-keys.sh
+   ```
+
+   It asks for a GitHub fine-grained token for this repository with **Environments** and **Variables** read and write, makes a key for each IAM user, stores it in the matching environment's secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, encrypted for GitHub with libsodium, [GitHub docs](https://docs.github.com/en/rest/guides/encrypting-secrets-for-the-rest-api)) and sets the variable `AWS_ACCOUNT_ID`. No key is ever shown. Run it again to rotate the keys.
 
 3. **Secrets** in CloudShell:
 

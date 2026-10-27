@@ -7,7 +7,8 @@
 #
 # It makes the few things Terraform itself needs before it can run, plus the budget alert:
 #   1. S3 bucket for Terraform state (versioned, private, TLS only)
-#   2. GitHub OIDC identity provider (no stored AWS keys anywhere)
+#   2. Two IAM users for GitHub Actions, one per protected environment, each allowed only to
+#      assume its role (github-keys.sh makes their keys and stores them in GitHub)
 #   3. supportpilot-boundary: the most any role Terraform creates may ever do
 #   4. supportpilot-infra: the role GitHub's protected "infra" environment uses for Terraform
 #   5. AWS Budgets email alert at $5 a month (your email stays out of GitHub)
@@ -19,10 +20,19 @@ set -euo pipefail
 
 REGION="ap-southeast-2"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OIDC_HOST="token.actions.githubusercontent.com"
 BUDGET_NAME="supportpilot-monthly"
 BUDGET_USD="5"
 
+# IAM is eventually consistent: a user created a moment ago can be refused as a trust
+# principal ("Invalid principal in policy") for a few seconds. Retry such calls briefly.
+retry() {
+  local attempt
+  for attempt in 1 2 3 4 5 6; do
+    "$@" && return 0
+    [[ $attempt -lt 6 ]] && { echo "   (IAM not ready yet, retrying in 5 s)" >&2; sleep 5; }
+  done
+  return 1
+}
 say() { printf '\n== %s\n' "$*"; }
 ok() { printf '   ok: %s\n' "$*"; }
 
@@ -32,7 +42,6 @@ ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
 [[ "$ACCOUNT" =~ ^[0-9]{12}$ ]] || { echo "Could not read the account ID." >&2; exit 1; }
 BUCKET="supportpilot-tfstate-${ACCOUNT}"
 BOUNDARY_ARN="arn:aws:iam::${ACCOUNT}:policy/supportpilot-boundary"
-OIDC_ARN="arn:aws:iam::${ACCOUNT}:oidc-provider/${OIDC_HOST}"
 
 # Fill the {{ACCOUNT_ID}} and {{REGION}} placeholders of a policy file in this folder.
 render() { sed -e "s/{{ACCOUNT_ID}}/${ACCOUNT}/g" -e "s/{{REGION}}/${REGION}/g" "${HERE}/$1"; }
@@ -72,14 +81,22 @@ aws s3api put-bucket-policy --bucket "$BUCKET" --policy "{
 }"
 ok "private, versioned, encrypted, TLS only"
 
-say "2/5 GitHub OIDC identity provider"
-if aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$OIDC_ARN" >/dev/null 2>&1; then
-  ok "exists"
-else
-  # No thumbprint: IAM fetches and checks GitHub's certificate itself.
-  aws iam create-open-id-connect-provider --url "https://${OIDC_HOST}" --client-id-list sts.amazonaws.com >/dev/null
-  ok "created"
-fi
+say "2/5 GitHub Actions users"
+# Accounts made with the new AWS sign-up deny OIDC identity providers by organization policy
+# (DenyIAMRestrictedActions: iam:*Provider*), so GitHub signs in with an access key per
+# environment instead. Each user may only assume its one role; the roles do the work.
+for kind in infra deploy; do
+  user="supportpilot-github-${kind}"
+  if aws iam get-user --user-name "$user" >/dev/null 2>&1; then
+    ok "$user exists"
+  else
+    aws iam create-user --user-name "$user" --path /supportpilot/ >/dev/null
+    ok "created $user"
+  fi
+  aws iam put-user-policy --user-name "$user" --policy-name assume-role-only \
+    --policy-document "$(render "github-${kind}-user-policy.json")"
+done
+ok "each may only assume its role"
 
 say "3/5 Permissions boundary (supportpilot-boundary)"
 if aws iam get-policy --policy-arn "$BOUNDARY_ARN" >/dev/null 2>&1; then
@@ -103,12 +120,12 @@ fi
 
 say "4/5 Terraform role (supportpilot-infra)"
 if aws iam get-role --role-name supportpilot-infra >/dev/null 2>&1; then
-  aws iam update-assume-role-policy --role-name supportpilot-infra \
+  retry aws iam update-assume-role-policy --role-name supportpilot-infra \
     --policy-document "$(render infra-role-trust.json)"
   ok "exists; trust refreshed"
 else
-  aws iam create-role --role-name supportpilot-infra \
-    --description "Terraform from the protected GitHub environment infra (HamayunKhan800/supportpilot)" \
+  retry aws iam create-role --role-name supportpilot-infra \
+    --description "Terraform from the protected GitHub environment infra, via its IAM user (HamayunKhan800/supportpilot)" \
     --assume-role-policy-document "$(render infra-role-trust.json)" \
     --max-session-duration 3600 >/dev/null
   ok "created"
@@ -132,7 +149,5 @@ else
   ok "created: email at 50% and 100% of \$${BUDGET_USD}, and when the month is forecast to pass it"
 fi
 
-say "Done. One value for GitHub:"
-echo "   Repository → Settings → Secrets and variables → Actions → Variables → New variable"
-echo "   Name:  AWS_ACCOUNT_ID"
-echo "   Value: ${ACCOUNT}"
+say "Done. AWS account ID: ${ACCOUNT}"
+echo "   Next: bash supportpilot/infra/bootstrap/github-keys.sh"

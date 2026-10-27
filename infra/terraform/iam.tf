@@ -6,14 +6,6 @@
 # (tests/plan.tftest.hcl).
 
 locals {
-  github_oidc_conditions = {
-    "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-    # AWS requires a subject check for GitHub; the numeric IDs survive renames, so a
-    # look-alike repository or owner can't match.
-    "token.actions.githubusercontent.com:repository_id"       = var.github_repository_id
-    "token.actions.githubusercontent.com:repository_owner_id" = var.github_repository_owner_id
-  }
-
   # ---- function roles -------------------------------------------------------------
   lambda_trust = jsonencode({
     Version = "2012-10-17"
@@ -76,15 +68,11 @@ locals {
   deploy_trust = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect    = "Allow"
-      Principal = { Federated = local.oidc_provider_arn }
-      Action    = "sts:AssumeRoleWithWebIdentity"
-      Condition = {
-        StringEquals = merge(local.github_oidc_conditions, {
-          "token.actions.githubusercontent.com:sub"         = "repo:${var.github_repository}:environment:production"
-          "token.actions.githubusercontent.com:environment" = "production"
-        })
-      }
+      Effect = "Allow"
+      # Only the deploy user (bootstrap.sh). Its access key lives in the "production"
+      # environment's secrets, which GitHub releases only to approved jobs on main.
+      Principal = { AWS = local.deploy_user_arn }
+      Action    = "sts:AssumeRole"
     }]
   })
 
