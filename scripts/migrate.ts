@@ -19,6 +19,11 @@ async function main() {
   }
   const migrationsFolder = process.env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), "drizzle");
   const pool = new Pool({ connectionString: url, max: 1, connectionTimeoutMillis: 10_000 });
+  // Production sets a 10 s statement_timeout on the database role (Neon ignores it as a
+  // connection setting; plan M8, Neon finding). A long migration (an index build) must not
+  // be cut off half way, so this one session lifts it. Queries on a client run in order,
+  // so this runs before the first migration statement.
+  pool.on("connect", (client) => void client.query("SET statement_timeout = 0"));
   const started = Date.now();
   try {
     await migrate(drizzle(pool), { migrationsFolder });

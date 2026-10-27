@@ -1,0 +1,160 @@
+name: Deploy
+
+# Builds the arm64 image, pushes it to ECR and releases it to both Lambda functions (plan M8
+# R3, R4): migrate on the new worker version first, then move both `live` aliases, then
+# smoke-test the public address. Started by hand for now (Actions → Deploy → Run workflow);
+# step 5 starts it automatically after CI passes on main. The "production" environment asks
+# the owner to approve before anything touches AWS.
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Rebuild the demo workspace after deploying (first deploy, or after switching AI provider)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-2
+
+jobs:
+  deploy:
+    name: Build, release, smoke test
+    # Arm runner (free for public repositories): the image is built natively for the functions'
+    # arm64 architecture, no emulation.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+      actions: read # check that CI passed for this commit
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      TAG: sha-${{ github.sha }}
+    steps:
+      - name: Check the account variable
+        run: |
+          if [[ ! "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]; then
+            echo "::error::Set the repository variable AWS_ACCOUNT_ID (the bootstrap script prints it)."
+            exit 1
+          fi
+      - name: CI passed for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" \
+            --json conclusion,status --jq '[.[] | select(.status == "completed")][0].conclusion // "none"')"
+          echo "CI for ${GITHUB_SHA}: ${conclusion}"
+          [[ "$conclusion" == "success" ]] || { echo "::error::Deploy only commits that passed CI."; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/supportpilot/supportpilot-deploy
+          role-session-name: deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      - name: Image already pushed?
+        id: image
+        run: |
+          registry="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          echo "uri=${registry}/supportpilot:${TAG}" >> "$GITHUB_OUTPUT"
+          echo "registry=${registry}" >> "$GITHUB_OUTPUT"
+          if aws ecr describe-images --repository-name supportpilot --image-ids "imageTag=${TAG}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Sign in to ECR
+        if: steps.image.outputs.exists == 'false'
+        env:
+          REGISTRY: ${{ steps.image.outputs.registry }}
+        run: aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: steps.image.outputs.exists == 'false'
+      # One platform and no attestations: Lambda refuses multi-architecture images and
+      # image indexes (https://docs.aws.amazon.com/lambda/latest/dg/images-create.html).
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        if: steps.image.outputs.exists == 'false'
+        with:
+          context: .
+          platforms: linux/arm64
+          provenance: false
+          sbom: false
+          push: true
+          tags: ${{ steps.image.outputs.uri }}
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,scope=arm64,mode=max
+      - name: Functions created yet?
+        id: functions
+        run: |
+          if out="$(aws lambda get-function --function-name supportpilot-web --query Configuration.State --output text 2>&1)"; then
+            echo "exist=true" >> "$GITHUB_OUTPUT"
+          elif grep -q ResourceNotFoundException <<<"$out"; then
+            echo "exist=false" >> "$GITHUB_OUTPUT"
+            echo "### Image pushed: ${TAG}" >> "$GITHUB_STEP_SUMMARY"
+            echo "The functions don't exist yet: run **Infrastructure** next to create them with this image." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "$out" >&2
+            exit 1
+          fi
+      - name: Release (migrate, then go live)
+        id: release
+        if: steps.functions.outputs.exist == 'true'
+        env:
+          IMAGE: ${{ steps.image.outputs.uri }}
+        run: infra/scripts/release.sh "$IMAGE"
+      - name: Rebuild the demo workspace
+        if: steps.functions.outputs.exist == 'true' && inputs.seed
+        run: infra/scripts/run-task.sh seed-reset
+      - name: Public address and first response
+        id: url
+        if: steps.functions.outputs.exist == 'true'
+        run: |
+          url="$(aws lambda get-function-url-config --function-name supportpilot-web --qualifier live \
+            --query FunctionUrl --output text)"
+          url="${url%/}"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          # The first request after a release starts a fresh instance: this is the cold start.
+          cold="$(curl -sS -o /dev/null -w '%{http_code} in %{time_total} s' --max-time 60 "${url}/api/health")"
+          echo "First response (cold start): ${cold}"
+          echo "cold=${cold}" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: steps.functions.outputs.exist == 'true'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.functions.outputs.exist == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # The checks that need no database password (health, readiness with the database,
+      # pages, security headers, auth, API errors). The database-level smoke tests run in CI.
+      - name: Smoke test the live site
+        if: steps.functions.outputs.exist == 'true'
+        env:
+          SMOKE_BASE_URL: ${{ steps.url.outputs.url }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -s exec vitest run --project smoke --testTimeout=60000
+      - name: Summary
+        if: steps.functions.outputs.exist == 'true'
+        env:
+          URL: ${{ steps.url.outputs.url }}
+          COLD: ${{ steps.url.outputs.cold }}
+          WEB: ${{ steps.release.outputs.web_version }}
+          WORKER: ${{ steps.release.outputs.worker_version }}
+        run: |
+          {
+            echo "### Deployed ${TAG}"
+            echo
+            echo "- Live: ${URL}"
+            echo "- Versions: web ${WEB}, worker ${WORKER}"
+            echo "- First response after release: ${COLD}"
+          } >> "$GITHUB_STEP_SUMMARY"

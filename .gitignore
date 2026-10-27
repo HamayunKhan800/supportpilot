@@ -72,3 +72,6 @@ eval/results/eval-mock*.md
 *.tfplan
 tfplan
 terraform.tfvars
+
+# Python bytecode (infra/bootstrap helper tests)
+__pycache__/

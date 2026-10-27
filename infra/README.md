@@ -67,20 +67,33 @@ trivy config --severity MEDIUM,HIGH,CRITICAL .
    - _Secrets and variables → Actions → Variables_: add `AWS_ACCOUNT_ID`.
    - _Environments_: `infra` and `production`, each with yourself as required reviewer and deployments limited to the `main` branch.
 
-3. **Secrets** in CloudShell. The value is typed without showing it and never lands in the shell history:
+3. **Secrets** in CloudShell:
 
    ```bash
-   put() { read -rsp "$1: " v; echo; aws ssm put-parameter --region ap-southeast-2 --type SecureString --overwrite --name "/supportpilot/production/$1" --value "$v" >/dev/null && echo saved; unset v; }
-   put web/DATABASE_URL          # Neon pooled address, ending sslmode=verify-full&channel_binding=require
-   put worker/DATABASE_URL       # Neon direct address (no -pooler), same ending
-   put web/BETTER_AUTH_SECRET    # e.g. the output of: openssl rand -base64 48
-   put shared/DEMO_PASSWORD
-   put shared/GEMINI_API_KEY     # when switching ai_provider to gemini
-   put shared/SENTRY_DSN         # optional
+   bash supportpilot/infra/bootstrap/secrets.sh
    ```
 
+   It asks for the Neon connection string (Neon console → **Connect**; pooled or direct, either works) and, optionally, the Gemini API key. Typed values stay hidden and never land in the shell history. It then:
+   - stores the pooled address for the web function and the direct one for the worker, both with `sslmode=verify-full&channel_binding=require` ([`neon_url.py`](bootstrap/neon_url.py));
+   - sets the database role's 10-second `statement_timeout` (Neon ignores it as a connection setting; migrations lift it for their own session);
+   - generates `BETTER_AUTH_SECRET` and the shared demo password, keeping both on later runs, and prints the demo password: every visitor signs in with it, and the demo accounts can't change anything that affects others.
+
+   Sentry (`shared/SENTRY_DSN`) and email come later. Running it again replaces the Neon string and the Gemini key when given.
+
 4. **Actions → Infrastructure → Run workflow**, approve the plan, read the summary, approve the apply. This first run makes the registry and roles.
-5. The first image is pushed (step 4/5 deploy workflow); run **Infrastructure** again to make the functions.
+5. **Actions → Deploy → Run workflow** and approve. It builds the arm64 image and pushes it; the functions don't exist yet, so it stops there.
+6. **Infrastructure** again (two approvals) makes the functions from that image.
+7. **Deploy** again with **Rebuild the demo workspace** ticked: it migrates the empty database, seeds the demo and smoke-tests the public address.
+
+## Deploying
+
+[`deploy.yml`](../.github/workflows/deploy.yml) deploys only commits that passed CI, after the owner approves the `production` environment. It runs on GitHub's Arm runner, so the image is built natively for the functions. [`release.sh`](scripts/release.sh) then:
+
+1. publishes a worker version with the new image and runs `migrate` on that version ([`run-task.sh`](scripts/run-task.sh)). If it fails, nothing serving traffic has changed;
+2. publishes a web version;
+3. moves both `live` aliases, then the workflow smoke-tests the public address (12 checks that need no database password; the database smoke tests run in CI).
+
+The log shows the previous `live` versions, which a rollback needs.
 
 ## Rollback
 
