@@ -297,6 +297,23 @@ const workerEnvSchema = z
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;
 
+/**
+ * Waking the worker after a job is queued (plan M8 revision 2, R4; jobs/wake.ts). Unset =
+ * never: the worker runs on its own, as locally and in CI.
+ */
+const wakeEnvSchema = z.object({
+  /** The worker Lambda function to invoke, e.g. supportpilot-worker:live (name, alias or ARN). */
+  WORKER_FUNCTION_NAME: z.preprocess(
+    emptyAsUnset,
+    z
+      .string()
+      .regex(/^[A-Za-z0-9_:.-]{1,170}$/, "WORKER_FUNCTION_NAME must be a Lambda function name, alias or ARN")
+      .optional(),
+  ),
+});
+
+export type WakeEnv = z.infer<typeof wakeEnvSchema>;
+
 /** Database settings only: what the connection pool needs, in any process. */
 const databaseEnvSchema = z.object(databaseFields);
 
@@ -328,6 +345,10 @@ export function parseWorkerEnv(source: Record<string, string | undefined>): Work
   return parseWith(workerEnvSchema, source);
 }
 
+export function parseWakeEnv(source: Record<string, string | undefined>): WakeEnv {
+  return parseWith(wakeEnvSchema, source);
+}
+
 export function parseDatabaseEnv(source: Record<string, string | undefined>): DatabaseEnv {
   return parseWith(databaseEnvSchema, source);
 }
@@ -335,6 +356,7 @@ export function parseDatabaseEnv(source: Record<string, string | undefined>): Da
 let cached: Env | undefined;
 let cachedWorker: WorkerEnv | undefined;
 let cachedDatabase: DatabaseEnv | undefined;
+let cachedWake: WakeEnv | undefined;
 
 /** Full web-app settings (validated eagerly at server start by instrumentation.ts). */
 export function getEnv(): Env {
@@ -347,6 +369,11 @@ export function getWorkerEnv(): WorkerEnv {
   return cachedWorker;
 }
 
+export function getWakeEnv(): WakeEnv {
+  cachedWake ??= parseWakeEnv(process.env);
+  return cachedWake;
+}
+
 export function getDatabaseEnv(): DatabaseEnv {
   cachedDatabase ??= parseDatabaseEnv(process.env);
   return cachedDatabase;
@@ -357,4 +384,5 @@ export function resetEnvCache(): void {
   cached = undefined;
   cachedWorker = undefined;
   cachedDatabase = undefined;
+  cachedWake = undefined;
 }

@@ -4,6 +4,7 @@ import { fromDrizzle, PgBoss } from "pg-boss";
 import type { Executor, Transaction } from "../db/tx";
 import { getDatabaseEnv } from "../env";
 import { logger } from "../logger";
+import { wakeWorker } from "./wake";
 import {
   AI_TRIAGE_QUEUE,
   aiTriagePayloadSchema,
@@ -21,7 +22,8 @@ import {
  *  - installer (release step, `scripts/migrate.ts`): the only role that creates or
  *    upgrades pg-boss's tables, and it applies the queue settings from queues.ts;
  *  - worker: processes jobs and runs pg-boss's supervision (expiry, retries, heartbeats);
- *  - web: only enqueues, always inside the caller's transaction, with a 2-connection pool.
+ *  - web: only enqueues, always inside the caller's transaction, with a 2-connection pool,
+ *    and wakes the worker when it runs on demand (wake.ts).
  */
 
 export const PGBOSS_SCHEMA = "pgboss";
@@ -98,6 +100,7 @@ export async function enqueueKbIngest(tx: Transaction, payload: KbIngestPayload)
     db: fromDrizzle(tx, sql),
   });
   if (!id) throw new Error("kb.ingest job was not created");
+  await wakeWorker();
   return id;
 }
 
@@ -111,6 +114,7 @@ export async function enqueueTriage(tx: Transaction, payload: AiTriagePayload): 
     db: fromDrizzle(tx, sql),
   });
   if (!id) throw new Error("ai.triage job was not created");
+  await wakeWorker();
   return id;
 }
 
