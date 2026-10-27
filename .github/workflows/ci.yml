@@ -202,6 +202,18 @@ jobs:
           code=$?; test "$code" -eq 1 || { echo "no DATABASE_URL: expected exit 1, got $code"; exit 1; }
           env -u AI_PROVIDER NODE_ENV=production timeout 20 node .build/worker.mjs
           code=$?; test "$code" -eq 1 || { echo "no AI_PROVIDER: expected exit 1, got $code"; exit 1; }
+      - name: Worker Lambda event handler (start.mjs jobs; plan M8 revision 2)
+        # The Lambda Web Adapter posts each event to /events; here curl plays the adapter.
+        run: |
+          AWS_LWA_PORT=8080 WORKER_DRAIN_IDLE_MS=2000 NODE_ENV=production \
+            node .build/start.mjs jobs > "$RUNNER_TEMP/jobs.log" 2>&1 &
+          pid=$!
+          for _ in $(seq 1 20); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
+          out=$(curl -sS -X POST http://127.0.0.1:8080/events -d '{"task":"drain"}')
+          echo "$out"; echo "$out" | grep -q '"ok":true'
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8080/events -d '{"task":"other"}')
+          test "$code" = 400 || { echo "unknown event: expected 400, got $code"; exit 1; }
+          kill "$pid"; cat "$RUNNER_TEMP/jobs.log"
       - name: Start worker (bundled, without web-app secrets)
         run: |
           NODE_ENV=production node .build/worker.mjs > "$RUNNER_TEMP/worker.log" 2>&1 &

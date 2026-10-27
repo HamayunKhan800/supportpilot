@@ -3,6 +3,8 @@
  * `node .build/worker.mjs` from the production image. It processes kb.ingest jobs (the web
  * server never parses uploaded files) and ai.triage jobs.
  *
+ * With WORKER_DRAIN_DEADLINE set it exits once the queues are empty (drain mode, src/worker/drain.ts).
+ *
  * Needs only DATABASE_URL, AI_PROVIDER (+ GEMINI_API_KEY), AI_DAILY_CALL_LIMIT and LOG_LEVEL. Run the release
  * step (`node .build/migrate.mjs`) first: it installs pg-boss's tables and the queues.
  */
@@ -13,10 +15,12 @@ import { mockTriageResponder } from "@/server/modules/triage/mock-responder";
 import { getDb } from "@/server/platform/db/client";
 import { EnvValidationError, getWorkerEnv, type WorkerEnv } from "@/server/platform/env";
 import { setErrorReporter } from "@/server/platform/error-reporting";
-import { createBoss } from "@/server/platform/jobs/boss";
+import { createBoss, pendingJobs } from "@/server/platform/jobs/boss";
+import { QUEUE_INSTALL_ORDER } from "@/server/platform/jobs/queues";
 import { logger } from "@/server/platform/logger";
 import { startTracing, type Tracing } from "@/server/platform/telemetry/setup";
 
+import { waitUntilDrained } from "./drain";
 import { registerKbHandlers, registerTriageHandlers } from "./handlers";
 
 // Replaced at bundle time (scripts/bundle.ts) with the bundled PDF thread's file name. When
@@ -84,6 +88,24 @@ async function main(): Promise<void> {
   };
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGINT", () => void shutdown("SIGINT"));
+
+  if (env.WORKER_DRAIN_DEADLINE !== undefined) {
+    // Drain mode: every queue has a handler above, so all of them count.
+    const { decision, left } = await waitUntilDrained({
+      deadline: env.WORKER_DRAIN_DEADLINE,
+      idleMs: env.WORKER_DRAIN_IDLE_MS,
+      pollMs: 1_000,
+      pending: () => pendingJobs(getDb().db, QUEUE_INSTALL_ORDER),
+    });
+    const log = decision === "stop-idle" ? logger.info.bind(logger) : logger.warn.bind(logger);
+    log(
+      { decision, ready: left.ready, active: left.active, nextRetryAt: left.nextRetryAt },
+      decision === "stop-idle"
+        ? "queues drained"
+        : "drain deadline reached; the rest waits for the next wake-up",
+    );
+    await shutdown("drained");
+  }
 }
 
 main().catch((err: unknown) => {

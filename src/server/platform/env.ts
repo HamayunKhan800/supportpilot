@@ -283,6 +283,14 @@ const workerEnvSchema = z
      * container launcher (scripts/start-container.ts) stops waiting at 9 (plan M8 D2).
      */
     WORKER_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
+    /**
+     * Drain mode (plan M8 revision 2, R4): when set, the worker exits once the queues are
+     * empty, and stops taking jobs at this time (epoch milliseconds) at the latest. Set by
+     * the worker Lambda function's launcher; unset = run until stopped, as before.
+     */
+    WORKER_DRAIN_DEADLINE: z.preprocess(emptyAsUnset, z.coerce.number().int().positive().optional()),
+    /** Drain mode: how long the queues must stay empty before the worker exits. */
+    WORKER_DRAIN_IDLE_MS: z.coerce.number().int().min(1_000).max(300_000).default(15_000),
   })
   .superRefine(refineAi)
   .transform(withAiDefault);

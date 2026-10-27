@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { fromDrizzle, PgBoss } from "pg-boss";
 
-import type { Transaction } from "../db/tx";
+import type { Executor, Transaction } from "../db/tx";
 import { getDatabaseEnv } from "../env";
 import { logger } from "../logger";
 import {
@@ -112,6 +112,37 @@ export async function enqueueTriage(tx: Transaction, payload: AiTriagePayload): 
   });
   if (!id) throw new Error("ai.triage job was not created");
   return id;
+}
+
+export interface PendingJobs {
+  /** Waiting jobs that may run now. */
+  ready: number;
+  /** Jobs a worker is running. */
+  active: number;
+  /** When the earliest waiting job that may not run yet (a retry after a delay) becomes due. */
+  nextRetryAt: Date | null;
+}
+
+/**
+ * Unfinished work in the given queues, read straight from pg-boss's job table (the root of
+ * its table hierarchy, so it covers every queue's storage). pg-boss's own counters are a
+ * cache refreshed by its monitor, too stale to decide when a worker may stop (drain mode).
+ */
+export async function pendingJobs(db: Executor, queues: readonly string[]): Promise<PendingJobs> {
+  const result = await db.execute<{ ready: number; active: number; next_retry_at: Date | string | null }>(sql`
+    SELECT
+      count(*) FILTER (WHERE state IN ('created', 'retry') AND start_after <= now())::int AS ready,
+      count(*) FILTER (WHERE state = 'active')::int AS active,
+      min(start_after) FILTER (WHERE state IN ('created', 'retry') AND start_after > now()) AS next_retry_at
+    FROM ${sql.identifier(PGBOSS_SCHEMA)}.job
+    WHERE name = ANY(${sql.param([...queues])}::text[])
+  `);
+  const row = result.rows[0];
+  return {
+    ready: Number(row?.ready ?? 0),
+    active: Number(row?.active ?? 0),
+    nextRetryAt: row?.next_retry_at ? new Date(row.next_retry_at) : null,
+  };
 }
 
 /** Test and shutdown helper: stops the web enqueue instance if one was started. */
