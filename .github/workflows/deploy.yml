@@ -82,8 +82,26 @@ jobs:
         if: steps.image.outputs.exists == 'false'
       # One platform and no attestations: Lambda refuses multi-architecture images and
       # image indexes (https://docs.aws.amazon.com/lambda/latest/dg/images-create.html).
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      - name: Build and push the image
+        id: build1
         if: steps.image.outputs.exists == 'false'
+        continue-on-error: true
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/arm64
+          provenance: false
+          sbom: false
+          push: true
+          tags: ${{ steps.image.outputs.uri }}
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,scope=arm64,mode=max
+      - name: Wait before retrying (registry rate limit, see ci.yml)
+        if: steps.build1.outcome == 'failure'
+        run: sleep 60
+      - name: Build and push the image (retry)
+        if: steps.build1.outcome == 'failure'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/arm64
