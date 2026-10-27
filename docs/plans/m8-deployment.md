@@ -177,3 +177,13 @@ Multi-region, a paid database, CDN or Cloud Armor, two-factor sign-in (AR-007), 
   - `start.mjs web` from the production build as an unprivileged user on read-only app files: pages and health 200, the Next.js cache folder created under `/tmp`, and a portal ticket sent a signed asynchronous Invoke with `{"task":"drain"}` to a stand-in Lambda endpoint;
   - targeted E2E (knowledge, portal) 5/5. The first knowledge run timed out once waiting 30 s for an upload to become Ready, then passed twice; the worker path used by E2E did not change (drain mode is off without `WORKER_DRAIN_DEADLINE`), so this is recorded as a slow first start in the sandbox, to watch in CI.
   - Not verifiable before AWS: SSM loading (unit-tested with a stand-in reader), the adapter itself, the deadline header field name (both spellings accepted), cold-start time. Checked in step 4.
+- 2026-10-27: **Neon checked end to end** (project `supportpilot`, `aws-ap-southeast-2`, branch `production`). Tests ran on a temporary branch `smoke-test`, deleted afterwards; `production` was not changed (0 tables). The setup API key was revoked after use and no Neon secret was kept.
+  - Postgres **18.6** (not 17 as in CI), pgvector 0.8.6 available. Migrations over the direct address: 15 applied, 25 tables, 4 queues.
+  - The app's existing driver (`pg`) and pg-boss work through the **pooled** address, as Neon's agent skill recommends ("preserve the existing ORM and driver"; pooled for app traffic, direct for migrations). Results:
+    - `start.mjs web` from the production build: health, landing, sign-in pages 200.
+    - `start.mjs jobs` seed-reset + drain: 35 articles ready (153 chunks), 25 tickets, 7 triage jobs completed.
+    - Smoke suite 16/16.
+    - Demo owner sign-in 200, inbox and knowledge pages 200; a portal ticket was triaged billing/high.
+  - TLS 1.3 with a verified certificate on both addresses. **Use `sslmode=verify-full` in stored connection strings:** `pg` treats `require` as verify-full today but will weaken it in pg v9.
+  - **Finding: Neon's proxy drops the `statement_timeout` startup parameter**, so `DATABASE_STATEMENT_TIMEOUT_MS` had no effect (server reported 0; a 3 s sleep finished). `options=-c statement_timeout=…` works on the direct address but the pooler refuses it. **Fix at step 4:** `ALTER ROLE <app role> SET statement_timeout = '10s'` on `production` (checked on the branch: 10 s on both addresses once connections are new; an 11 s query was stopped; `SET LOCAL` still raises it inside a transaction). The migration step must not be cut off by it.
+  - Timings from the sandbox include its distance to Sydney (inbox about 6 s, seed-reset + drain about 2 min); real times are measured from Lambda in step 4.
