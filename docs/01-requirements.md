@@ -61,7 +61,7 @@ IDs are referenced by tests (`describe("FR-T3 …")`).
 
 ### Knowledge base (K)
 
-- **FR-K1** Admins upload `.md`, `.txt`, `.pdf` (≤ 5 MB, PDF ≤ 50 pages, ≤ 300,000 characters of extracted text). Per workspace: ≤ 100 documents and ≤ 50 MB stored. The same file can't be uploaded twice (refined at M4 for embedding-quota control, see docs/plans/m4-knowledge-base.md D7).
+- **FR-K1** Admins upload `.md`, `.txt`, `.pdf` (≤ 4 MB, PDF ≤ 50 pages, ≤ 300,000 characters of extracted text). Per workspace: ≤ 100 documents and ≤ 50 MB stored. The same file can't be uploaded twice (refined at M4 for embedding-quota control, see docs/plans/m4-knowledge-base.md D7; the file limit was lowered from 5 MB to 4 MB at M8 to fit AWS Lambda's request limit, docs/plans/m8-deployment.md revision 2).
 - **FR-K2** Ingestion runs asynchronously (extract → chunk → embed). Status is visible: `pending / processing / ready / failed (reason)`.
 - **FR-K3** Deleting a document removes its chunks immediately; drafts keep a record of citations to deleted sources (shown as "source removed").
 - **FR-K4** Admin "test search" box shows which chunks retrieval returns for a query (debug aid).

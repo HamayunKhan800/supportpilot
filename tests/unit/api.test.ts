@@ -3,8 +3,15 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { buildOpenApiDocument } from "@/server/api/openapi";
 import { operations, type Operation } from "@/server/api/operations";
-import { apiRoute, assertSameOrigin, MAX_BODY_BYTES, readJson } from "@/server/api/route";
+import {
+  apiRoute,
+  assertSameOrigin,
+  MAX_BODY_BYTES,
+  MULTIPART_ENVELOPE_BYTES,
+  readJson,
+} from "@/server/api/route";
 import { Message, Ticket } from "@/server/api/schemas";
+import { KB_MAX_UPLOAD_BYTES } from "@/server/modules/kb/limits";
 import { apiMessage, apiTicket } from "@/server/api/serializers";
 import type { Message as MessageRow, Ticket as TicketRow } from "@/server/modules/tickets/repository";
 import { resetEnvCache } from "@/server/platform/env";
@@ -38,6 +45,16 @@ const jsonReq = (body: BodyInit, headers: Record<string, string> = {}) =>
     body,
     duplex: "half",
   } as RequestInit);
+
+describe("upload size and the AWS Lambda request limit (plan M8 revision 2)", () => {
+  it("the largest accepted upload still fits in one Lambda request after base64 encoding", () => {
+    // Function URLs base64-encode binary bodies (4/3 larger) and a synchronous request is at
+    // most 6 MB. Counted as 6,000,000 bytes, with 64 KB left for headers and the event's JSON.
+    const largestBody = KB_MAX_UPLOAD_BYTES + MULTIPART_ENVELOPE_BYTES;
+    const encoded = Math.ceil(largestBody / 3) * 4;
+    expect(encoded + 64 * 1024).toBeLessThan(6_000_000);
+  });
+});
 
 describe("readJson", () => {
   it("parses JSON, including a charset parameter", async () => {

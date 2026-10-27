@@ -138,7 +138,7 @@ describe("detectFile", () => {
 describe("ingest error messages", () => {
   it("gives a plain-language reason and falls back for unknown codes", () => {
     expect(ingestErrorMessage("pdf_encrypted")).toMatch(/password-protected/);
-    expect(ingestErrorMessage("file_too_large")).toMatch(/5 MB/);
+    expect(ingestErrorMessage("file_too_large")).toMatch(/4 MB/);
     expect(ingestErrorMessage("text_too_long")).toMatch(/300,000/);
     expect(ingestErrorMessage("nonsense")).toBe(ingestErrorMessage("internal_error"));
     expect(ingestErrorMessage(null)).toBe(ingestErrorMessage("internal_error"));

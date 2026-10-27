@@ -3,7 +3,12 @@
  * client components (upload form hints) can import them too.
  */
 
-export const KB_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+/**
+ * 4 MB: on AWS Lambda a request is at most 6 MB and Function URLs send uploads base64-encoded
+ * (4/3 larger), so 4 MB (about 5.3 MB encoded, plus form overhead) is the most that fits
+ * (plan M8 revision 2; it was 5 MB before).
+ */
+export const KB_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 export const KB_MAX_PDF_PAGES = 50;
 /** About 75k tokens: bounds embedding cost and free-tier quota per document. */
 export const KB_MAX_EXTRACTED_CHARS = 300_000;

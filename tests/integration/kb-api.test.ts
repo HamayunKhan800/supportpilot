@@ -142,10 +142,10 @@ describe("FR-K1 upload", () => {
     expect(await q(`SELECT 1 FROM kb_document`)).toHaveLength(0);
   });
 
-  it("413 for files over 5 MB, and the body is cut off while streaming", async () => {
+  it("413 for files over 4 MB, and the body is cut off while streaming", async () => {
     const justOver = await upload(owner, file("big.md", "x".repeat(KB_MAX_UPLOAD_BYTES + 1)));
     expect(justOver.status).toBe(413);
-    expect(justOver.json.detail).toBe("Files are limited to 5 MB.");
+    expect(justOver.json.detail).toBe("Files are limited to 4 MB.");
 
     let pulled = 0;
     const chunk = new TextEncoder().encode("x".repeat(64 * 1024));

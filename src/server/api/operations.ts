@@ -290,7 +290,7 @@ export const operations = {
     upload: {
       field: "file",
       maxFileBytes: KB_MAX_UPLOAD_BYTES,
-      description: "The document (.md, .markdown, .txt or .pdf, at most 5 MB).",
+      description: `The document (.md, .markdown, .txt or .pdf, at most ${KB_MAX_UPLOAD_BYTES / 1024 / 1024} MB).`,
     },
     success: { status: 201, description: "Stored and queued for ingestion.", schema: KbDocument },
     errors: [400, 401, 403, 409, 413, 415, 429],
