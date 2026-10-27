@@ -227,6 +227,43 @@ jobs:
         if: always()
         run: cat "$RUNNER_TEMP/worker.log" || true
 
+  infra:
+    name: Terraform format · validate · tests · Trivy scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/terraform
+    env:
+      TRIVY_VERSION: 0.76.1
+      # From the release's trivy_0.76.1_checksums.txt (verified 2026-10-25).
+      TRIVY_SHA256: c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+      - name: Format
+        run: terraform fmt -check -recursive -diff
+      - name: Init (no backend, no credentials)
+        run: terraform init -backend=false -input=false -lockfile=readonly
+      - name: Validate
+        run: terraform validate
+      - name: Offline tests (mocked provider)
+        run: terraform test
+      # The binary is pinned by checksum instead of using a third-party action.
+      - name: Trivy misconfiguration scan
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -sSfLO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | sha256sum -c -
+          tar -xzf "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" trivy
+          cd "$GITHUB_WORKSPACE/infra/terraform"
+          "$RUNNER_TEMP/trivy" config --exit-code 1 --severity MEDIUM,HIGH,CRITICAL .
+
   docker:
     name: Docker image build + container smoke test
     runs-on: ubuntu-24.04

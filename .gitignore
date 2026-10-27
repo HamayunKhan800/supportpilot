@@ -64,3 +64,10 @@ eval/results/eval-mock*.md
 # ZAP scan reports (.zap/run.sh)
 /zap-out/
 /sbom.cdx.json
+
+# Terraform (infra/terraform): local plugins, state and real variable values stay out of git.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars

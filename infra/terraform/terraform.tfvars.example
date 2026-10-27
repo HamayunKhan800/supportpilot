@@ -1,0 +1,36 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Contains no secrets.
+project_id         = "supportpilot-prod-123456"
+billing_account_id = "000000-000000-000000"
+budget_amount      = 5
+budget_currency    = "USD"
+
+# First create only; GitHub Actions deploys later images.
+image = "europe-west1-docker.pkg.dev/supportpilot-prod-123456/supportpilot/app:sha-0000000"
+
+environments = {
+  production = {
+    service_name  = "supportpilot"
+    custom_domain = null # e.g. "app.example.com" once bought and verified
+    ai_provider   = "gemini"
+    env = {
+      DEMO_EMAIL_DOMAIN        = "demo.example.com" # a subdomain of the owned domain
+      AI_DAILY_CALL_LIMIT      = "200"
+      AI_DAILY_EMBEDDING_LIMIT = "800"
+      EMAIL_PROVIDER           = "resend"
+      EMAIL_FROM               = "SupportPilot <no-reply@example.com>"
+    }
+    optional_secrets = ["GEMINI_API_KEY", "RESEND_API_KEY", "SENTRY_DSN"]
+  }
+
+  staging = {
+    service_name        = "supportpilot-staging"
+    ai_provider         = "mock"
+    max_instances       = 1
+    deletion_protection = false
+    env = {
+      EMAIL_PROVIDER = "outbox"
+      EMAIL_FROM     = "SupportPilot Staging <no-reply@example.com>"
+    }
+    optional_secrets = ["EMAIL_OUTBOX_TOKEN"]
+  }
+}
