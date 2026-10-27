@@ -304,8 +304,8 @@ jobs:
           tags: supportpilot:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      # public.ecr.aws (the Lambda Web Adapter base) answers 429 to anonymous pulls when GitHub's
-      # shared runners exceed its rate limit; one retry after a pause gets past it.
+      # Base images and the adapter source are fetched anonymously from public registries, which
+      # sometimes refuse shared GitHub runners for a while; one retry after a pause.
       - name: Wait before retrying (registry rate limit)
         if: steps.build1.outcome == 'failure'
         run: sleep 60

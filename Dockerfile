@@ -14,6 +14,18 @@ RUN corepack enable
 WORKDIR /app
 
 # ---- deps: install from the lockfile only (reproducible, cached) ----------------
+# AWS Lambda Web Adapter (plan M8 revision 2, R3), built from its source code. AWS publishes
+# v1.1.0 only on public.ecr.aws, which refuses most anonymous pulls from GitHub's shared runners
+# (HTTP 429), and the release has no binary files. --checksum makes BuildKit check that the tag
+# still points at the reviewed commit; --locked builds the exact dependency versions in the
+# project's Cargo.lock. Same Debian release as the runtime image, so the C library matches.
+# The user-agent value is what the upstream release build sets.
+FROM rust:1.99.1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb AS lambda-adapter
+ADD --checksum=596bdbcea78a89084fd0b522807d04cd2f1f3f7e https://github.com/aws/aws-lambda-web-adapter.git#v1.1.0 /src
+WORKDIR /src
+RUN LAMBDA_RUNTIME_USER_AGENT=aws-lambda-rust/aws-lambda-adapter/1.1.0 \
+    cargo build --release --locked --bin lambda-adapter
+
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
@@ -48,10 +60,9 @@ COPY --from=build /app/eval/corpus/nimbus ./eval/corpus/nimbus
 RUN mkdir -p /tmp/next-cache && chown 1000:1000 /tmp/next-cache \
     && rm -rf .next/cache && ln -s /tmp/next-cache .next/cache
 
-# AWS Lambda Web Adapter (plan M8 revision 2, R3): a Lambda extension that turns Lambda
-# invocations into HTTP requests to the app. It only starts inside Lambda; anywhere else it
-# is an unused file. Multi-arch image, pinned by digest (v1.1.0, checked 2026-10-27).
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0@sha256:17cfd08eff1dfea3f6a9a1e9c65fdac80aa4919b6085e746615530f43f57d2f1 /lambda-adapter /opt/extensions/lambda-adapter
+# AWS Lambda Web Adapter: a Lambda extension that turns Lambda invocations into HTTP requests
+# to the app. It only starts inside Lambda; anywhere else it is an unused file.
+COPY --from=lambda-adapter /src/target/release/lambda-adapter /opt/extensions/lambda-adapter
 
 # Unprivileged "node" user from the official image, by numeric UID so
 # orchestrators (e.g. Kubernetes runAsNonRoot) can verify it is not root.
