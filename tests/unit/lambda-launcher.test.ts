@@ -179,6 +179,17 @@ describe("worker function tasks (lambda-tasks)", () => {
     expect(steps[1]!.env.BETTER_AUTH_SECRET).toBeUndefined();
   });
 
+  it("seed-reset gets a throwaway auth secret on Lambda, where the worker can't read the web one", () => {
+    const { BETTER_AUTH_SECRET: _web, ...workerEnv } = env;
+    const first = planTask("seed-reset", 100_000, workerEnv);
+    const second = planTask("seed-reset", 100_000, workerEnv);
+    const secret = first[0]!.env.BETTER_AUTH_SECRET;
+    expect(secret).toMatch(/^[A-Za-z0-9+/]{43}=$/); // 32 random bytes
+    expect(second[0]!.env.BETTER_AUTH_SECRET).not.toBe(secret); // fresh every run
+    expect(first[1]!.env.BETTER_AUTH_SECRET).toBeUndefined(); // the drain still gets none
+    expect(workerEnv).not.toHaveProperty("BETTER_AUTH_SECRET"); // the caller's env is untouched
+  });
+
   const node = (step: string, code: string) => ({ step, args: ["-e", code], env: process.env });
 
   it("runs steps in order and stops at the first failure", async () => {

@@ -11,6 +11,7 @@
  * cuts it off.
  */
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 
 import type { JobsTask, StepResult, TaskResult } from "./lambda-jobs";
 import { WEB_ONLY_ENV, withoutKeys } from "./supervisor";
@@ -42,9 +43,20 @@ export function planTask(task: JobsTask, deadline: number, env: NodeJS.ProcessEn
     case "migrate":
       return [{ step: "migrate", args: [".build/migrate.mjs"], env: lean }];
     case "seed-reset":
-      // The seed signs the demo users up through the auth library, so it needs the web settings.
-      return [{ step: "seed-reset", args: [".build/seed-demo.mjs", "--reset"], env }, drain];
+      return [{ step: "seed-reset", args: [".build/seed-demo.mjs", "--reset"], env: seedEnv(env) }, drain];
   }
+}
+
+/**
+ * The seed signs the demo users up through the auth library, which won't start without a
+ * BETTER_AUTH_SECRET. The worker function can't read the web app's secret (least privilege),
+ * so the seed gets a throwaway one. Nothing the seed stores depends on it: passwords are
+ * hashed with their own random salt, and the secret only signs cookies and tokens, which the
+ * seed throws away. The demo users then sign in on the web app with its real secret
+ * (checked in tests/integration/demo-seed-secret.test.ts).
+ */
+function seedEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return { ...env, BETTER_AUTH_SECRET: env.BETTER_AUTH_SECRET ?? randomBytes(32).toString("base64") };
 }
 
 export interface RunOptions {
