@@ -270,9 +270,9 @@ jobs:
       - name: Shell scripts (bootstrap, image lookup)
         working-directory: infra
         run: shellcheck -S style bootstrap/*.sh scripts/*.sh
-      - name: Neon connection-string helper tests
+      - name: Bootstrap helper tests (Neon address, GitHub token)
         working-directory: infra/bootstrap
-        run: python3 -m unittest -v test_neon_url
+        run: python3 -m unittest -v test_neon_url test_gh_secret
       # The binary is pinned by checksum instead of using a third-party action.
       - name: Trivy misconfiguration scan
         run: |
