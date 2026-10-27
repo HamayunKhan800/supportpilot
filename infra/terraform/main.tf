@@ -1,37 +1,48 @@
-data "google_project" "this" {
-  project_id = var.project_id
-}
+# Names are fixed rather than variables: the bootstrap policies (infra/bootstrap/*.json)
+# limit the infra and app roles to resources called supportpilot-*, so a rename here would
+# lock Terraform out.
 
 locals {
-  services = toset([
-    "artifactregistry.googleapis.com",
-    "billingbudgets.googleapis.com",
-    "cloudresourcemanager.googleapis.com",
-    "iam.googleapis.com",
-    "iamcredentials.googleapis.com",
-    "logging.googleapis.com",
-    "run.googleapis.com",
-    "secretmanager.googleapis.com",
-    "serviceusage.googleapis.com",
-    "sts.googleapis.com",
-  ])
+  account = var.aws_account_id
+  region  = var.region
 
-  # Cloud Run's deterministic address: https://SERVICE-PROJECT_NUMBER.REGION.run.app
-  run_app_url = {
-    for k, e in var.environments :
-    k => "https://${e.service_name}-${data.google_project.this.number}.${var.region}.run.app"
+  repository_name = "supportpilot"
+  function_name = {
+    web    = "supportpilot-web"
+    worker = "supportpilot-worker"
+  }
+  alias_name = "live"
+
+  function_arn = {
+    for k, n in local.function_name : k => "arn:aws:lambda:${local.region}:${local.account}:function:${n}"
+  }
+  worker_alias_arn = "${local.function_arn.worker}:${local.alias_name}"
+
+  # Made by the bootstrap script, outside Terraform (see infra/README.md).
+  oidc_provider_arn = "arn:aws:iam::${local.account}:oidc-provider/token.actions.githubusercontent.com"
+  boundary_arn      = "arn:aws:iam::${local.account}:policy/supportpilot-boundary"
+  role_path         = "/supportpilot/"
+
+  # SSM Parameter Store folders (plan M8 R6). Each parameter directly inside a folder becomes
+  # one environment variable named after it (scripts/lib/ssm-env.ts).
+  #   shared   secrets both functions need (GEMINI_API_KEY, SENTRY_DSN, DEMO_PASSWORD)
+  #   web      web-only secrets and the pooled database address
+  #   worker   the direct database address (migrations and pg-boss sessions)
+  #   settings plain values Terraform writes (BETTER_AUTH_URL)
+  # The owner adds secret values in CloudShell, so they never enter Terraform state.
+  ssm_root = "/supportpilot/production"
+  ssm_folders = {
+    web    = ["shared", "web", "settings"]
+    worker = ["shared", "worker", "settings"]
+  }
+  ssm_paths = {
+    for k, folders in local.ssm_folders : k => [for f in folders : "${local.ssm_root}/${f}/"]
   }
 
-  public_url = {
-    for k, e in var.environments :
-    k => e.custom_domain != null ? "https://${e.custom_domain}" : local.run_app_url[k]
-  }
-}
+  # Functions exist only once an image does (the first apply runs before the first push).
+  deployed  = var.image_tag != null
+  image_uri = local.deployed ? "${aws_ecr_repository.app.repository_url}:${var.image_tag}" : null
 
-resource "google_project_service" "this" {
-  for_each = local.services
-
-  service = each.value
-  # Switching an API off can break things outside this config; leave them on at destroy.
-  disable_on_destroy = false
+  function_url = local.deployed ? trimsuffix(aws_lambda_function_url.web[0].function_url, "/") : null
+  public_url   = var.public_url != null ? var.public_url : local.function_url
 }

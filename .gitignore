@@ -70,4 +70,5 @@ eval/results/eval-mock*.md
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan
 terraform.tfvars

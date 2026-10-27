@@ -1,34 +1,67 @@
-resource "google_artifact_registry_repository" "app" {
-  location      = var.region
-  repository_id = "supportpilot"
-  description   = "SupportPilot container images, pushed by GitHub Actions."
-  format        = "DOCKER"
+# One private image repository; both functions run the same image (ADR-0008).
+resource "aws_ecr_repository" "app" {
+  name = local.repository_name
 
-  docker_config {
-    # A tag such as sha-<commit> always points at the same image.
-    immutable_tags = true
+  # Tags are commit SHAs and never move, so a tag always means the same code.
+  image_tag_mutability = "IMMUTABLE"
+
+  # Basic scanning (free) on every push, alongside the Trivy scan in CI.
+  image_scanning_configuration {
+    scan_on_push = true
   }
 
-  # Keep storage inside the free 0.5 GB (plan M8 D11): the 3 newest images stay,
-  # so the previous two releases remain available for rollback.
-  cleanup_policy_dry_run = false
-
-  cleanup_policies {
-    id     = "keep-newest-3"
-    action = "KEEP"
-    most_recent_versions {
-      keep_count = 3
-    }
+  # AWS-owned keys. A customer-managed KMS key would cost $1 a month and adds nothing here:
+  # the image holds no secrets.
+  encryption_configuration {
+    encryption_type = "AES256"
   }
+}
 
-  cleanup_policies {
-    id     = "delete-older"
-    action = "DELETE"
-    condition {
-      tag_state  = "ANY"
-      older_than = "86400s"
-    }
-  }
+# Keep the 3 newest images (the live one plus two to roll back to); drop untagged layers
+# left by failed pushes after a day.
+resource "aws_ecr_lifecycle_policy" "app" {
+  repository = aws_ecr_repository.app.name
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Untagged images after 1 day"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = { type = "expire" }
+      },
+      {
+        rulePriority = 2
+        description  = "Keep the 3 newest images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 3
+        }
+        action = { type = "expire" }
+      },
+    ]
+  })
+}
 
-  depends_on = [google_project_service.this]
+# Lambda pulls the image with this grant. Writing it here (Lambda's documented form) stops
+# Lambda from adding its own copy, which Terraform would then fight over.
+resource "aws_ecr_repository_policy" "app" {
+  repository = aws_ecr_repository.app.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "LambdaPull"
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+      Condition = {
+        StringLike = { "aws:sourceArn" = "arn:aws:lambda:${local.region}:${local.account}:function:supportpilot-*" }
+      }
+    }]
+  })
 }

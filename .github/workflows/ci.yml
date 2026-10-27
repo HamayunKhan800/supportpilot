@@ -240,7 +240,7 @@ jobs:
         run: cat "$RUNNER_TEMP/worker.log" || true
 
   infra:
-    name: Terraform format · validate · tests · Trivy scan
+    name: Terraform format · validate · tests · ShellCheck · Trivy scan
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
@@ -264,8 +264,12 @@ jobs:
         run: terraform init -backend=false -input=false -lockfile=readonly
       - name: Validate
         run: terraform validate
-      - name: Offline tests (mocked provider)
-        run: terraform test
+      - name: Offline tests (mocked provider; also checks production.tfvars)
+        run: terraform test -var-file=production.tfvars
+      # ShellCheck ships with GitHub's Ubuntu runners.
+      - name: Shell scripts (bootstrap, image lookup)
+        working-directory: infra
+        run: shellcheck -S style bootstrap/*.sh scripts/*.sh
       # The binary is pinned by checksum instead of using a third-party action.
       - name: Trivy misconfiguration scan
         run: |

@@ -1,0 +1,158 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "StateBucketList",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::supportpilot-tfstate-{{ACCOUNT_ID}}"
+    },
+    {
+      "Sid": "StateObjects",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::supportpilot-tfstate-{{ACCOUNT_ID}}/supportpilot/*"
+    },
+    {
+      "Sid": "Registry",
+      "Effect": "Allow",
+      "Action": "ecr:*",
+      "Resource": "arn:aws:ecr:{{REGION}}:{{ACCOUNT_ID}}:repository/supportpilot"
+    },
+    {
+      "Sid": "Functions",
+      "Effect": "Allow",
+      "Action": "lambda:*",
+      "Resource": "arn:aws:lambda:{{REGION}}:{{ACCOUNT_ID}}:function:supportpilot-*"
+    },
+    {
+      "Sid": "FunctionLogGroups",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:TagResource",
+        "logs:UntagResource",
+        "logs:ListTagsForResource",
+        "logs:TagLogGroup",
+        "logs:UntagLogGroup",
+        "logs:ListTagsLogGroup"
+      ],
+      "Resource": ["arn:aws:logs:{{REGION}}:{{ACCOUNT_ID}}:log-group:/aws/lambda/supportpilot-*"]
+    },
+    {
+      "Sid": "FindLogGroups",
+      "Effect": "Allow",
+      "Action": "logs:DescribeLogGroups",
+      "Resource": "arn:aws:logs:{{REGION}}:{{ACCOUNT_ID}}:log-group:*"
+    },
+    {
+      "Sid": "DemoResetSchedule",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:CreateSchedule",
+        "scheduler:UpdateSchedule",
+        "scheduler:DeleteSchedule",
+        "scheduler:GetSchedule",
+        "scheduler:TagResource",
+        "scheduler:UntagResource",
+        "scheduler:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:scheduler:{{REGION}}:{{ACCOUNT_ID}}:schedule/default/supportpilot-*"
+    },
+    {
+      "Sid": "TerraformSettingsOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:PutParameter",
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:DeleteParameter",
+        "ssm:AddTagsToResource",
+        "ssm:RemoveTagsFromResource",
+        "ssm:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:ssm:{{REGION}}:{{ACCOUNT_ID}}:parameter/supportpilot/production/settings/*"
+    },
+    {
+      "Sid": "ParameterMetadata",
+      "Effect": "Allow",
+      "Action": "ssm:DescribeParameters",
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadAppRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:ListRoleTags"
+      ],
+      "Resource": "arn:aws:iam::{{ACCOUNT_ID}}:role/supportpilot/*"
+    },
+    {
+      "Sid": "ChangeAppRolesOnlyWithBoundary",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:PutRolePermissionsBoundary"
+      ],
+      "Resource": "arn:aws:iam::{{ACCOUNT_ID}}:role/supportpilot/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::{{ACCOUNT_ID}}:policy/supportpilot-boundary"
+        }
+      }
+    },
+    {
+      "Sid": "ManageAppRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:DeleteRole",
+        "iam:UpdateRole",
+        "iam:UpdateRoleDescription",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": "arn:aws:iam::{{ACCOUNT_ID}}:role/supportpilot/*"
+    },
+    {
+      "Sid": "PassAppRoles",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::{{ACCOUNT_ID}}:role/supportpilot/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": ["lambda.amazonaws.com", "scheduler.amazonaws.com"]
+        }
+      }
+    },
+    {
+      "Sid": "NeverLoosenTheGuardrails",
+      "Effect": "Deny",
+      "Action": [
+        "iam:DeleteRolePermissionsBoundary",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicy",
+        "iam:DeletePolicyVersion",
+        "iam:SetDefaultPolicyVersion",
+        "iam:AttachRolePolicy",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::{{ACCOUNT_ID}}:policy/supportpilot-boundary",
+        "arn:aws:iam::{{ACCOUNT_ID}}:role/supportpilot-infra"
+      ]
+    }
+  ]
+}

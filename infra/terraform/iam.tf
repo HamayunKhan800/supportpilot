@@ -1,120 +1,197 @@
-# ---------------------------------------------------------------------------
-# Runtime identities: one per environment, each reads only its own secrets.
-# ---------------------------------------------------------------------------
-resource "google_service_account" "runtime" {
-  for_each = var.environments
-
-  account_id   = "${each.value.service_name}-run"
-  display_name = "SupportPilot ${each.key} runtime"
-  description  = "Identity of the ${each.key} Cloud Run service and jobs. Reads only its own secrets."
-
-  depends_on = [google_project_service.this]
-}
-
-# ---------------------------------------------------------------------------
-# GitHub Actions sign-in without stored keys (Workload Identity Federation).
-# ---------------------------------------------------------------------------
-resource "google_iam_workload_identity_pool" "github" {
-  workload_identity_pool_id = "github"
-  display_name              = "GitHub Actions"
-  description               = "OIDC tokens from GitHub Actions for ${var.github_repository}."
-
-  depends_on = [google_project_service.this]
-}
-
-resource "google_iam_workload_identity_pool_provider" "github" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
-  workload_identity_pool_provider_id = "github-actions"
-  display_name                       = "GitHub Actions OIDC"
-
-  oidc {
-    issuer_uri = "https://token.actions.githubusercontent.com"
-  }
-
-  attribute_mapping = {
-    "google.subject"                = "assertion.sub"
-    "attribute.repository_id"       = "assertion.repository_id"
-    "attribute.repository_owner_id" = "assertion.repository_owner_id"
-    "attribute.ref"                 = "assertion.ref"
-  }
-
-  # Numeric IDs never change, so a renamed or look-alike repository can't sign in.
-  attribute_condition = "assertion.repository_id == '${var.github_repository_id}' && assertion.repository_owner_id == '${var.github_repository_owner_id}'"
-}
+# Every role here carries the permissions boundary made by the bootstrap script, and the
+# infra role may only create roles that do. The boundary is the most these roles can ever
+# do, whatever policy is attached (AWS's pattern for delegating role creation).
+#
+# Policies are written with jsonencode so the offline tests can read them
+# (tests/plan.tftest.hcl).
 
 locals {
-  pool = google_iam_workload_identity_pool.github.name
-
-  # Who may act as each deployer:
-  # - staging: any workflow run from the main branch of the repository;
-  # - production: only jobs running in the protected "production" GitHub environment,
-  #   which needs the owner's approval (plan M8 D7).
-  deployer_principal = {
-    staging    = "principalSet://iam.googleapis.com/${local.pool}/attribute.ref/refs/heads/main"
-    production = "principal://iam.googleapis.com/${local.pool}/subject/repo:${var.github_repository}:environment:production"
+  github_oidc_conditions = {
+    "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+    # AWS requires a subject check for GitHub; the numeric IDs survive renames, so a
+    # look-alike repository or owner can't match.
+    "token.actions.githubusercontent.com:repository_id"       = var.github_repository_id
+    "token.actions.githubusercontent.com:repository_owner_id" = var.github_repository_owner_id
   }
+
+  # ---- function roles -------------------------------------------------------------
+  lambda_trust = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  function_policy = {
+    for k in keys(local.function_name) : k => jsonencode({
+      Version = "2012-10-17"
+      Statement = concat(
+        [
+          {
+            Sid      = "WriteOwnLogs"
+            Effect   = "Allow"
+            Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+            Resource = "${aws_cloudwatch_log_group.function[k].arn}:*"
+          },
+          # GetParametersByPath is authorised against the folder asked for, so listing a
+          # folder (with or without its trailing slash) is what is granted, and only these.
+          {
+            Sid    = "ReadOwnSettings"
+            Effect = "Allow"
+            Action = "ssm:GetParametersByPath"
+            Resource = flatten([
+              for f in local.ssm_folders[k] : [
+                "arn:aws:ssm:${local.region}:${local.account}:parameter${local.ssm_root}/${f}",
+                "arn:aws:ssm:${local.region}:${local.account}:parameter${local.ssm_root}/${f}/*",
+              ]
+            ])
+          },
+        ],
+        # The web app wakes the worker after queueing a job (plan M8 R4).
+        k == "web" ? [{
+          Sid      = "WakeWorker"
+          Effect   = "Allow"
+          Action   = "lambda:InvokeFunction"
+          Resource = local.worker_alias_arn
+        }] : [],
+      )
+    })
+  }
+
+  # ---- scheduler role -------------------------------------------------------------
+  scheduler_trust = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "scheduler.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+      # Only schedules in this account can use the role (confused-deputy guard).
+      Condition = { StringEquals = { "aws:SourceAccount" = local.account } }
+    }]
+  })
+
+  # ---- deploy role ----------------------------------------------------------------
+  deploy_trust = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = local.oidc_provider_arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = merge(local.github_oidc_conditions, {
+          "token.actions.githubusercontent.com:sub"         = "repo:${var.github_repository}:environment:production"
+          "token.actions.githubusercontent.com:environment" = "production"
+        })
+      }
+    }]
+  })
+
+  deploy_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      # ECR sign-in has no resource-level control; AWS documents "*" for this one action.
+      {
+        Sid      = "RegistrySignIn"
+        Effect   = "Allow"
+        Action   = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      },
+      {
+        Sid    = "PushImages"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:DescribeImages",
+        ]
+        Resource = aws_ecr_repository.app.arn
+      },
+      # A release: update the image, publish a version, run `migrate` on that version, then
+      # point `live` at it (or back, to roll back). Versions are addressed as name:qualifier.
+      {
+        Sid    = "ReleaseFunctions"
+        Effect = "Allow"
+        Action = [
+          "lambda:GetFunction",
+          "lambda:GetFunctionConfiguration",
+          "lambda:GetFunctionUrlConfig",
+          "lambda:GetAlias",
+          "lambda:ListVersionsByFunction",
+          "lambda:UpdateFunctionCode",
+          "lambda:PublishVersion",
+          "lambda:UpdateAlias",
+        ]
+        Resource = flatten([for arn in values(local.function_arn) : [arn, "${arn}:*"]])
+      },
+      {
+        Sid      = "RunWorkerTasks"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = [local.function_arn.worker, "${local.function_arn.worker}:*"]
+      },
+    ]
+  })
 }
 
-resource "google_service_account" "deployer" {
-  for_each = var.environments
+resource "aws_iam_role" "function" {
+  for_each = local.function_name
 
-  account_id   = "${each.value.service_name}-deploy"
-  display_name = "SupportPilot ${each.key} deployer (GitHub Actions)"
-  description  = "Deploys new images to the ${each.key} service and runs its jobs."
-
-  depends_on = [google_project_service.this]
+  name                 = each.value
+  path                 = local.role_path
+  description          = "Runs the ${each.key} function."
+  assume_role_policy   = local.lambda_trust
+  permissions_boundary = local.boundary_arn
 }
 
-resource "google_service_account_iam_member" "deployer_wif" {
-  for_each = var.environments
+resource "aws_iam_role_policy" "function" {
+  for_each = local.function_name
 
-  service_account_id = google_service_account.deployer[each.key].name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = local.deployer_principal[each.key]
+  name   = "runtime"
+  role   = aws_iam_role.function[each.key].id
+  policy = local.function_policy[each.key]
 }
 
-# Staging builds and pushes images; production only deploys images that staging already ran.
-resource "google_artifact_registry_repository_iam_member" "deployer" {
-  for_each = var.environments
-
-  location   = google_artifact_registry_repository.app.location
-  repository = google_artifact_registry_repository.app.name
-  role       = each.key == "staging" ? "roles/artifactregistry.writer" : "roles/artifactregistry.reader"
-  member     = "serviceAccount:${google_service_account.deployer[each.key].email}"
+resource "aws_iam_role" "scheduler" {
+  name                 = "supportpilot-scheduler"
+  path                 = local.role_path
+  description          = "Lets EventBridge Scheduler start the nightly demo reset."
+  assume_role_policy   = local.scheduler_trust
+  permissions_boundary = local.boundary_arn
 }
 
-# Deploying a revision that runs as the runtime identity requires "act as" on it.
-resource "google_service_account_iam_member" "deployer_act_as_runtime" {
-  for_each = var.environments
-
-  service_account_id = google_service_account.runtime[each.key].name
-  role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.deployer[each.key].email}"
+resource "aws_iam_role_policy" "scheduler" {
+  name = "invoke-worker"
+  role = aws_iam_role.scheduler.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "InvokeWorker"
+      Effect   = "Allow"
+      Action   = "lambda:InvokeFunction"
+      Resource = local.worker_alias_arn
+    }]
+  })
 }
 
-resource "google_cloud_run_v2_service_iam_member" "deployer" {
-  for_each = var.environments
-
-  location = var.region
-  name     = google_cloud_run_v2_service.app[each.key].name
-  role     = "roles/run.developer"
-  member   = "serviceAccount:${google_service_account.deployer[each.key].email}"
+# GitHub Actions jobs in the protected "production" environment (owner approval required).
+resource "aws_iam_role" "deploy" {
+  name                 = "supportpilot-deploy"
+  path                 = local.role_path
+  description          = "GitHub Actions deploys: push the image, migrate, move the live alias."
+  assume_role_policy   = local.deploy_trust
+  permissions_boundary = local.boundary_arn
+  max_session_duration = 3600
 }
 
-resource "google_cloud_run_v2_job_iam_member" "deployer_migrate" {
-  for_each = var.environments
-
-  location = var.region
-  name     = google_cloud_run_v2_job.migrate[each.key].name
-  role     = "roles/run.developer"
-  member   = "serviceAccount:${google_service_account.deployer[each.key].email}"
-}
-
-resource "google_cloud_run_v2_job_iam_member" "deployer_seed" {
-  for_each = var.environments
-
-  location = var.region
-  name     = google_cloud_run_v2_job.seed_demo[each.key].name
-  role     = "roles/run.developer"
-  member   = "serviceAccount:${google_service_account.deployer[each.key].email}"
+resource "aws_iam_role_policy" "deploy" {
+  name   = "deploy"
+  role   = aws_iam_role.deploy.id
+  policy = local.deploy_policy
 }

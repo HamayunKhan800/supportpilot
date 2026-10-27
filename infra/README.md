@@ -1,34 +1,44 @@
-# Infrastructure (Terraform)
+# Infrastructure (AWS, Terraform)
 
-Everything SupportPilot needs on Google Cloud is described as code in [`terraform/`](terraform/), so the setup is repeatable, reviewed in pull requests and versioned with the app (plan [M8](../docs/plans/m8-deployment.md), decision D6).
+SupportPilot runs on **AWS Lambda in Sydney** with **Neon Postgres** in the same region (plan [M8 revision 2](../docs/plans/m8-deployment.md)). Everything on AWS is code: a one-time bootstrap script for the few things Terraform needs before it can run, and Terraform for the rest, applied from GitHub Actions after the owner approves.
+
+```
+visitor ──https──▶ Function URL (streaming) ──▶ supportpilot-web:live ──▶ Neon (pooled)
+                                                      │ async Invoke {"task":"drain"}
+EventBridge Scheduler 00:05 LA {"task":"seed-reset"} ─▶ supportpilot-worker:live ──▶ Neon (direct)
+GitHub Actions (OIDC, approved) ──▶ ECR image · migrate · move `live`
+```
 
 ## What it creates
 
-| File          | Resources                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------------ |
-| `main.tf`     | Required Google APIs; derived addresses                                                                |
-| `registry.tf` | Artifact Registry Docker repository with immutable tags; keeps the 3 newest images                     |
-| `iam.tf`      | Runtime identity per environment; Workload Identity Federation for GitHub Actions; deployer identities |
-| `secrets.tf`  | Empty Secret Manager secrets; each environment reads only its own                                      |
-| `run.tf`      | Cloud Run services (web + worker), `migrate` and `seed-demo` jobs, optional custom domain mapping      |
-| `logging.tf`  | Keeps tracking-link tokens (`/t/{token}`) out of Cloud Run request logs                                |
-| `budget.tf`   | Alert budget for the whole project                                                                     |
+| Where                                                              | What                                                                                                                                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`bootstrap/bootstrap.sh`](bootstrap/)                             | S3 state bucket (versioned, private, TLS only) · GitHub OIDC provider · permissions boundary · `supportpilot-infra` role · $5 Budgets email alert       |
+| [`terraform/registry.tf`](terraform/)                              | ECR repository: immutable tags, scan on push, keeps the 3 newest images, pull grant for Lambda                                                          |
+| `terraform/functions.tf`                                           | `supportpilot-web` and `supportpilot-worker` (one arm64 image, two launcher modes), `live` aliases, public streaming Function URL, log groups (14 days) |
+| `terraform/schedule.tf`                                            | Nightly demo reset at 00:05 America/Los_Angeles, just after Gemini's free quota resets                                                                  |
+| `terraform/iam.tf`                                                 | Function roles, scheduler role, `supportpilot-deploy` role for GitHub's `production` environment                                                        |
+| `terraform/settings.tf`                                            | `BETTER_AUTH_URL` (the app's own address) in Parameter Store                                                                                            |
+| [`../.github/workflows/infra.yml`](../.github/workflows/infra.yml) | Plan → approve → apply the saved plan                                                                                                                   |
 
-Not managed here:
+Not managed here: **Neon** (made in its console), **secret values** (added by the owner, below), the **domain** (step 6).
 
-- **Neon Postgres**: created in the Neon console; its connection string goes into Secret Manager.
-- **Cloudflare DNS**: records are entered by hand from the `domain_dns_records` output.
-- **The $5 Cloud Run spend cap**: [`scripts/spend-cap.sh`](scripts/spend-cap.sh). The Terraform Google provider can't manage spend caps yet (checked with `hashicorp/google` 8.8.1).
+### Why the functions appear on the second apply
+
+A Lambda function made from a container needs the image to exist first. So the first apply makes the registry and roles; after the first image is pushed, the next apply makes the functions. `infra.yml` works out which case applies (`scripts/current-image.sh`): once the functions exist it always passes the image they run, and it stops with an error rather than guess, so a plan never deletes them by accident.
 
 ## Security choices
 
-- **No stored keys.** GitHub Actions signs in with short-lived OIDC tokens. The trust is pinned to the repository's numeric IDs (`1428261530`, owner `345785392`), which survive renames and can't be copied by a look-alike repository.
-- **Production needs approval.** Only jobs running in the protected `production` GitHub environment can act as the production deployer. The production deployer can't push images; it deploys images that already ran on staging.
-- **Least privilege.** Deployers get `run.developer` on their own service and jobs only. Runtime identities can read only their own environment's secrets.
-- **Secret values never enter Terraform state.** Terraform creates empty secrets; the owner adds the values with `gcloud`.
-- **Image changes belong to CI.** Terraform ignores the image field after the first create, so `terraform apply` never rolls back a deployment.
+- **No stored AWS keys.** GitHub Actions signs in with short-lived OIDC tokens. Each role trusts one protected GitHub environment of this repository only, checked by name _and_ by the repository's numeric IDs (`1428261530`, owner `345785392`), which survive renames ([IAM condition keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html)).
+- **Approval before any change.** `infra` (Terraform) and `production` (deploys) both require the owner's approval.
+- **A ceiling on everything Terraform makes.** The infra role can create roles only if they carry `supportpilot-boundary`, can't attach managed policies, and can't edit the boundary or itself. Whatever a role's own policy says, it can't exceed the boundary: logs, the app's Parameter Store folders, the app's functions and its image repository ([permissions boundaries](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)). A unit test (`tests/unit/infra-policies.test.ts`) keeps the boundary equal to what the roles use.
+- **Least privilege per function.** The web function reads `shared`, `web` and `settings` and may invoke only the worker's `live` alias. The worker reads `shared`, `worker` and `settings`: it never sees the sign-in secrets.
+- **Secret values never enter Terraform state or GitHub.** They are SecureString parameters typed in CloudShell. Terraform writes only the non-secret `settings` folder, and the infra role can't read the others.
+- **Public URL, private function.** The Function URL needs two grants since October 2025; the second is limited to calls through the URL, so the function can't be invoked directly ([Lambda docs](https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html)).
+- **Client IPs:** `TRUST_PROXY_HEADERS` stays `false` until step 4 checks that the Function URL overwrites `X-Forwarded-For`.
+- **Deliberately not done:** customer-managed KMS keys for logs and images (Trivy LOW findings). They cost $1 a month each and protect nothing extra here: no secret is in either.
 
-## Checks without a cloud account
+## Checks without an AWS account
 
 CI (`.github/workflows/ci.yml`, job `infra`) runs these on every push. Locally:
 
@@ -37,93 +47,45 @@ cd infra/terraform
 terraform fmt -check -recursive
 terraform init -backend=false
 terraform validate
-terraform test        # offline: mocked Google provider, 3 runs
-trivy config .        # misconfiguration scan
+terraform test -var-file=production.tfvars     # mocked AWS provider, 11 runs
+shellcheck -S style ../bootstrap/*.sh ../scripts/*.sh
+trivy config --severity MEDIUM,HIGH,CRITICAL .
 ```
 
-## First-time setup (owner, from Google Cloud Shell)
+## First setup (plan M8 step 4)
 
-Cloud Shell works in a phone browser at <https://shell.cloud.google.com> and already has `gcloud`, `terraform` and Docker. Run `terraform version`; 1.7 or newer is needed.
-
-1. **Project.** Create a project, link the billing account, and note both IDs. The Gemini key stays in a separate project **without** billing (plan D10).
-
-2. **Get the code and the state bucket.**
+1. **Bootstrap** in [AWS CloudShell](https://console.aws.amazon.com/cloudshell/home?region=ap-southeast-2) (the `>_` icon at the top of the AWS console, Region Sydney):
 
    ```bash
-   git clone https://github.com/HamayunKhan800/supportpilot.git && cd supportpilot
-   gcloud config set project <project-id>
-   bash infra/scripts/bootstrap.sh <project-id>
+   git clone --depth 1 https://github.com/HamayunKhan800/supportpilot.git
+   bash supportpilot/infra/bootstrap/bootstrap.sh
    ```
 
-3. **Settings.** Copy the example settings file and fill it in. It holds no secrets and is git-ignored.
+   It asks for the budget email and prints one value, `AWS_ACCOUNT_ID`.
+
+2. **GitHub** → repository → Settings:
+   - _Secrets and variables → Actions → Variables_: add `AWS_ACCOUNT_ID`.
+   - _Environments_: `infra` and `production`, each with yourself as required reviewer and deployments limited to the `main` branch.
+
+3. **Secrets** in CloudShell. The value is typed without showing it and never lands in the shell history:
 
    ```bash
-   cd infra/terraform
-   cp terraform.tfvars.example terraform.tfvars
-   nano terraform.tfvars
-   terraform init -backend-config="bucket=<project-id>-tfstate"
+   put() { read -rsp "$1: " v; echo; aws ssm put-parameter --region ap-southeast-2 --type SecureString --overwrite --name "/supportpilot/production/$1" --value "$v" >/dev/null && echo saved; unset v; }
+   put web/DATABASE_URL          # Neon pooled address, ending sslmode=verify-full&channel_binding=require
+   put worker/DATABASE_URL       # Neon direct address (no -pooler), same ending
+   put web/BETTER_AUTH_SECRET    # e.g. the output of: openssl rand -base64 48
+   put shared/DEMO_PASSWORD
+   put shared/GEMINI_API_KEY     # when switching ai_provider to gemini
+   put shared/SENTRY_DSN         # optional
    ```
 
-4. **Phase A: the foundations.** A Cloud Run service can't start without an image and secret values, so create everything else first:
-
-   ```bash
-   terraform apply \
-     -target=google_artifact_registry_repository_iam_member.deployer \
-     -target=google_service_account_iam_member.deployer_wif \
-     -target=google_secret_manager_secret_iam_member.runtime \
-     -target=google_billing_budget.project \
-     -target=google_logging_project_exclusion.tracking_tokens
-   ```
-
-5. **Secret values.** List the secret names with `terraform output secret_ids`. Add each value without it appearing on screen or in shell history:
-
-   ```bash
-   read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets versions add production-database-url --data-file=- && unset VALUE
-   ```
-
-   - `*-better-auth-secret`: `openssl rand -base64 32`.
-   - `*-email-outbox-token`: `openssl rand -base64 32`.
-   - `*-database-url`: the Neon **direct** (not pooled) connection string for that environment's branch, with `sslmode=require`.
-
-6. **First image.** Build and push one image. After this, GitHub Actions deploys new images (plan step 5).
-
-   ```bash
-   cd ~/supportpilot
-   REPO=europe-west1-docker.pkg.dev/<project-id>/supportpilot
-   gcloud auth configure-docker europe-west1-docker.pkg.dev
-   docker build -t $REPO/app:sha-$(git rev-parse --short HEAD) .
-   docker push $REPO/app:sha-$(git rev-parse --short HEAD)
-   ```
-
-   Put that tag in `image` in `terraform.tfvars`.
-
-7. **Phase B: everything.**
-
-   ```bash
-   cd infra/terraform && terraform apply
-   ```
-
-8. **Spend cap.** Run this once. The amount is in the billing account's currency.
-
-   ```bash
-   bash infra/scripts/spend-cap.sh create <project-id> <billing-account-id> 5
-   bash infra/scripts/spend-cap.sh status <project-id> <billing-account-id>
-   ```
-
-   When the cap is hit, every Cloud Run service and job in the project stops until the next month. `spend-cap.sh lift` reopens them for the rest of that month, and recovery can take up to an hour.
-
-9. **Custom domain (later).**
-   1. Verify the domain in Google Search Console with the same Google account.
-   2. Set `custom_domain`, then run `terraform apply`.
-   3. Add the records from `terraform output domain_dns_records` at Cloudflare as **DNS only** (grey cloud).
-   4. Make sure any CAA records allow `pki.goog` and `letsencrypt.org`.
+4. **Actions → Infrastructure → Run workflow**, approve the plan, read the summary, approve the apply. This first run makes the registry and roles.
+5. The first image is pushed (step 4/5 deploy workflow); run **Infrastructure** again to make the functions.
 
 ## Rollback
 
-GitHub Actions moves traffic back to the previous revision (plan D8, step 5). By hand:
+Deploys move the `live` alias to a new version; rolling back moves it to the previous one (plan M8 step 5). A Terraform change to the functions publishes a new version from the image already running and moves `live` to it. So **after a rollback, fix forward before applying infrastructure changes**, or the apply would move `live` forward again.
 
-```bash
-gcloud run services update-traffic supportpilot --region europe-west1 --to-revisions <previous-revision>=100
-```
+## Costs
 
-Terraform state is versioned in its bucket, so an earlier state file can be restored from there.
+Expected about $0 a month at demo traffic: Lambda's always-free allowance is 1 million requests and 400,000 GB-seconds a month ([pricing](https://aws.amazon.com/lambda/pricing/)); Parameter Store standard parameters, OIDC and IAM are free, and Scheduler includes 14 million invocations a month ([pricing](https://aws.amazon.com/eventbridge/pricing/)). ECR storage is $0.10 per GB-month ([pricing](https://aws.amazon.com/ecr/pricing/)); its 500 MB allowance belongs to the older 12-month free tier, so the plan assumes it is paid from the credit: 3 images of a few hundred MB come to a few cents. The Budgets alert emails at 50% and 100% of $5, counting usage before credits, since the Free plan's $100 credit would otherwise hide it.

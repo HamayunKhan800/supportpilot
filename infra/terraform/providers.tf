@@ -1,13 +1,15 @@
-provider "google" {
-  project = var.project_id
-  region  = var.region
+provider "aws" {
+  region = var.region
 
-  # The Budget API needs a quota project when called with user credentials.
-  user_project_override = true
-  billing_project       = var.project_id
+  # Refuse to run against any other account, e.g. a stray profile on a laptop.
+  allowed_account_ids = [var.aws_account_id]
 
-  default_labels = {
-    app        = "supportpilot"
-    managed-by = "terraform"
+  default_tags {
+    tags = {
+      app        = "supportpilot"
+      env        = "production"
+      managed-by = "terraform"
+      repository = var.github_repository
+    }
   }
 }

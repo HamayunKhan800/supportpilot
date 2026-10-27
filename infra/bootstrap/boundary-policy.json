@@ -1,0 +1,54 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FunctionLogs",
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:{{REGION}}:{{ACCOUNT_ID}}:log-group:/aws/lambda/supportpilot-*"
+    },
+    {
+      "Sid": "AppSettings",
+      "Effect": "Allow",
+      "Action": "ssm:GetParametersByPath",
+      "Resource": "arn:aws:ssm:{{REGION}}:{{ACCOUNT_ID}}:parameter/supportpilot/*"
+    },
+    {
+      "Sid": "AppFunctions",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:InvokeFunction",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:GetFunctionUrlConfig",
+        "lambda:GetAlias",
+        "lambda:ListVersionsByFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:PublishVersion",
+        "lambda:UpdateAlias"
+      ],
+      "Resource": "arn:aws:lambda:{{REGION}}:{{ACCOUNT_ID}}:function:supportpilot-*"
+    },
+    {
+      "Sid": "RegistrySignIn",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "AppImages",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:DescribeImages"
+      ],
+      "Resource": "arn:aws:ecr:{{REGION}}:{{ACCOUNT_ID}}:repository/supportpilot"
+    }
+  ]
+}

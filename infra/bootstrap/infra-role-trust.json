@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "GitHubInfraEnvironment",
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::{{ACCOUNT_ID}}:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:HamayunKhan800/supportpilot:environment:infra",
+          "token.actions.githubusercontent.com:environment": "infra",
+          "token.actions.githubusercontent.com:repository_id": "1428261530",
+          "token.actions.githubusercontent.com:repository_owner_id": "345785392"
+        }
+      }
+    }
+  ]
+}

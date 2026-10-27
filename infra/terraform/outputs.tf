@@ -1,34 +1,38 @@
-output "service_urls" {
-  description = "Public address of each environment."
+output "ecr_repository_url" {
+  description = "Where deployments push the image (tag sha-<commit>)."
+  value       = aws_ecr_repository.app.repository_url
+}
+
+output "deploy_role_arn" {
+  description = "Role for the GitHub \"production\" environment (deploy.yml)."
+  value       = aws_iam_role.deploy.arn
+}
+
+output "functions_created" {
+  description = "false until an image exists and image_tag is set (first apply)."
+  value       = local.deployed
+}
+
+output "web_url" {
+  description = "The web function's own address (Function URL)."
+  value       = local.function_url
+}
+
+output "public_url" {
+  description = "The app's public origin (BETTER_AUTH_URL)."
   value       = local.public_url
 }
 
-output "run_app_urls" {
-  description = "Cloud Run's own address of each environment (production redirects this to the custom domain)."
-  value       = local.run_app_url
+output "function_names" {
+  description = "Lambda function names; traffic and jobs go to their `live` alias."
+  value       = local.function_name
 }
 
-output "artifact_registry" {
-  description = "Docker repository path for image tags."
-  value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.app.repository_id}"
-}
-
-output "workload_identity_provider" {
-  description = "Value for google-github-actions/auth `workload_identity_provider`."
-  value       = google_iam_workload_identity_pool_provider.github.name
-}
-
-output "deployer_service_accounts" {
-  description = "Value for google-github-actions/auth `service_account`, per environment."
-  value       = { for k, sa in google_service_account.deployer : k => sa.email }
-}
-
-output "secret_ids" {
-  description = "Secrets the owner must fill in before the first full apply."
-  value       = sort([for s in google_secret_manager_secret.app : s.secret_id])
-}
-
-output "domain_dns_records" {
-  description = "DNS records to create at Cloudflare (DNS only, not proxied) for each custom domain."
-  value       = { for k, m in google_cloud_run_domain_mapping.app : k => try(m.status[0].resource_records, []) }
+output "ssm_folders" {
+  description = "Parameter Store folders the owner fills with SecureString values (see infra/README.md)."
+  value = {
+    shared = "${local.ssm_root}/shared/ (GEMINI_API_KEY, SENTRY_DSN, DEMO_PASSWORD)"
+    web    = "${local.ssm_root}/web/ (DATABASE_URL pooled, BETTER_AUTH_SECRET, OAuth and email secrets)"
+    worker = "${local.ssm_root}/worker/ (DATABASE_URL direct)"
+  }
 }
