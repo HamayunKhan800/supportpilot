@@ -36,7 +36,13 @@ export function AcceptSuggestion({ ticketId, version }: { ticketId: string; vers
           Load latest version
         </Button>
       ) : (
-        <Button type="button" onClick={accept} pending={pending}>
+        <Button
+          type="button"
+          // Outline: the ticket's one filled action belongs to the reply (draft or send).
+          variant="outline"
+          onClick={accept}
+          pending={pending}
+        >
           {pending ? "Accepting…" : "Accept suggestion"}
         </Button>
       )}
