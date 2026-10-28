@@ -19,13 +19,19 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 - **Deployed as code:** Terraform on AWS Lambda (Sydney) with Neon PostgreSQL. After CI passes, one approval releases a new version with database migrations and smoke tests; a one-click rollback was tested both ways ([infrastructure](infra/README.md)).
 - **Built with AI coding assistants, checked by tests and official docs** ([policy](CONTRIBUTING.md#ai-assisted-development-policy)).
 
+## Demo (1 minute)
+
+![A customer sends a request; Gemini labels it within seconds; the agent generates a draft citing two help articles, checks it and approves it; the customer sees the reply on their tracking page](docs/demo/walkthrough.gif)
+
+<sub>Recorded on the live demo on 28 October 2026 with real Gemini models, at real speed, no sound (66 seconds; the draft takes about 18 seconds to write). The captions and the orange highlights were added for the recording. Sharper copy: [walkthrough.mp4](docs/demo/walkthrough.mp4) (1 MB).</sub>
+
 ![A live ticket in SupportPilot: the customer's message, an AI draft citing two help articles, and the AI triage card](docs/screenshots/app/ticket-light.png)
 
 <sub>A ticket on the live demo, 28 October 2026. Real Gemini models labelled it (how-to, high priority, 95% confident, so applied automatically) and wrote the draft. Every citation was checked against the passages the model was given. The agent still reviews it: the customer emptied the bin on their laptop, which may not be the Nimbus trash the draft talks about. Screenshots are from the live demo unless a caption says otherwise.</sub>
 
 ## Contents
 
-- [At a glance](#at-a-glance) · [Live demo](#live-demo)
+- [At a glance](#at-a-glance) · [Demo (1 minute)](#demo-1-minute) · [Live demo](#live-demo)
 - [What it does](#what-it-does)
 - [Engineering highlights](#engineering-highlights)
 - [Screenshots](#screenshots)
