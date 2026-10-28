@@ -409,6 +409,12 @@ html[data-theme="dark"] {
   .hero-water {
     position: relative;
   }
+  /* Landing page only: footnote and section links glide to their target instead of jumping. */
+  @media (prefers-reduced-motion: no-preference) {
+    html:has(#hero-heading) {
+      scroll-behavior: smooth;
+    }
+  }
   /* A real (aria-hidden) element rather than ::before, so contrast checkers that look at the
      elements under the text (axe) see the ink they are drawn on. */
   .hero-water-fill {

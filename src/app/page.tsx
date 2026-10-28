@@ -260,10 +260,12 @@ export default async function Home() {
         className={cn(newsreader.variable, "flex-1 [&_:is(a,button,input,summary)]:scroll-mt-20")}
       >
         {/* Hero: the waterline. The headline's claims carry footnote numbers, as a drafted reply
-            carries its sources; the footnotes sit under the seam (DESIGN.md, "The Cited Draft"). */}
+            carries its sources; the footnotes sit under the seam (DESIGN.md, "The Cited Draft").
+            overflow-clip, not overflow-hidden: a hidden box can still be scrolled by the browser,
+            so tapping a footnote scrolled the hero inside itself instead of the page. */}
         <section
           aria-labelledby="hero-heading"
-          className="relative isolate -mt-16 flex flex-col overflow-hidden pt-16"
+          className="relative isolate -mt-16 flex flex-col overflow-clip pt-16"
         >
           <div data-theme="dark" className={cn(container, "relative flex flex-col pt-20 sm:pt-28 lg:pt-32")}>
             <h1
