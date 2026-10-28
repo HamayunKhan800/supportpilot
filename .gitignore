@@ -75,3 +75,6 @@ terraform.tfvars
 
 # Python bytecode (infra/bootstrap helper tests)
 __pycache__/
+
+# Taste Skill working files (notes, dealt sheets)
+.taste-skill/
