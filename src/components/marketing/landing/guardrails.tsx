@@ -46,7 +46,7 @@ function Tile({
           <span className="text-muted-foreground [&_svg]:size-4">{icon}</span>
           {title}
         </h3>
-        <p className="text-muted-foreground max-w-prose text-sm leading-relaxed">{body}</p>
+        <p className="text-muted-foreground max-w-measure text-sm leading-relaxed">{body}</p>
       </div>
     </li>
   );

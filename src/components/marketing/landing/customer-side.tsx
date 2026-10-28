@@ -265,13 +265,13 @@ export function CustomerSide() {
               Waiting for your reply
             </span>
             <span className="flex gap-2">
-              <Initials name="Priya Shah" className="size-5 text-[9px]" />
+              <Initials name="Priya Shah" className="size-5 text-[11px]" />
               <span className="bg-background rounded-lg border px-2.5 py-2 leading-snug">
                 Can I get my money back, and how long does it take?
               </span>
             </span>
             <span className="flex gap-2">
-              <Initials name="Olivia Owner" className="size-5 text-[9px]" />
+              <Initials name="Olivia Owner" className="size-5 text-[11px]" />
               <span className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-[11px]">Olivia Owner (support team)</span>
                 <span className="bg-muted rounded-lg border px-2.5 py-2 leading-snug">

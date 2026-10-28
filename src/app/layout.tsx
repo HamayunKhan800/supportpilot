@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { ConnectionStatus } from "@/components/connection-status";
 import { NavigationProgress } from "@/components/navigation-progress";
-import { parseThemePreference, THEME_COOKIE, themeAttribute } from "@/lib/theme";
+import { parseThemePreference, THEME_COOKIE, themeAttribute, themeColorEntries } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,10 +22,11 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-};
+/** The address-bar colour follows the saved theme, or the device's scheme when none is saved. */
+export async function generateViewport(): Promise<Viewport> {
+  const preference = parseThemePreference((await cookies()).get(THEME_COOKIE)?.value);
+  return { width: "device-width", initialScale: 1, themeColor: themeColorEntries(preference) };
+}
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Render every page per request so Next.js can apply the CSP nonce (ADR-0011).

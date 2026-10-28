@@ -70,7 +70,7 @@ export function Composer({
               checked={!internal}
               disabled={closed}
               onChange={() => setMode("public")}
-              className="size-4"
+              className="size-4 shrink-0"
             />
             Public reply to {customerName}
           </label>
@@ -81,7 +81,7 @@ export function Composer({
               value="internal"
               checked={internal}
               onChange={() => setMode("internal")}
-              className="size-4"
+              className="size-4 shrink-0"
             />
             Internal note (team only)
           </label>

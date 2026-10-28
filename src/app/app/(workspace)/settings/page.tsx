@@ -107,7 +107,7 @@ export default async function AiSettingsPage() {
           </p>
         </div>
 
-        <TableScroll label="AI calls this month by feature">
+        <TableScroll label="AI calls this month by feature" className="rounded-none border-0">
           <table className="w-full text-sm">
             <caption className="sr-only">AI calls this month by feature</caption>
             <thead className="bg-muted/50 text-left">
@@ -149,7 +149,7 @@ export default async function AiSettingsPage() {
             </tbody>
           </table>
         </TableScroll>
-        <p className="text-muted-foreground max-w-prose text-sm">
+        <p className="text-muted-foreground max-w-measure text-sm">
           Costs are estimates at Gemini&apos;s paid-tier list prices; on the free tier these calls cost
           nothing. This deployment also allows at most {int.format(dailyCallLimit)} AI calls a day across all
           workspaces (resets at midnight Pacific time).

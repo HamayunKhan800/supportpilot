@@ -31,7 +31,7 @@ export default async function PortalPage({ params }: PageProps<"/p/[slug]">) {
         <div className="flex min-w-0 flex-col gap-6">
           <header className="flex flex-col gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">Contact support</h1>
-            <p className="text-muted-foreground max-w-prose">
+            <p className="text-muted-foreground max-w-measure">
               Tell us what&apos;s happening and we&apos;ll get back to you. You&apos;ll get a private link to
               follow your request.
             </p>

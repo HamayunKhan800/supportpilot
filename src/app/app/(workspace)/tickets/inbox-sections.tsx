@@ -128,7 +128,7 @@ function TicketRow({ t, queue, now }: { t: TicketItem; queue: Queue; now: number
         <Link
           href={ticketHref(t.number, queue)}
           data-row-link
-          className="truncate text-sm font-medium outline-none after:absolute after:inset-0 hover:underline"
+          className="line-clamp-2 text-sm font-medium wrap-anywhere outline-none after:absolute after:inset-0 hover:underline md:line-clamp-none md:truncate"
         >
           <span className="text-muted-foreground mr-1.5 font-mono text-xs tabular-nums md:sr-only">
             #{t.number}
@@ -138,18 +138,16 @@ function TicketRow({ t, queue, now }: { t: TicketItem; queue: Queue; now: number
         <span className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span className="truncate">{t.customerName}</span>
           {t.category && (
-            <span className="bg-muted text-foreground rounded px-1.5 py-px font-mono text-[11px]">
+            <span className="bg-muted text-foreground rounded px-1.5 py-px font-mono text-xs">
               <span className="sr-only">Category: </span>
               {t.category}
             </span>
           )}
           {t.needsReview && (
-            <Badge className="bg-warning-subtle text-warning-strong h-5 px-1.5 text-[11px]">
-              Needs review
-            </Badge>
+            <Badge className="bg-warning-subtle text-warning-strong h-5 px-1.5 text-xs">Needs review</Badge>
           )}
           {t.draftReady && (
-            <Badge className="bg-brand-subtle text-brand-strong h-5 gap-1 px-1.5 text-[11px]">
+            <Badge className="bg-brand-subtle text-brand-strong h-5 gap-1 px-1.5 text-xs">
               <PenLine aria-hidden="true" className="size-3" />
               AI draft ready
             </Badge>

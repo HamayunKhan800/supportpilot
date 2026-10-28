@@ -297,14 +297,14 @@ function InboxList({ state, onSelect }: { state: HeroState; onSelect: (id: DemoI
                   <span className="text-muted-foreground truncate text-[11px]">{t.customer}</span>
                   {s.triaged ? (
                     <>
-                      <Chip className="land-pop h-4 px-1 text-[10px]">{t.triage.category}</Chip>
+                      <Chip className="land-pop h-[18px] px-1 text-[11px]">{t.triage.category}</Chip>
                       {!t.triage.applied && (
-                        <Chip className="land-pop border-warning-border bg-warning-subtle text-warning-strong h-4 px-1 text-[10px]">
+                        <Chip className="land-pop border-warning-border bg-warning-subtle text-warning-strong h-[18px] px-1 text-[11px]">
                           Needs review
                         </Chip>
                       )}
                       {(s.draft === "ready" || s.draft === "editing") && !s.sent && (
-                        <Chip className="text-foreground h-4 gap-0.5 px-1 text-[10px]">
+                        <Chip className="text-foreground h-[18px] gap-0.5 px-1 text-[11px]">
                           <PenLine aria-hidden="true" className="size-2.5" />
                           AI draft ready
                         </Chip>
@@ -332,9 +332,9 @@ function InboxList({ state, onSelect }: { state: HeroState; onSelect: (id: DemoI
             </span>
             <span className="flex items-center gap-1.5 pl-[1.375rem]">
               <span className="text-muted-foreground truncate text-[11px]">{t.who}</span>
-              <Chip className="h-4 px-1 text-[10px]">{t.tag}</Chip>
+              <Chip className="h-[18px] px-1 text-[11px]">{t.tag}</Chip>
               {t.review && (
-                <Chip className="border-warning-border bg-warning-subtle text-warning-strong h-4 px-1 text-[10px]">
+                <Chip className="border-warning-border bg-warning-subtle text-warning-strong h-[18px] px-1 text-[11px]">
                   Needs review
                 </Chip>
               )}
@@ -664,11 +664,11 @@ function DetailsPane({ state }: { state: HeroState }) {
           <span className="text-[13px] font-semibold">AI triage</span>
           {s.triaged &&
             (t.triage.applied ? (
-              <Chip className="land-pop border-success-border bg-success-subtle text-success-strong h-4 px-1 text-[10px]">
+              <Chip className="land-pop border-success-border bg-success-subtle text-success-strong h-[18px] px-1 text-[11px]">
                 Applied
               </Chip>
             ) : (
-              <Chip className="land-pop border-warning-border bg-warning-subtle text-warning-strong h-4 px-1 text-[10px]">
+              <Chip className="land-pop border-warning-border bg-warning-subtle text-warning-strong h-[18px] px-1 text-[11px]">
                 Needs review
               </Chip>
             ))}

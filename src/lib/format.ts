@@ -29,14 +29,15 @@ export function formatMs(ms: number | null): string {
 }
 
 /**
- * US dollars with enough digits to show small AI costs: "$0.0042", "$1.25". Amounts under a
+ * US dollars with enough digits to show small AI costs: "$0.0042", "$0.01" (no trailing zeros
+ * past the cents), "$1.25". Amounts under a
  * hundredth of a cent read "under $0.0001" rather than a misleading "$0.0000".
  */
 export function formatUsd(usd: number | null): string {
   if (usd === null || !Number.isFinite(usd)) return NO_DATA;
   if (usd === 0) return "$0";
   if (usd < 0.0001) return "under $0.0001";
-  return usd < 1 ? `$${usd.toFixed(4)}` : `$${usd.toFixed(2)}`;
+  return usd < 1 ? `$${usd.toFixed(4).replace(/(\.\d{2}\d*?)0+$/, "$1")}` : `$${usd.toFixed(2)}`;
 }
 
 export const formatMicros = (micros: number | null) => formatUsd(micros === null ? null : micros / 1e6);

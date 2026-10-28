@@ -52,7 +52,7 @@ export function PageHeader({
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {description && <p className="text-muted-foreground -mt-4 max-w-prose text-sm">{description}</p>}
+      {description && <p className="text-muted-foreground max-w-measure -mt-4 text-sm">{description}</p>}
     </>
   );
 }
@@ -202,7 +202,7 @@ export function Section({
           >
             {title}
           </Heading>
-          {description && <p className="text-muted-foreground mt-0.5 max-w-prose text-sm">{description}</p>}
+          {description && <p className="text-muted-foreground max-w-measure mt-0.5 text-sm">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>

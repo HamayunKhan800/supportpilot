@@ -68,7 +68,7 @@ export function IntervalBar({
 /** The key for every IntervalBar on a page, written out once. */
 export function IntervalLegend() {
   return (
-    <p className="text-muted-foreground max-w-prose text-xs">
+    <p className="text-muted-foreground max-w-measure text-xs">
       On each bar: the mark is the measured rate (green when its target is met, red when not), the tinted band
       its 95% uncertainty range, and the dashed line the target.
     </p>

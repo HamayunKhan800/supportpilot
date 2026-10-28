@@ -131,7 +131,7 @@ function RunNotices({ run, newer }: { run: EvalRunListing; newer: EvalRunListing
       {run.provider === "mock" && (
         <p className="border-info-border bg-info-subtle text-info-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
           <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <span className="max-w-prose">
+          <span className="max-w-measure">
             <strong>Mock run.</strong> A scripted stand-in plays the AI, so these numbers test the pipeline
             and guard CI against regressions. They say nothing about the quality of a real model.
           </span>
@@ -140,7 +140,7 @@ function RunNotices({ run, newer }: { run: EvalRunListing; newer: EvalRunListing
       {newer && (
         <p className="border-warning-border bg-warning-subtle text-warning-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
           <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <span className="max-w-prose">
+          <span className="max-w-measure">
             <strong>A newer run is not finished.</strong> It started {formatDateTime(newer.startedAt)} and
             measured {formatCount(itemsMeasured(newer.summary))} items
             {runLabels(newer.config).prompts.length > 0 && (
@@ -154,7 +154,7 @@ function RunNotices({ run, newer }: { run: EvalRunListing; newer: EvalRunListing
       {run.status !== "completed" && (
         <p className="border-warning-border bg-warning-subtle text-warning-strong flex gap-2 rounded-lg border px-3 py-2 text-sm">
           <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <span className="max-w-prose">
+          <span className="max-w-measure">
             <strong>Not finished.</strong> The numbers cover only the items measured so far.
             {run.stopReason && <> Stopped because: {run.stopReason.slice(0, 200)}.</>}
           </span>

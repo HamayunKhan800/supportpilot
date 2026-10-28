@@ -83,7 +83,7 @@ export function UploadForm() {
           <h2 id="upload-heading" className="text-sm font-semibold">
             Add a document
           </h2>
-          <p className="text-muted-foreground mt-0.5 max-w-prose text-sm">
+          <p className="text-muted-foreground max-w-measure mt-0.5 text-sm">
             Markdown, plain text or PDF, up to {MAX_LABEL} each. Text is extracted, split into passages and
             indexed for search. Scanned PDFs (images of text) are not supported.
           </p>

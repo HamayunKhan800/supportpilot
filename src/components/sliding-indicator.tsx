@@ -65,6 +65,7 @@ export function SlidingIndicator({
       el.style.setProperty("--ind-y", `${y}px`);
       el.style.setProperty("--ind-w", `${box.width}px`);
       el.style.setProperty("--ind-h", `${box.height}px`);
+      el.style.setProperty("--ind-sx", String(box.width));
       delete el.dataset.hidden;
       if (!animate) {
         cancelAnimationFrame(frame);

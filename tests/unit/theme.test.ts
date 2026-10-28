@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseThemePreference, THEME_COOKIE, themeAttribute, themeCookie } from "@/lib/theme";
+import {
+  parseThemePreference,
+  THEME_COLORS,
+  THEME_COOKIE,
+  themeAttribute,
+  themeColorEntries,
+  themeCookie,
+} from "@/lib/theme";
 
 describe("theme preference", () => {
   it("accepts only light and dark; anything else means follow the device", () => {
@@ -25,5 +32,14 @@ describe("theme preference", () => {
 
   it("deletes the cookie for 'follow the device'", () => {
     expect(themeCookie("system", true)).toBe(`${THEME_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax; Secure`);
+  });
+
+  it("gives the browser one colour for an explicit theme and one per scheme otherwise", () => {
+    expect(themeColorEntries("dark")).toEqual([{ color: THEME_COLORS.dark }]);
+    expect(themeColorEntries("light")).toEqual([{ color: THEME_COLORS.light }]);
+    expect(themeColorEntries("system")).toEqual([
+      { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+      { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+    ]);
   });
 });

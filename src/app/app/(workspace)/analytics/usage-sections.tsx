@@ -143,7 +143,7 @@ export function TicketsSection({ days, tickets }: { days: number; tickets: Usage
         }))}
       />
       {tickets.byCategory.length > 0 ? (
-        <TableScroll label="Tickets by category">
+        <TableScroll label="Tickets by category" className="rounded-none border-0">
           <table className="w-full text-sm">
             <caption className="sr-only">Tickets by category</caption>
             <thead className="bg-muted/50 text-left">
@@ -329,7 +329,7 @@ export function AiCallsSection({ ai }: { ai: UsageAnalytics["ai"] }) {
 
 function CallsByFeature({ features }: { features: UsageAnalytics["ai"]["features"] }) {
   return (
-    <TableScroll label="AI calls by feature">
+    <TableScroll label="AI calls by feature" className="rounded-none border-0">
       <table className="w-full text-sm">
         <caption className="sr-only">AI calls by feature</caption>
         <thead className="bg-muted/50 text-left">
@@ -398,7 +398,7 @@ function CallsByFeature({ features }: { features: UsageAnalytics["ai"]["features
 
 function CallsByModel({ byModel }: { byModel: UsageAnalytics["ai"]["byModel"] }) {
   return (
-    <TableScroll label="AI calls by model">
+    <TableScroll label="AI calls by model" className="rounded-none border-0">
       <table className="w-full text-sm">
         <caption className="text-muted-foreground px-3 py-2 text-left text-xs">
           Calls by model. A draft retried on the fallback model when the main one was overloaded (ADR-0016)

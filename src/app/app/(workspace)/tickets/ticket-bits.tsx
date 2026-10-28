@@ -107,7 +107,7 @@ export function Avatar({
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
+        "inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
         tone === "brand" && "bg-brand-subtle text-brand-strong",
         tone === "warning" && "bg-warning-subtle text-warning-strong",
         tone === "neutral" && "bg-muted text-muted-foreground",

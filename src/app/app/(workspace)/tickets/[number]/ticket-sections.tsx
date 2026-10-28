@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Breadcrumb } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
 import { listHref, type Neighbours, type Queue, ticketHref } from "@/lib/ticket-queue";
+import { ExpandableText } from "@/components/expandable-text";
+import { isLongMessage } from "@/lib/message-length";
 import { cn } from "@/lib/utils";
 import type { getTicketByNumberForAgent, listTicketsForAgent } from "@/server/modules/tickets/service";
 import { Age, Avatar, PriorityLabel, StatusIcon, StatusLabel } from "../ticket-bits";
@@ -49,7 +51,7 @@ export function TicketHeader({
           </div>
         )}
       </div>
-      <h1 className="text-2xl font-semibold tracking-tight break-words">
+      <h1 className="text-xl font-semibold tracking-tight break-words sm:text-2xl">
         <span className="text-muted-foreground mr-2 font-normal tabular-nums">#{t.number}</span>
         {t.subject}
       </h1>
@@ -150,7 +152,11 @@ function MessageItem({ m, customerName, last }: { m: Message; customerName: stri
               <Lock className="size-3" /> Team only
             </p>
           )}
-          <p className="break-words whitespace-pre-wrap">{m.body}</p>
+          {isLongMessage(m.body) ? (
+            <ExpandableText text={m.body} className="break-words whitespace-pre-wrap" />
+          ) : (
+            <p className="break-words whitespace-pre-wrap">{m.body}</p>
+          )}
         </div>
       </div>
     </li>

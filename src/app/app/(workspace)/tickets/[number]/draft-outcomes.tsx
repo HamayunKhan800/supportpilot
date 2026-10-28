@@ -36,7 +36,7 @@ export function PanelAction({
 export function IdlePrompt({ onGenerate }: { onGenerate: () => void }) {
   return (
     <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-muted-foreground max-w-prose text-sm">
+      <p className="text-muted-foreground max-w-measure text-sm">
         Get a suggested reply written from your knowledge base, with its sources. You review and edit it;
         nothing is sent until you approve it.
       </p>

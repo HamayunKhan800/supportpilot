@@ -1,5 +1,5 @@
 import { BookOpen, Check, History, RefreshCw, Settings2, Undo2, Users } from "lucide-react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -29,8 +29,11 @@ import {
   LANDING_METRICS_NOTE,
   REPO_URL,
 } from "@/lib/landing";
-import { parseThemePreference, THEME_COOKIE } from "@/lib/theme";
+import { parseThemePreference, THEME_COLORS, THEME_COOKIE } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
+/** The hero at the top is always dark, so the address bar is too, whatever the theme. */
+export const viewport: Viewport = { themeColor: THEME_COLORS.dark };
 
 export const metadata: Metadata = {
   title: { absolute: "SupportPilot · Support replies drafted by AI, approved by your team" },
@@ -289,7 +292,7 @@ export default async function Home() {
         </div>
       </LandingHeader>
 
-      <main id="main" className={cn(newsreader.variable, "flex-1")}>
+      <main id="main" data-fixed-theme-color className={cn(newsreader.variable, "flex-1")}>
         {/* Hero */}
         <section
           data-theme="dark"
@@ -539,7 +542,7 @@ export default async function Home() {
               </p>
             </div>
             <div className="flex flex-col gap-3">
-              <p className="text-muted-foreground max-w-prose text-sm leading-relaxed">
+              <p className="text-muted-foreground max-w-measure text-sm leading-relaxed">
                 {LANDING_METRICS_NOTE}
               </p>
               <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">

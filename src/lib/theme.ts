@@ -21,6 +21,23 @@ export function themeAttribute(preference: ThemePreference): "light" | "dark" | 
   return preference === "system" ? undefined : preference;
 }
 
+/**
+ * The browser's own colours (address bar, status bar on phones) for each theme: the page
+ * background from src/app/theme.css (--background), as hex because older mobile browsers do not
+ * read oklch() in `theme-color`.
+ */
+export const THEME_COLORS = { light: "#fcfdfe", dark: "#0e0e10" } as const;
+
+/** `theme-color` entries: one fixed colour for an explicit choice, or one per device scheme. */
+export function themeColorEntries(preference: ThemePreference): { media?: string; color: string }[] {
+  return preference === "system"
+    ? [
+        { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+        { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+      ]
+    : [{ color: THEME_COLORS[preference] }];
+}
+
 const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 
 /** A `document.cookie` assignment that stores the preference ("system" deletes the cookie). */

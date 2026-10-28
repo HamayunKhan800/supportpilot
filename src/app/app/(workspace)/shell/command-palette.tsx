@@ -36,8 +36,8 @@ export function CommandPalette({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="bg-background/70 fixed inset-0 z-50 backdrop-blur-[2px] transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
-        <Dialog.Popup className="glass text-popover-foreground fixed top-[12vh] left-1/2 z-50 max-h-[76vh] w-[min(36rem,calc(100vw-1.5rem))] -translate-x-1/2 scroll-pt-14 scroll-pb-11 overflow-y-auto overscroll-contain rounded-xl border shadow-2xl transition-[opacity,scale] duration-150 outline-none data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 motion-reduce:transition-none">
+        <Dialog.Backdrop className="bg-background/70 fixed inset-0 z-50 backdrop-blur-[2px]" />
+        <Dialog.Popup className="glass text-popover-foreground fixed top-[12vh] left-1/2 z-50 max-h-[76vh] w-[min(36rem,calc(100vw-1.5rem))] -translate-x-1/2 scroll-pt-14 scroll-pb-11 overflow-y-auto overscroll-contain rounded-xl border shadow-2xl outline-none">
           <Dialog.Title className="sr-only">Command palette</Dialog.Title>
           <PaletteBody items={items} close={() => onOpenChange(false)} />
         </Dialog.Popup>

@@ -140,12 +140,12 @@ export function LatestTickets({ items, now }: { items: readonly TicketItem[]; no
                 <p className="text-muted-foreground truncate text-xs">{t.customerName}</p>
               </div>
               {t.needsReview && (
-                <Badge className="bg-warning-subtle text-warning-strong h-5 shrink-0 px-1.5 text-[11px]">
+                <Badge className="bg-warning-subtle text-warning-strong h-5 shrink-0 px-1.5 text-xs">
                   Needs review
                 </Badge>
               )}
               {t.draftReady && (
-                <Badge className="bg-brand-subtle text-brand-strong h-5 shrink-0 gap-1 px-1.5 text-[11px]">
+                <Badge className="bg-brand-subtle text-brand-strong h-5 shrink-0 gap-1 px-1.5 text-xs">
                   <PenLine aria-hidden="true" className="size-3" />
                   AI draft ready
                 </Badge>

@@ -89,6 +89,9 @@ describe("formatting", () => {
     expect(formatUsd(0)).toBe("$0");
     expect(formatUsd(0.00004)).toBe("under $0.0001");
     expect(formatUsd(0.0042)).toBe("$0.0042");
+    expect(formatUsd(0.01)).toBe("$0.01");
+    expect(formatUsd(0.042)).toBe("$0.042");
+    expect(formatUsd(0.5)).toBe("$0.50");
     expect(formatUsd(1.256)).toBe("$1.26");
     expect(formatUsd(null)).toBe(NO_DATA);
     expect(formatMicros(4200)).toBe("$0.0042");

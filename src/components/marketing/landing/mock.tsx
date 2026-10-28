@@ -37,7 +37,7 @@ export function Cite({ n, className }: { n: number; className?: string }) {
   return (
     <span
       className={cn(
-        "bg-brand-subtle text-brand-strong inline-flex h-4 min-w-4 items-center justify-center rounded px-1 align-[1px] font-mono text-[10px] font-medium",
+        "bg-brand-subtle text-brand-strong inline-flex h-4 min-w-4 items-center justify-center rounded px-1 align-[1px] font-mono text-[11px] font-medium",
         className,
       )}
     >
@@ -94,7 +94,7 @@ export function Initials({ name, className }: { name: string; className?: string
   return (
     <span
       className={cn(
-        "bg-muted text-muted-foreground inline-flex size-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-medium",
+        "bg-muted text-muted-foreground inline-flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium",
         className,
       )}
     >

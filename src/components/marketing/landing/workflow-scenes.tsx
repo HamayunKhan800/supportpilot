@@ -238,7 +238,7 @@ function ReviewScene() {
           ].map(([time, who, what]) => (
             <span key={time} className="flex items-center gap-2">
               <span className="text-muted-foreground w-9 shrink-0 font-mono tabular-nums">{time}</span>
-              <Initials name={who!} className="size-5 text-[9px]" />
+              <Initials name={who!} className="size-5 text-[11px]" />
               <span className="truncate">
                 <span className="font-medium">{who}</span>{" "}
                 <span className="text-muted-foreground">{what}</span>
