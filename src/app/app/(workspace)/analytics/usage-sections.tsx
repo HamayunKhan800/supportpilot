@@ -1,8 +1,8 @@
 import { MessageSquareText, Tags, ThumbsDown, ThumbsUp } from "lucide-react";
+import { BarList } from "@/components/charts/bar-list";
 import { MetricTabs } from "@/components/charts/metric-tabs";
 import { changeSummary } from "@/components/charts/scale";
 import { StackedBar, type StackedSegment } from "@/components/charts/stacked-bar";
-import { MeterBar } from "@/components/meter";
 import { EmptyState, Section } from "@/components/page";
 import { TableScroll } from "@/components/table-scroll";
 import {
@@ -152,49 +152,23 @@ export function TicketsSection({ days, tickets }: { days: number; tickets: Usage
         }))}
       />
       {tickets.byCategory.length > 0 ? (
-        <TableScroll label="Tickets by category" className="rounded-none border-0">
-          <table className="w-full text-sm">
-            <caption className="sr-only">Tickets by category</caption>
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th scope="col" className={th}>
-                  Category
-                </th>
-                <th scope="col" className={`${th} text-right`}>
-                  Tickets
-                </th>
-                <th scope="col" className={`${th} text-right`}>
-                  Share
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {tickets.byCategory.map((c) => (
-                <tr key={c.category ?? ""} className="border-t">
-                  <th scope="row" className={`${td} text-left font-normal`}>
-                    {c.category ? (
-                      <span className="font-mono text-xs">{c.category}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Not categorised</span>
-                    )}
-                  </th>
-                  <td className={`${td} text-right whitespace-nowrap tabular-nums`}>
-                    {formatCount(c.count)}
-                  </td>
-                  <td className={`${td} whitespace-nowrap tabular-nums`}>
-                    <span className="flex items-center justify-end gap-3">
-                      <MeterBar
-                        value={tickets.created ? c.count / tickets.created : 0}
-                        className="hidden w-24 sm:block"
-                      />
-                      <span className="w-10 text-right">{formatRatio(c.count, tickets.created)}</span>
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TableScroll>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium">By category</h3>
+          <BarList
+            label="Tickets by category"
+            rows={tickets.byCategory.map((c) => ({
+              key: c.category ?? "",
+              label: c.category ? (
+                <span className="font-mono text-xs">{c.category}</span>
+              ) : (
+                <span className="text-muted-foreground">Not categorised</span>
+              ),
+              value: c.count,
+              display: formatCount(c.count),
+              detail: formatRatio(c.count, tickets.created),
+            }))}
+          />
+        </div>
       ) : (
         <EmptyState icon={Tags} title="No tickets in this period">
           Requests from the customer portal show up here, by category once AI triage has run.
@@ -407,34 +381,22 @@ function CallsByFeature({ features }: { features: UsageAnalytics["ai"]["features
 
 function CallsByModel({ byModel }: { byModel: UsageAnalytics["ai"]["byModel"] }) {
   return (
-    <TableScroll label="AI calls by model" className="rounded-none border-0">
-      <table className="w-full text-sm">
-        <caption className="text-muted-foreground px-3 py-2 text-left text-xs">
-          Calls by model. A draft retried on the fallback model when the main one was overloaded (ADR-0016)
-          shows here under the fallback.
-        </caption>
-        <thead className="bg-muted/50 text-left">
-          <tr>
-            <th scope="col" className={th}>
-              Model
-            </th>
-            <th scope="col" className={`${th} text-right`}>
-              Calls
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {byModel.map((m) => (
-            <tr key={m.model} className="border-t">
-              <th scope="row" className={`${td} text-left font-mono text-xs font-normal`}>
-                {m.model}
-              </th>
-              <td className={`${td} text-right whitespace-nowrap tabular-nums`}>{formatCount(m.calls)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableScroll>
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-medium">Calls by model</h3>
+      <p className="text-muted-foreground text-xs">
+        A draft retried on the fallback model when the main one was overloaded (ADR-0016) shows here under the
+        fallback.
+      </p>
+      <BarList
+        label="AI calls by model"
+        rows={byModel.map((m) => ({
+          key: m.model,
+          label: <span className="font-mono text-xs">{m.model}</span>,
+          value: m.calls,
+          display: formatCount(m.calls),
+        }))}
+      />
+    </div>
   );
 }
 
