@@ -1,6 +1,6 @@
 # ADR-0008 · Low-cost container deployment
 
-Status: Accepted (platform selected at M8) · Date: 2026-10-19
+Status: Accepted; platform choice replaced by [ADR-0021](0021-aws-lambda-deployment.md) (AWS Lambda, two functions from this one image) · Date: 2026-10-19
 
 ## Decision
 

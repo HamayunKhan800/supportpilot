@@ -6,7 +6,7 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 [![Security](https://github.com/HamayunKhan800/supportpilot/actions/workflows/security.yml/badge.svg)](https://github.com/HamayunKhan800/supportpilot/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> **Status:** open-source portfolio project, built one tested milestone at a time. Milestones M0–M5 are complete and M6 (evaluation and monitoring) is being finished. **It is not deployed yet**: a public demo is planned for milestone M8. Until then it runs locally with a few commands ([Quick start](#quick-start-local)). A built-in mock AI means it works fully offline, with no API key.
+> **Status:** open-source portfolio project, built one tested milestone at a time. **[Live demo](https://uvum4mohfhovga35knouyzhqmi0wkxnr.lambda-url.ap-southeast-2.on.aws)** on AWS Lambda with real Gemini models ([how to sign in](#live-demo)); a custom domain and email sending come next. It also runs locally with a few commands ([Quick start](#quick-start-local)), and a built-in mock AI means it works fully offline, with no API key.
 
 ![A ticket in SupportPilot: the conversation, an AI draft citing two help articles, and the AI triage card waiting for review](docs/screenshots/app/ticket-light.png)
 
@@ -14,6 +14,7 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 
 ## Contents
 
+- [Live demo](#live-demo)
 - [What it does](#what-it-does)
 - [Engineering highlights](#engineering-highlights)
 - [Screenshots](#screenshots)
@@ -26,6 +27,24 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 - [Roadmap](#roadmap)
 - [Quick start (local)](#quick-start-local) · [Scripts](#scripts) · [Configuration](#configuration) · [API](#operational-endpoints)
 - [Documentation](#documentation)
+
+## Live demo
+
+**https://uvum4mohfhovga35knouyzhqmi0wkxnr.lambda-url.ap-southeast-2.on.aws**
+
+| Sign in as                    | Try                                                  |
+| ----------------------------- | ---------------------------------------------------- |
+| `owner@demo.supportpilot.dev` | everything in the workspace, including the audit log |
+| `admin@demo.supportpilot.dev` | the knowledge base and AI settings, plus the inbox   |
+| `agent@demo.supportpilot.dev` | the inbox: AI triage, cited drafts, replies          |
+
+Password for all three: `nimbus-demo-R-6ARSwgV5Nb`. It is public on purpose. The demo accounts can't change their password, sign others out, invite or remove members, or link their own Google or GitHub account; anything else a visitor changes, such as settings or articles, is undone by the daily reset. To see the customer side, send a ticket from the [Nimbus support form](https://uvum4mohfhovga35knouyzhqmi0wkxnr.lambda-url.ap-southeast-2.on.aws/p/nimbus-demo), then find it in the inbox with its AI triage.
+
+- **Everything resets daily** at 00:05 Pacific time (12:05 PKT, 13:05 PKT in winter): visitor tickets are removed and the demo workspace is rebuilt.
+- **The AI is real** (Gemini free tier) and limited to 200 calls and 800 embeddings a day for the whole demo. When a limit is reached, tickets wait for a person instead, as they would if the AI were down.
+- **The first page can take a few seconds:** the app scales to zero when nobody uses it, and the first request starts it again.
+
+How it runs: [ADR-0021](docs/adr/0021-aws-lambda-deployment.md) · [runbook](docs/runbook.md) · [infrastructure](infra/README.md).
 
 ## What it does
 
@@ -198,7 +217,7 @@ AI coding assistants were used to build this project, under a written policy: AI
 
 ## Limitations
 
-- **Not deployed yet**, so there is no live demo until milestone M8.
+- **Demo hosting:** the live demo runs on a Lambda Function URL until the custom domain is set up (plan M8 step 6). The first request after a quiet spell takes a few seconds, and the AI stops for the day at the demo's daily limits.
 - **The evaluation is small and synthetic:**
   - 35 invented help articles and 420 test items from one free-tier run.
   - Groundedness is graded by an AI model, not checked against a human.
@@ -214,18 +233,18 @@ AI coding assistants were used to build this project, under a written policy: AI
 
 ## Roadmap
 
-| Milestone                                    | Status                     |
-| -------------------------------------------- | -------------------------- |
-| M0–M2 · Foundation, accounts, workspaces     | Done                       |
-| M3 · Ticketing and customer portal           | Done                       |
-| M4 · Knowledge base and search               | Done                       |
-| M5 · AI triage and cited drafts              | Done                       |
-| M6 · Evaluation and observability            | Finishing (baseline done)  |
-| Design system                                | Done                       |
-| Accounts: reset, verification, Google/GitHub | Done (email sending at M8) |
-| M7 · Security review                         | Done                       |
-| M8 · Deployment and live demo                | Next                       |
-| M9 · Portfolio presentation                  | Planned                    |
+| Milestone                                    | Status                      |
+| -------------------------------------------- | --------------------------- |
+| M0–M2 · Foundation, accounts, workspaces     | Done                        |
+| M3 · Ticketing and customer portal           | Done                        |
+| M4 · Knowledge base and search               | Done                        |
+| M5 · AI triage and cited drafts              | Done                        |
+| M6 · Evaluation and observability            | Finishing (baseline done)   |
+| Design system                                | Done                        |
+| Accounts: reset, verification, Google/GitHub | Done (email sending at M8)  |
+| M7 · Security review                         | Done                        |
+| M8 · Deployment and live demo                | Live; domain and email next |
+| M9 · Portfolio presentation                  | Planned                     |
 
 What was built and verified in each milestone: [milestone log](docs/milestones.md).
 
@@ -352,10 +371,12 @@ Agent endpoints use the browser session and accept writes only from the app's ow
 | [02 · Architecture](docs/02-architecture.md)              | System design, data model, API contract, key flows                                                                                                                                        |
 | [03 · Threat model](docs/03-threat-model.md)              | STRIDE, OWASP Top 10:2025 and OWASP LLM Top 10 2026 mapping                                                                                                                               |
 | [04 · AI evaluation plan](docs/04-ai-evaluation-plan.md)  | Golden dataset, metrics, targets                                                                                                                                                          |
-| [ADRs](docs/adr/)                                         | 19 architecture decision records                                                                                                                                                          |
+| [ADRs](docs/adr/)                                         | 21 architecture decision records                                                                                                                                                          |
 | [Accepted risks](docs/security/accepted-risks.md)         | Known limitations with mitigations and a revisit date                                                                                                                                     |
 | [M6 Gemini baseline](docs/eval/m6-baseline.md)            | The full evaluation: results, latency, cost, findings, limits                                                                                                                             |
 | [Evaluation folder](docs/eval/README.md)                  | Method, rubric, label checks, retrieval and refusal-threshold analyses                                                                                                                    |
+| [Runbook](docs/runbook.md)                                | Running the live demo: releases, rollback, outages, database restore, secret rotation, costs                                                                                              |
+| [Infrastructure](infra/README.md)                         | AWS and Terraform setup, deploys, rollback, costs                                                                                                                                         |
 | [Observability](docs/observability.md)                    | Logs, traces and Sentry: what is collected, what never is, how to check                                                                                                                   |
 | [Design system](docs/design/tokens.md)                    | Tokens, app shell, pages and the quality checks (axe, Lighthouse, visual)                                                                                                                 |
 | Milestone plans                                           | [M3](docs/plans/m3-ticketing.md) · [M4](docs/plans/m4-knowledge-base.md) · [M5](docs/plans/m5-ai-features.md) · [M6](docs/plans/m6-evaluation.md) · [Design](docs/plans/design-system.md) |

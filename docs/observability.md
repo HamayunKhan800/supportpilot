@@ -101,5 +101,7 @@ Stack traces keep the source lines around each frame (`frameContextLines: 5`). T
 
 ## Not covered yet
 
-- No hosted tracing backend and no alerts; M8 chooses them with the deployment.
+- **Alerts (M8):** the **Uptime** workflow checks the live site four times a day and GitHub emails the owner when it fails; AWS Budgets emails at 50% and 100% of $5 a month. What to do when one arrives: [runbook](runbook.md).
+- **Sentry in production:** wired and tested, but switched on later (owner's choice, 2026-10-28). To turn it on: store the DSN as `/supportpilot/production/shared/SENTRY_DSN` in SSM and run Deploy; the functions already set `SENTRY_ENVIRONMENT=production`.
+- No hosted tracing backend: the live functions don't export traces.
 - No metrics (request rates, queue depth). The dashboard in step 5 shows AI usage from the database.
