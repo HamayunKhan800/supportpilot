@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "cn";
 import { Spinner } from "./spinner";
 
-const buttonVariants = cva(
+const variants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,text-decoration-color,box-shadow,translate,opacity] select-none active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
@@ -39,6 +39,17 @@ const buttonVariants = cva(
   },
 );
 
+type ButtonVariantProps = VariantProps<typeof variants>;
+
+/**
+ * Class names for a button, already merged: links styled as buttons use this directly, and an
+ * unmerged list kept the base `border-transparent` next to a variant's border color, which then
+ * lost to it in the stylesheet (outline links had no border in light mode).
+ */
+function buttonVariants(props?: Parameters<typeof variants>[0]) {
+  return cn(variants(props));
+}
+
 /**
  * `pending`: the button's action is running. It shows a spinner (in place of its own icon, if
  * any), is disabled so it can't be sent twice, and is marked busy for screen readers. It stays
@@ -53,7 +64,7 @@ function Button({
   disabled,
   children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { pending?: boolean }) {
+}: ButtonPrimitive.Props & ButtonVariantProps & { pending?: boolean }) {
   return (
     <ButtonPrimitive
       data-slot="button"
