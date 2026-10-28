@@ -19,9 +19,9 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 - **Deployed as code:** Terraform on AWS Lambda (Sydney) with Neon PostgreSQL. After CI passes, one approval releases a new version with database migrations and smoke tests; a one-click rollback was tested both ways ([infrastructure](infra/README.md)).
 - **Built with AI coding assistants, checked by tests and official docs** ([policy](CONTRIBUTING.md#ai-assisted-development-policy)).
 
-![A ticket in SupportPilot: the conversation, an AI draft citing two help articles, and the AI triage card waiting for review](docs/screenshots/app/ticket-light.png)
+![A live ticket in SupportPilot: the customer's message, an AI draft citing two help articles, and the AI triage card](docs/screenshots/app/ticket-light.png)
 
-<sub>An agent's view of a ticket. The AI draft cites two help articles, and every citation was checked against the passages the model was given. The triage card on the right was **not** applied automatically: the model's confidence (75%) is below this workspace's threshold (95%), so it waits for a person. Screenshots use the offline mock AI. Results from real Gemini models are under [Evaluation](#evaluation-real-gemini-models).</sub>
+<sub>A ticket on the live demo, 28 October 2026. Real Gemini models labelled it (how-to, high priority, 95% confident, so applied automatically) and wrote the draft. Every citation was checked against the passages the model was given. The agent still reviews it: the customer emptied the bin on their laptop, which may not be the Nimbus trash the draft talks about. Screenshots are from the live demo unless a caption says otherwise.</sub>
 
 ## Contents
 
@@ -83,21 +83,21 @@ How it runs: [ADR-0021](docs/adr/0021-aws-lambda-deployment.md) · [runbook](doc
 
 <sub>Recorded from the app with the offline mock AI (14 seconds, real timing). The page data was slowed by 0.7 s so the progress bar is visible, as it would be on a slow connection.</sub>
 
-| Agent inbox                                                        | Inbox, dark theme                                                     |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| ![Agent inbox](docs/screenshots/app/inbox-light.png)               | ![Agent inbox in the dark theme](docs/screenshots/app/inbox-dark.png) |
-| **Overview: today's requests, what needs you, recent activity**    | **Sign-in**                                                           |
-| ![Overview](docs/screenshots/app/overview-light.png)               | ![Sign-in](docs/screenshots/app/sign-in-light.png)                    |
-| **Triage applied automatically (confidence 97%)**                  | **Ticket with a cited draft, dark theme**                             |
-| ![Triage applied](docs/screenshots/app/ticket-applied-light.png)   | ![Ticket in the dark theme](docs/screenshots/app/ticket-dark.png)     |
-| **Evaluation dashboard (real Gemini run)**                         | **Usage analytics**                                                   |
-| ![Evaluation dashboard](docs/screenshots/app/evaluation-light.png) | ![Usage analytics](docs/screenshots/app/analytics-light.png)          |
-| **Knowledge base**                                                 | **AI settings and this month's usage**                                |
-| ![Knowledge base](docs/screenshots/app/knowledge-light.png)        | ![AI settings](docs/screenshots/app/settings-light.png)               |
-| **Command palette (Ctrl/⌘ K)**                                     | **Landing page**                                                      |
-| ![Command palette](docs/screenshots/app/palette-light.png)         | ![Landing page](docs/screenshots/app/landing-light.png)               |
-| **Customer support form**                                          | **Customer tracking page**                                            |
-| ![Support form](docs/screenshots/app/portal-light.png)             | ![Tracking page](docs/screenshots/app/tracking-light.png)             |
+| Agent inbox                                                                | Inbox, dark theme                                                     |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| ![Agent inbox](docs/screenshots/app/inbox-light.png)                       | ![Agent inbox in the dark theme](docs/screenshots/app/inbox-dark.png) |
+| **Overview: today's requests, what needs you, recent activity**            | **Sign-in**                                                           |
+| ![Overview](docs/screenshots/app/overview-light.png)                       | ![Sign-in](docs/screenshots/app/sign-in-light.png)                    |
+| **Triage left for a person (confidence 90%, below 95%)**                   | **Ticket with a cited draft, dark theme**                             |
+| ![Triage waiting for review](docs/screenshots/app/ticket-review-light.png) | ![Ticket in the dark theme](docs/screenshots/app/ticket-dark.png)     |
+| **Evaluation dashboard (the real Gemini run, from a local database)**      | **Usage analytics**                                                   |
+| ![Evaluation dashboard](docs/screenshots/app/evaluation-light.png)         | ![Usage analytics](docs/screenshots/app/analytics-light.png)          |
+| **Knowledge base**                                                         | **AI settings and this month's usage**                                |
+| ![Knowledge base](docs/screenshots/app/knowledge-light.png)                | ![AI settings](docs/screenshots/app/settings-light.png)               |
+| **Command palette (Ctrl/⌘ K)**                                             | **Landing page**                                                      |
+| ![Command palette](docs/screenshots/app/palette-light.png)                 | ![Landing page](docs/screenshots/app/landing-light.png)               |
+| **Customer support form**                                                  | **Customer tracking page**                                            |
+| ![Support form](docs/screenshots/app/portal-light.png)                     | ![Tracking page](docs/screenshots/app/tracking-light.png)             |
 
 | Inbox on a phone                                          | Ticket on a phone                                           | Landing page on a phone                                       |
 | --------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
