@@ -1,8 +1,9 @@
 # Production settings, passed by infra.yml with -var-file. Nothing secret: secrets live in
 # SSM Parameter Store, and the account ID comes from the GitHub variable AWS_ACCOUNT_ID.
 
-# Mock answers for the first smoke test (plan M8 step 4), then "gemini".
-ai_provider = "mock"
+# Live Gemini free tier (plan M8). Mock answers served the first smoke test (step 4).
+# After switching, rebuild the demo so its articles are indexed by the new provider.
+ai_provider = "gemini"
 
 app_env = {
   # Gemini free tier guard (M6, step 2d): calls and embeddings per Pacific day.
