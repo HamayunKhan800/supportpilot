@@ -134,23 +134,28 @@ One complete run of 420 test items on the Gemini free tier, finished on 24 Octob
 
 ```mermaid
 flowchart LR
-  CU["Customer<br/>support form + tracking link"] --> WEB
-  AG["Agent / admin<br/>workspace app"] --> WEB
-  subgraph IMG["One Docker image, two processes"]
-    WEB["web: Next.js 16<br/>UI, REST API, auth"]
-    WK["worker: pg-boss<br/>triage, document ingestion"]
-    GW["AI gateway<br/>budget, daily cap, timeouts,<br/>circuit breaker, fallback, cost log"]
+  CU["Customer<br/>support form + tracking link"] -->|HTTPS| FURL
+  AG["Agent / admin<br/>workspace app"] -->|HTTPS| FURL
+  subgraph AWS["AWS Sydney: one container image, two Lambda functions"]
+    FURL["Function URL<br/>HTTPS, streamed responses"] --> WEB
+    WEB["web function<br/>Next.js 16: UI, REST API, auth"]
+    WK["worker function<br/>pg-boss jobs: triage, ingestion<br/>+ migrations, daily demo reset"]
+    SCH["EventBridge Scheduler<br/>daily 00:05 Pacific"]
+    SSM[("SSM Parameter Store<br/>secrets, read at cold start")]
   end
-  WEB --> DB[("PostgreSQL 17 + pgvector<br/>data, job queue, vectors")]
+  WEB -->|"async invoke: wake when a job is queued"| WK
+  SCH -->|seed-reset| WK
+  SSM -.-> WEB
+  SSM -.-> WK
+  WEB --> DB[("Neon PostgreSQL 18 + pgvector<br/>data, job queue, vectors")]
   WK --> DB
-  WEB --> GW
-  WK --> GW
-  GW --> LLM[["Gemini API<br/>or offline mock"]]
-  WEB -.-> OBS[["Sentry, OpenTelemetry"]]
-  WK -.-> OBS
+  WEB -->|"through the AI gateway"| LLM[["Gemini API<br/>or offline mock"]]
+  WK --> LLM
+  GH["GitHub Actions<br/>CI, then an approved deploy:<br/>migrations + smoke tests"] -.->|"Terraform, release, rollback"| AWS
 ```
 
-- **A modular monolith:** one codebase and one image, with a `web` process and a `worker` process. Module boundaries come from the folder structure and lint rules (route handlers call services and may not import the database layer). There are no network hops between modules.
+- **A modular monolith:** one codebase and one image, deployed as two Lambda functions, `web` and `worker` (locally, two Node processes). Module boundaries come from the folder structure and lint rules (route handlers call services and may not import the database layer). There are no network hops between modules.
+- **Serverless and idle-friendly:** both functions scale to zero. When the web function queues a job, it wakes the worker with an asynchronous invoke, and the worker drains the queue and stops. A schedule rebuilds the demo once a day. Why Lambda and what it trades away: [ADR-0021](docs/adr/0021-aws-lambda-deployment.md).
 - **PostgreSQL does three jobs:** application data, the job queue (pg-boss) and vector search (pgvector). That leaves one system to run and back up.
 - **How a draft is made:**
   1. An agent clicks _Generate draft_.

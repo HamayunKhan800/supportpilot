@@ -1,24 +1,29 @@
 # 02 · Architecture
 
-> Milestone M0 · Status: **Draft for review**. Decisions are explained in `docs/adr/`.
+> Written at M0; the system context and deployment sections were updated for the AWS deployment (M8) on 2026-10-28. Decisions are explained in `docs/adr/`.
 
 ## 1. System context
 
 ```mermaid
 flowchart LR
-  C[Customer browser] -->|HTTPS| APP
-  AG[Agent/Admin browser] -->|HTTPS| APP
-  subgraph Host["Container platform (same Docker image)"]
-    APP["web: Next.js 16 app<br/>UI + REST API + auth"]
-    WK["worker: pg-boss consumer<br/>ingestion · triage"]
+  CU["Customer<br/>support form + tracking link"] -->|HTTPS| FURL
+  AG["Agent / admin<br/>workspace app"] -->|HTTPS| FURL
+  subgraph AWS["AWS Sydney: one container image, two Lambda functions"]
+    FURL["Function URL<br/>HTTPS, streamed responses"] --> WEB
+    WEB["web function<br/>Next.js 16: UI, REST API, auth"]
+    WK["worker function<br/>pg-boss jobs: triage, ingestion<br/>+ migrations, daily demo reset"]
+    SCH["EventBridge Scheduler<br/>daily 00:05 Pacific"]
+    SSM[("SSM Parameter Store<br/>secrets, read at cold start")]
   end
-  APP --> DB[(PostgreSQL 17 + pgvector<br/>managed, e.g. Neon)]
+  WEB -->|"async invoke: wake when a job is queued"| WK
+  SCH -->|seed-reset| WK
+  SSM -.-> WEB
+  SSM -.-> WK
+  WEB --> DB[("Neon PostgreSQL 18 + pgvector<br/>data, job queue, vectors")]
   WK --> DB
-  APP --> AI[[Gemini API<br/>LLM + embeddings]]
-  WK --> AI
-  APP --> OBS[[Sentry + OTel collector]]
-  WK --> OBS
-  GH[GitHub Actions] -->|build · test · scan · deploy| Host
+  WEB -->|"through the AI gateway"| LLM[["Gemini API<br/>or offline mock"]]
+  WK --> LLM
+  GH["GitHub Actions<br/>CI, then an approved deploy:<br/>migrations + smoke tests"] -.->|"Terraform, release, rollback"| AWS
 ```
 
 **Style:** a modular monolith. One codebase and one image with two process types (`web`, `worker`). Module boundaries are enforced by folder structure, lint rules and `tests/unit/architecture.test.ts`, not network calls. The test fails on runtime import cycles, server code importing UI code, UI code importing the database layer, and any cross-module repository import that is not on its reviewed list (see `docs/plans/architecture-audit.md`).
@@ -167,6 +172,6 @@ extract text (PDF page cap checked before extraction; PDFs parsed in a `worker_t
 - **Security headers:** nonce-based CSP, HSTS, `frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`.
 - **Markdown rendering of AI output:** sanitized. Raw HTML disabled, **remote images disabled** (blocks exfiltration via image URLs), links shown with their full domain and `rel="noopener noreferrer nofollow"`.
 
-## 7. Deployment topology (decided in detail at M8)
+## 7. Deployment topology
 
-One Docker image (multi-stage, non-root, minimal base) runs as two services: `web` (`node server.js`, Next.js standalone output) and `worker`. Managed Postgres with pgvector. Migrations run as a release step before the new version receives traffic. Environments: `local` (Docker Compose on a laptop / local Postgres in sandbox), `ci` (service container), `staging`, and `production`. Exact platform choice and current free-tier limits will be checked against official pricing pages at M8.
+Decided at M8: [ADR-0021](adr/0021-aws-lambda-deployment.md). One container image (multi-stage, non-root) is stored in ECR and runs as two AWS Lambda functions in Sydney: `web` (Next.js behind a Function URL, through the Lambda Web Adapter) and `worker` (job queue, migrations and the daily demo reset). Neon provides PostgreSQL 18 with pgvector. Infrastructure is Terraform (`infra/terraform`). A release publishes the worker, runs migrations, publishes the web function, then runs smoke tests on the live site; rollback swaps the `live` and `previous` aliases. There is no staging environment: `local` (Docker Compose), `ci` (service container) and `production`. Operations: [runbook](runbook.md), [infrastructure](../infra/README.md).
