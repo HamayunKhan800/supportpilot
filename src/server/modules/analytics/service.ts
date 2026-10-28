@@ -7,8 +7,8 @@ import { getDb } from "@/server/platform/db/client";
 import type { AnalyticsPeriod } from "./periods";
 import * as repo from "./repository";
 
-export type { FeatureCalls } from "./repository";
-export type { EvalRunListing } from "@/server/modules/eval/repository";
+export type { DraftStats, FeatureCalls } from "./repository";
+export type { EvalMissRow, EvalRunListing } from "@/server/modules/eval/repository";
 
 /**
  * The analytics dashboard (FR-AN1, M6 step 5). Every member can read it (`analytics:read`,

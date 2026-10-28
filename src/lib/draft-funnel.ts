@@ -1,6 +1,6 @@
 import type { FunnelStep } from "@/components/charts/funnel";
 import { formatCount } from "@/lib/format";
-import type { DraftStats } from "@/server/modules/analytics/repository";
+import type { DraftStats } from "@/server/modules/analytics/service";
 
 /**
  * The AI draft funnel on the Usage analytics page (after PostHog's funnels): where drafts stop

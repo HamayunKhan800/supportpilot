@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { TableScroll } from "@/components/table-scroll";
 import { formatCount } from "@/lib/format";
-import type { EvalMissRow } from "@/server/modules/eval/repository";
+import type { EvalMissRow } from "@/server/modules/analytics/service";
 import { missGroups } from "@/server/modules/eval/misses-view";
 import { Block, td, th } from "./report-parts";
 
