@@ -10,6 +10,7 @@ import { headlineRun } from "@/server/modules/eval/summary-view";
 import { AppError } from "@/server/platform/errors";
 import { requireAppWorkspace } from "../../workspace-context";
 import { AnalyticsHeader, OptionLinks } from "../analytics-header";
+import { RunComparison } from "./comparison";
 import { LatestRun } from "./latest-run";
 import { Block, PROVIDER_LABELS } from "./report-parts";
 import { Trend } from "./trend";
@@ -77,6 +78,7 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
       {latest ? (
         <>
           <LatestRun run={latest.run} newer={latest.newer} />
+          {runs.length > 1 && <RunComparison newer={runs[0]!} older={runs[1]!} />}
           {runs.length > 1 && <Trend runs={runs} />}
           <AboutNumbers />
         </>

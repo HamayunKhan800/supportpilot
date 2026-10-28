@@ -251,3 +251,69 @@ export function headlineRun<T extends { status: string }>(
   if (!run) return null;
   return { run, newer: run === runs[0] ? null : runs[0]! };
 }
+
+// --- Comparing two runs (after Braintrust's experiment comparison) ---------------------------
+
+/**
+ * `better` / `worse` only when the two 95% ranges don't overlap, a deliberately cautious rule
+ * (the item-level paired test in docs/eval/triage-v1-v2.md is the precise one); `unclear` when
+ * they overlap or the metric has no range (scores), so the move could be chance.
+ */
+export type ChangeVerdict = "better" | "worse" | "unclear" | "same";
+
+export interface MetricChange {
+  def: MetricDef;
+  before: number;
+  after: number;
+  /** after − before, on the 0–1 scale. */
+  delta: number;
+  verdict: ChangeVerdict;
+}
+
+/** The metrics both runs measured, with the change from `older` to `newer` and its verdict. */
+export function compareRuns(newer: unknown, older: unknown): MetricChange[] {
+  const before = metricValues(older);
+  return metricValues(newer).flatMap((a) => {
+    const b = before.find((v) => v.def.key === a.def.key);
+    if (!b || a.value === null || b.value === null) return [];
+    const delta = a.value - b.value;
+    const lowerIsBetter = a.def.target?.op === "max";
+    const apart =
+      a.rate !== null &&
+      b.rate !== null &&
+      a.rate.low !== null &&
+      a.rate.high !== null &&
+      b.rate.low !== null &&
+      b.rate.high !== null &&
+      (a.rate.low > b.rate.high || a.rate.high < b.rate.low);
+    const verdict: ChangeVerdict =
+      Math.abs(delta) < 1e-9 ? "same" : !apart ? "unclear" : delta > 0 !== lowerIsBetter ? "better" : "worse";
+    return [{ def: a.def, before: b.value, after: a.value, delta, verdict }];
+  });
+}
+
+/** Prompt versions and models that differ between two runs' settings, e.g. "triage prompt: triage.v1 → triage.v2". */
+export function settingsChanges(newerConfig: unknown, olderConfig: unknown): string[] {
+  const read = (config: unknown, path: string): Record<string, string> => {
+    const v = at(config, path);
+    if (v === null || typeof v !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(v as Record<string, unknown>).filter(
+        (e): e is [string, string] => typeof e[1] === "string" && e[1].length <= 80 && e[0].length <= 40,
+      ),
+    );
+  };
+  return (
+    [
+      ["promptVersions", "prompt"],
+      ["models", "model"],
+    ] as const
+  ).flatMap(([path, noun]) => {
+    const a = read(newerConfig, path);
+    const b = read(olderConfig, path);
+    return [...new Set([...Object.keys(b), ...Object.keys(a)])]
+      .sort()
+      .filter((k) => a[k] !== b[k])
+      .map((k) => `${k} ${noun}: ${b[k] ?? "none"} → ${a[k] ?? "none"}`);
+  });
+}
