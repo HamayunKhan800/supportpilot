@@ -9,6 +9,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 
+import { pgConnectionConfig } from "@/server/platform/db/connection";
 import { installJobs } from "@/server/platform/jobs/boss";
 
 async function main() {
@@ -18,7 +19,7 @@ async function main() {
     process.exit(1);
   }
   const migrationsFolder = process.env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), "drizzle");
-  const pool = new Pool({ connectionString: url, max: 1, connectionTimeoutMillis: 10_000 });
+  const pool = new Pool({ ...pgConnectionConfig(url), max: 1, connectionTimeoutMillis: 10_000 });
   // Production sets a 10 s statement_timeout on the database role (Neon ignores it as a
   // connection setting; plan M8, Neon finding). A long migration (an index build) must not
   // be cut off half way, so this one session lifts it. Queries on a client run in order,

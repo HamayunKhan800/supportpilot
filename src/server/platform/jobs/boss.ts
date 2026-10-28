@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { fromDrizzle, PgBoss } from "pg-boss";
 
+import { pgConnectionConfig } from "../db/connection";
 import type { Executor, Transaction } from "../db/tx";
 import { getDatabaseEnv } from "../env";
 import { logger } from "../logger";
@@ -32,7 +33,9 @@ export type BossRole = "installer" | "worker" | "web";
 
 export function createBoss(connectionString: string, role: BossRole, max = 2): PgBoss {
   const boss = new PgBoss({
-    connectionString,
+    // pg-boss hands its whole config to pg.Pool (pg-boss dist/db.js), so the channel-binding
+    // option reaches the driver although pg-boss's types don't list it.
+    ...pgConnectionConfig(connectionString),
     schema: PGBOSS_SCHEMA,
     application_name: `supportpilot-${role}`,
     max,

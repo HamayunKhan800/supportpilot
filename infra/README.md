@@ -79,7 +79,7 @@ trivy config --severity MEDIUM,HIGH,CRITICAL .
    ```
 
    It asks for the Neon connection string (Neon console → **Connect**; pooled or direct, either works) and, optionally, the Gemini API key. Typed values stay hidden and never land in the shell history. It then:
-   - stores the pooled address for the web function and the direct one for the worker, both with `sslmode=verify-full&channel_binding=require` ([`neon_url.py`](bootstrap/neon_url.py)). The app's driver (node-postgres) checks the certificate and host name but ignores `channel_binding`, which only `psql` and other libpq clients honour (tested; see ASVS 12.3.4);
+   - stores the pooled address for the web function and the direct one for the worker, both with `sslmode=verify-full&channel_binding=require` ([`neon_url.py`](bootstrap/neon_url.py)). The app's driver (node-postgres) checks the certificate and host name; it ignores `channel_binding` in the address, so the app turns on the driver's own channel-binding option for such addresses ([`connection.ts`](../src/server/platform/db/connection.ts); tested, see ASVS 12.3.3 and 12.3.4);
    - sets the database role's 10-second `statement_timeout` (Neon ignores it as a connection setting; migrations lift it for their own session);
    - generates `BETTER_AUTH_SECRET` and the shared demo password, keeping both on later runs, and prints the demo password: every visitor signs in with it, and the demo accounts can't change anything that affects others.
 
