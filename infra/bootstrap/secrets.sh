@@ -71,11 +71,9 @@ else
 fi
 demo="$(aws ssm get-parameter --region "$REGION" --with-decryption --name "${ROOT}/shared/DEMO_PASSWORD" --query Parameter.Value --output text)"
 
-printf '\n== Gemini (optional)\n'
-read -rsp "Paste the Gemini API key (hidden), or just press Enter to skip: " gemini
-echo
-if [[ -n "$gemini" ]]; then put shared/GEMINI_API_KEY "$gemini"; else echo "   skipped (the app starts with mock AI)"; fi
-unset gemini
+printf '\n== Gemini (optional, Enter skips)\n'
+# Cleans the paste and saves the key only if Google accepts it (gemini_key.py).
+python3 "${HERE}/gemini_key.py" || echo "   Gemini key not saved: rerun python3 ${HERE}/gemini_key.py when ready"
 
 printf '\n== Done\n'
 echo "   Demo password (public, for the demo accounts): ${demo}"

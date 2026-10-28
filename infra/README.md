@@ -83,7 +83,7 @@ trivy config --severity MEDIUM,HIGH,CRITICAL .
    - sets the database role's 10-second `statement_timeout` (Neon ignores it as a connection setting; migrations lift it for their own session);
    - generates `BETTER_AUTH_SECRET` and the shared demo password, keeping both on later runs, and prints the demo password: every visitor signs in with it, and the demo accounts can't change anything that affects others.
 
-   Sentry (`shared/SENTRY_DSN`) and email come later. Running it again replaces the Neon string and the Gemini key when given.
+   Sentry (`shared/SENTRY_DSN`) and email come later. Running it again replaces the Neon string and the Gemini key when given. The Gemini key is saved only after Google accepts it; to replace just the key, run `python3 supportpilot/infra/bootstrap/gemini_key.py`.
 
 4. **Actions → Infrastructure → Run workflow**, approve the plan, read the summary, approve the apply. This first run makes the registry and roles.
 5. **Actions → Deploy → Run workflow** and approve. It builds the arm64 image and pushes it; the functions don't exist yet, so it stops there.
