@@ -36,6 +36,10 @@ const H = 200;
  * polite live region. The whole series is also a sentence on the image and a real table under
  * "Show as a table". The tooltip and dot exist only after interaction, so the server HTML has
  * no inline styles (CSP).
+ *
+ * `partialLast` marks the last point as a day still in progress (the dashboards' windows end
+ * today): its segment is dashed and its label says "so far", as on Vercel's analytics, so a
+ * half-counted day doesn't read as a drop or a spike.
  */
 export function AreaChart({
   title,
@@ -44,6 +48,7 @@ export function AreaChart({
   unit,
   format = "count",
   tone = 1,
+  partialLast = false,
   className,
 }: {
   /** What one point is, e.g. "Tickets created per day"; also the table's name. */
@@ -54,6 +59,8 @@ export function AreaChart({
   unit: string;
   format?: ChartFormat;
   tone?: keyof typeof TONES;
+  /** The last point is today, still being counted. */
+  partialLast?: boolean;
   /** Height of the plot, e.g. "h-56". */
   className?: string;
 }) {
@@ -63,22 +70,35 @@ export function AreaChart({
 
   const fmt = FORMATS[format];
   const n = data.length;
+  const partial = partialLast && n >= 2;
+  const labelOf = (i: number) => (partial && i === n - 1 ? `${data[i]!.label} (so far)` : data[i]!.label);
   const values = data.map((d) => d.value);
   const top = niceMax(Math.max(...values));
   const x = (i: number) => (n === 1 ? W / 2 : (i / (n - 1)) * W);
   const y = (v: number) => H - (top > 0 ? v / top : 0) * H;
   const line = values.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+  // With a partial last day, the solid line stops one point early and a dashed segment finishes it.
+  const solid = partial
+    ? values
+        .slice(0, -1)
+        .map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`)
+        .join(" ")
+    : line;
+  const tail = partial
+    ? `M${x(n - 2).toFixed(1)} ${y(values[n - 2]!).toFixed(1)} L${x(n - 1).toFixed(1)} ${y(values[n - 1]!).toFixed(1)}`
+    : null;
   const area = `${line} L${x(n - 1).toFixed(1)} ${H} L${x(0).toFixed(1)} ${H} Z`;
 
   const total = values.reduce((s, v) => s + v, 0);
   const peak = data.reduce((best, d) => (d.value > best.value ? d : best), data[0]!);
   const first = data[0]!.label;
-  const last = data[n - 1]!.label;
+  const last = labelOf(n - 1);
   const middle = data[Math.floor((n - 1) / 2)]!.label;
   const summary =
-    total === 0
+    (total === 0
       ? `${title}, ${first} to ${last}: none.`
-      : `${title}, ${first} to ${last}: ${fmt(total)} in total, highest ${fmt(peak.value)} on ${peak.label}.`;
+      : `${title}, ${first} to ${last}: ${fmt(total)} in total, highest ${fmt(peak.value)} on ${peak.label}.`) +
+    (partial ? " The last day is today and still being counted." : "");
 
   const pick = (clientX: number) => {
     const box = plot.current?.getBoundingClientRect();
@@ -156,7 +176,7 @@ export function AreaChart({
             <line x1={0} x2={W} y1={H} y2={H} className="stroke-border" vectorEffect="non-scaling-stroke" />
             <path d={area} className={t.area} fillOpacity={0.1} />
             <path
-              d={line}
+              d={solid}
               fill="none"
               className={t.line}
               strokeWidth={2}
@@ -164,6 +184,18 @@ export function AreaChart({
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
             />
+            {tail && (
+              <path
+                d={tail}
+                fill="none"
+                className={t.line}
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                data-partial=""
+              />
+            )}
             {active !== null && (
               <line
                 x1={x(active)}
@@ -193,7 +225,7 @@ export function AreaChart({
                 )}
                 style={{ left: `${leftPct}%` }}
               >
-                <span className="text-muted-foreground">{point.label}</span>{" "}
+                <span className="text-muted-foreground">{labelOf(active!)}</span>{" "}
                 <span className="font-semibold tabular-nums">{fmt(point.value)}</span>
               </div>
             </>
@@ -207,7 +239,7 @@ export function AreaChart({
         </div>
       </div>
       <p className="sr-only" aria-live="polite">
-        {point ? `${point.label}: ${fmt(point.value)} ${unit}` : ""}
+        {point ? `${labelOf(active!)}: ${fmt(point.value)} ${unit}` : ""}
       </p>
       <figcaption className="sr-only">{title}</figcaption>
       <details className="text-sm">
@@ -229,10 +261,10 @@ export function AreaChart({
                 </tr>
               </thead>
               <tbody>
-                {data.map((d) => (
+                {data.map((d, i) => (
                   <tr key={d.key} className="border-t">
                     <th scope="row" className="px-3 py-1.5 text-left font-normal">
-                      {d.label}
+                      {labelOf(i)}
                     </th>
                     <td className="px-3 py-1.5 text-right tabular-nums">{fmt(d.value)}</td>
                   </tr>

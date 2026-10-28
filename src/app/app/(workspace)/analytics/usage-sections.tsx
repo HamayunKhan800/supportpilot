@@ -61,6 +61,7 @@ const aiTotals = (ai: UsageAnalytics["ai"]) => ({
   costMicros: ai.daily.reduce((n, d) => n + d.costMicros, 0),
 });
 
+/** Every window ends today (periods.ts), so each chart's last day is still being counted. */
 export function KeyNumbers({
   days,
   tickets,
@@ -96,6 +97,7 @@ export function KeyNumbers({
               data: ticketDays,
               valueHeader: "Tickets",
               unit: "tickets",
+              partialLast: true,
             },
           },
           {
@@ -103,7 +105,13 @@ export function KeyNumbers({
             label: "AI tokens",
             value: formatCount(totals.tokens),
             change: changeSummary(tokenSeries, formatCount),
-            chart: { title: "AI tokens per day", data: tokenDays, valueHeader: "Tokens", unit: "tokens" },
+            chart: {
+              title: "AI tokens per day",
+              data: tokenDays,
+              valueHeader: "Tokens",
+              unit: "tokens",
+              partialLast: true,
+            },
           },
           {
             id: "cost",
@@ -116,6 +124,7 @@ export function KeyNumbers({
               valueHeader: "Estimated cost",
               unit: "estimated cost",
               format: "usd-micros",
+              partialLast: true,
             },
           },
         ]}

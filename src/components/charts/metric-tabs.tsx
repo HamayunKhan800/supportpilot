@@ -18,7 +18,15 @@ export interface Metric {
   value: string;
   /** "Last 15 days: up 23% vs the 15 before" (scale.ts changeSummary), if the period splits. */
   change: { text: string; trend: Trend } | null;
-  chart: { title: string; data: ChartPoint[]; valueHeader: string; unit: string; format?: ChartFormat };
+  chart: {
+    title: string;
+    data: ChartPoint[];
+    valueHeader: string;
+    unit: string;
+    format?: ChartFormat;
+    /** The last day is today, still being counted (drawn dashed). */
+    partialLast?: boolean;
+  };
 }
 
 /**
