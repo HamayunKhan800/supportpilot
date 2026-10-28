@@ -271,7 +271,8 @@ overlapping a square (the person who approves it), the overlap cut out.
 - **Do** link every number to the report or document that proves it.
 - **Do** label AI output as AI, and show what it was based on.
 - **Do** keep motion under 300ms, ease-out, for menus and panels only; nothing on keyboard or
-  high-frequency actions; respect reduced motion.
+  high-frequency actions; respect reduced motion. One exception: the landing headline's single
+  700 ms rise on load (seen once per visit).
 - **Do** test both themes: zero axe violations, 4.5:1 text, 3:1 borders and focus.
 - **Do** use lucide icons (one stroke weight) for every icon.
 
@@ -290,6 +291,8 @@ The hero is type and nothing else. The headline's first line sits on paper; the 
 starts a full-width ink field, so the seam always falls between the two lines however they wrap.
 Each claim carries a footnote number that links to its source under the seam, as a drafted reply
 carries its citations. No grid, glow, dot field or stat row: the measured figures live in the
-results table, and the product appears straight after the hero. The typing loop stays (owner
-request 2026-10-25), with its pause button. Browser surfaces (selection, caret, scrollbars,
-checkbox and radio accent) take the ink palette.
+results table, and the product appears straight after the hero, inside the first screen: the
+hero is sized to its content, not to the screen. The headline rises and sharpens once on load
+(two lines, 700 ms, the second 100 ms later) and then stays still, as on Linear and Attio; it
+replaced a typing loop and its pause button (2026-10-28). Browser surfaces (selection, caret,
+scrollbars, checkbox and radio accent) take the ink palette.

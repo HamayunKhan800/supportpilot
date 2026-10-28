@@ -206,17 +206,24 @@ test.describe("the live demo in the hero", () => {
 });
 
 test.describe("the hero headline", () => {
-  test("types again and again, and can be paused (WCAG 2.2.2)", async ({ page }) => {
+  test("arrives once and then stays still, with no pause control", async ({ page }) => {
     await page.goto("/");
-    const heading = page.locator("#hero-heading");
-    await expect(heading).toHaveAttribute("data-type-phase", "type");
-    await expect(heading).toHaveAttribute("data-type-phase", "erase", { timeout: 8000 });
-    await expect(heading).toHaveAttribute("data-type-phase", "type", { timeout: 4000 });
-
-    await page.getByRole("button", { name: "Pause typing" }).click();
-    await expect(heading).toHaveAttribute("data-type-phase", "still");
-    await page.getByRole("button", { name: "Play typing" }).click();
-    await expect(heading).toHaveAttribute("data-type-phase", "type");
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toHaveAccessibleName("Support replies drafted by AI, approved by your team.");
+    // Both lines finish rising within about a second, and nothing keeps running after that.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            document
+              .getAnimations()
+              .filter((a) => (a.effect as KeyframeEffect | null)?.target?.closest?.("#hero-heading"))
+              .filter((a) => a.playState === "running").length,
+        ),
+      )
+      .toBe(0);
+    await expect(page.locator("#hero-heading .hero-rise")).toHaveCount(2);
+    await expect(page.getByRole("button", { name: /typing/i })).toHaveCount(0);
   });
 
   test("its footnote numbers link to the sources under it", async ({ page }) => {
@@ -231,13 +238,13 @@ test.describe("the hero headline", () => {
     await expect(page).toHaveURL(/#source-2$/);
   });
 
-  test("with reduced motion it stays still and shows no button", async ({ page }) => {
+  test("with reduced motion it does not move at all", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await expect(page.locator("#hero-heading")).toHaveAttribute("data-type-phase", "type");
-    await page.waitForTimeout(6500);
-    await expect(page.locator("#hero-heading")).toHaveAttribute("data-type-phase", "type");
-    await expect(page.getByRole("button", { name: "Pause typing" })).toBeHidden();
+    const names = await page
+      .locator("#hero-heading .hero-rise")
+      .evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName));
+    expect(names).toEqual(["none", "none"]);
   });
 });
 

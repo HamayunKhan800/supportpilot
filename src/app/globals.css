@@ -781,96 +781,30 @@ main[data-route-busy="data"] :is([data-busy-dim], section:not(section section)) 
 }
 
 /*
- * Hero headline typing (page.tsx): characters start as faint ghost text and turn solid one after
- * another, 26 ms apart (about 1.5 s in all), with a caret at the typing point that blinks three
- * times at the end. Colour only, so nothing moves and the text is painted from the first frame.
- * Reduced motion: the headline is simply there.
+ * Hero headline (page.tsx): the two lines rise and sharpen once as the page opens, the second a
+ * beat after the first, and are still by about 0.9 s. As on Linear and Attio (measured
+ * 2026-10-28), the headline arrives once and then stays; it replaced a typing loop that needed a
+ * pause button. Blur and a small rise only, no fading, so the text is painted from the first
+ * frame. Reduced motion: the headline is simply there.
  */
-.type-ch {
-  position: relative;
-  --type-at: calc(250ms + (var(--o, 0) + var(--n, 0)) * 26ms);
-  animation: type-ch 1ms linear var(--type-at) both;
+.hero-rise {
+  animation: hero-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
 }
-.type-ch::after {
-  content: "";
-  position: absolute;
-  top: 0.14em;
-  bottom: 0.06em;
-  right: -0.04em;
-  width: 0.06em;
-  background: var(--foreground);
-  opacity: 0;
-  pointer-events: none;
-  animation: type-caret 26ms linear var(--type-at);
+.hero-rise-2 {
+  animation-delay: 180ms;
 }
-/* No caret on spaces: at a line wrap the space hangs past the line and the caret would stretch. */
-.type-sp::after {
-  content: none;
-}
-.type-ch-last::after {
-  animation: type-caret-end 1.6s step-end var(--type-at);
-}
-@keyframes type-ch {
+@keyframes hero-rise {
   from {
-    color: color-mix(in oklab, currentColor 8%, transparent);
+    filter: blur(8px);
+    translate: 0 0.22em;
   }
-}
-@keyframes type-caret {
-  0%,
-  100% {
-    opacity: 1;
-  }
-}
-@keyframes type-caret-end {
-  0%,
-  25%,
-  50%,
-  75% {
-    opacity: 1;
-  }
-  12.5%,
-  37.5%,
-  62.5%,
-  87.5%,
-  100% {
-    opacity: 0;
-  }
-}
-/*
- * The loop (hero-headline.tsx): "erase" deletes from the last letter back, like a backspace,
- * 16 ms per letter (58 is the last letter's position). Its own animation names, so switching back
- * to "type" restarts the typing. "still" (paused) shows the sentence with no caret.
- */
-[data-type-phase="erase"] .type-ch {
-  --erase-at: calc((58 - var(--o, 0) - var(--n, 0)) * 16ms);
-  animation: type-erase 1ms linear var(--erase-at) both;
-}
-[data-type-phase="erase"] .type-ch::after {
-  animation: type-caret-erase 16ms linear var(--erase-at);
-}
-[data-type-phase="erase"] .type-sp::after {
-  content: none;
-}
-[data-type-phase="still"] .type-ch,
-[data-type-phase="still"] .type-ch::after {
-  animation: none;
-}
-@keyframes type-erase {
   to {
-    color: color-mix(in oklab, currentColor 8%, transparent);
-  }
-}
-@keyframes type-caret-erase {
-  0%,
-  100% {
-    opacity: 1;
+    filter: blur(0);
+    translate: 0 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .type-ch,
-  .type-ch::after,
-  [data-type-phase] .type-ch,
-  [data-type-phase] .type-ch::after {
+  .hero-rise {
     animation: none;
   }
 }

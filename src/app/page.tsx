@@ -9,7 +9,6 @@ import { ApiSample } from "@/components/marketing/landing/api-sample";
 import { CustomerSide } from "@/components/marketing/landing/customer-side";
 import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
-import { HeroHeadline } from "@/components/marketing/landing/hero-headline";
 import { HeroLive } from "@/components/marketing/landing/hero-live";
 import { LandingHeader } from "@/components/marketing/landing/landing-header";
 import { MobileMenu } from "@/components/marketing/landing/mobile-menu";
@@ -192,54 +191,13 @@ function HandoffMotif({ className }: { className?: string }) {
   );
 }
 
-// The headline, word by word: each word arrives blur-to-sharp in turn (design step 10.2).
-// Delays are literal classes so Tailwind can see them; the text reads the same to assistive tech.
 /*
- * The headline types itself out like a reply being drafted, then deletes and types again, with a
- * Pause button (hero-headline.tsx; globals.css, "type-ch"). Each
- * character is painted from the first frame as faint ghost text and turns solid in turn, so the
- * layout never moves and the largest paint is not delayed. Screen readers and search engines get
- * the sentence once, from the sr-only copy. Classes are literal so Tailwind can see them.
+ * The headline arrives once as the page opens (globals.css, "hero-rise"). Screen readers and
+ * search engines get the sentence once, from the sr-only copy: the footnote links inside the h1
+ * would otherwise become part of its name ("...by AI, 1 ...").
  */
 const HEADLINE_A = "Support replies drafted by AI, ";
 const HEADLINE_B = "approved by your team.";
-const CHAR_INDEX = [
-  "[--n:0]",
-  "[--n:1]",
-  "[--n:2]",
-  "[--n:3]",
-  "[--n:4]",
-  "[--n:5]",
-  "[--n:6]",
-  "[--n:7]",
-  "[--n:8]",
-  "[--n:9]",
-  "[--n:10]",
-  "[--n:11]",
-  "[--n:12]",
-  "[--n:13]",
-  "[--n:14]",
-  "[--n:15]",
-  "[--n:16]",
-  "[--n:17]",
-  "[--n:18]",
-  "[--n:19]",
-  "[--n:20]",
-  "[--n:21]",
-  "[--n:22]",
-  "[--n:23]",
-  "[--n:24]",
-  "[--n:25]",
-  "[--n:26]",
-  "[--n:27]",
-  "[--n:28]",
-  "[--n:29]",
-  "[--n:30]",
-  "[--n:31]",
-];
-/** A short pause after "AI," before the second half, as a person typing would. */
-const LINE_B_OFFSET = "[--o:37]";
-
 /**
  * A footnote number in the headline: a real link to the source under the waterline (typeset after
  * the punctuation, as footnotes are). The hit area is at least 24 px (WCAG 2.5.8).
@@ -256,22 +214,6 @@ function FootnoteRef({ n }: { n: number }) {
       </a>
     </sup>
   );
-}
-
-function TypedChars({ text, last = false }: { text: string; last?: boolean }) {
-  return Array.from(text).map((ch, i) => (
-    <span
-      key={i}
-      className={cn(
-        "type-ch",
-        CHAR_INDEX[i],
-        ch === " " && "type-sp",
-        last && i === text.length - 1 && "type-ch-last",
-      )}
-    >
-      {ch}
-    </span>
-  ));
 }
 
 export default async function Home() {
@@ -321,15 +263,12 @@ export default async function Home() {
             carries its sources; the footnotes sit under the seam (DESIGN.md, "The Cited Draft"). */}
         <section
           aria-labelledby="hero-heading"
-          className="relative isolate -mt-16 flex min-h-svh flex-col overflow-hidden pt-16"
+          className="relative isolate -mt-16 flex flex-col overflow-hidden pt-16"
         >
-          <div
-            data-theme="dark"
-            className={cn(container, "relative flex flex-1 flex-col pt-20 sm:pt-28 lg:pt-32")}
-          >
-            <HeroHeadline
+          <div data-theme="dark" className={cn(container, "relative flex flex-col pt-20 sm:pt-28 lg:pt-32")}>
+            <h1
               id="hero-heading"
-              labelledBy="hero-sentence"
+              aria-labelledby="hero-sentence"
               className="font-display text-[2.5rem] leading-[1.05] font-normal tracking-[-0.02em] sm:text-[3.5rem] lg:text-[4.5rem] xl:text-[5rem]"
             >
               <span id="hero-sentence" className="sr-only">
@@ -337,21 +276,24 @@ export default async function Home() {
               </span>
               {/* Line one stays in the page's colours inside the dark-themed hero. */}
               <span className="text-foreground block pb-[0.16em] text-balance [--foreground:var(--page-foreground)]">
-                <span aria-hidden="true">
-                  <TypedChars text={HEADLINE_A.trimEnd()} />
+                <span className="hero-rise block">
+                  <span aria-hidden="true">{HEADLINE_A.trimEnd()}</span>
+                  <FootnoteRef n={1} />
                 </span>
-                <FootnoteRef n={1} />
               </span>
+              {/* The ink field hangs off this line; the rise moves the words, never the field. */}
               <span className="hero-water text-foreground block pt-[0.2em] text-balance">
                 <span aria-hidden="true" className="hero-water-fill" />
-                <span aria-hidden="true" className={LINE_B_OFFSET}>
-                  <TypedChars text={HEADLINE_B} last />
+                <span className="hero-rise hero-rise-2 block">
+                  <span aria-hidden="true">{HEADLINE_B}</span>
+                  <FootnoteRef n={2} />
                 </span>
-                <FootnoteRef n={2} />
               </span>
-            </HeroHeadline>
+            </h1>
 
-            <div className="flex flex-1 flex-col justify-end gap-10 pt-14 pb-12 sm:pb-16 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+            {/* Sized to its content, not to the screen: the product demo below shows in the first
+                screen, as on Plain, Front and Linear (measured 2026-10-28). */}
+            <div className="flex flex-col gap-10 pt-12 pb-14 sm:pt-16 sm:pb-20 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
               <ol aria-label="Sources" className="grid max-w-3xl gap-6 text-sm sm:grid-cols-2 sm:gap-10">
                 {HERO_FOOTNOTES.map((f, i) => (
                   <li
