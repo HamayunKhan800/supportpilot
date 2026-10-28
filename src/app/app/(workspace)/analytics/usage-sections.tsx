@@ -2,7 +2,8 @@ import { MessageSquareText, Tags, ThumbsDown, ThumbsUp } from "lucide-react";
 import { BarList } from "@/components/charts/bar-list";
 import { MetricTabs } from "@/components/charts/metric-tabs";
 import { changeSummary } from "@/components/charts/scale";
-import { StackedBar, type StackedSegment } from "@/components/charts/stacked-bar";
+import { Funnel } from "@/components/charts/funnel";
+import { StackedBar } from "@/components/charts/stacked-bar";
 import { EmptyState, Section } from "@/components/page";
 import { TableScroll } from "@/components/table-scroll";
 import {
@@ -14,6 +15,7 @@ import {
   formatShare,
   NO_DATA,
 } from "@/lib/format";
+import { draftFunnel } from "@/lib/draft-funnel";
 import type { FeatureCalls, UsageAnalytics } from "@/server/modules/analytics/service";
 import { STATUS_LABEL } from "../tickets/labels";
 
@@ -21,34 +23,9 @@ import { STATUS_LABEL } from "../tickets/labels";
 
 const FEATURE_LABELS = { triage: "Triage", draft: "Reply drafts", embed: "Knowledge embeddings" } as const;
 
-const DRAFT_STATUS_LABELS: Record<string, string> = {
-  sent: "Sent to the customer",
-  discarded: "Discarded",
-  ready: "Waiting for an agent",
-  refused: "Refused (not enough knowledge)",
-  blocked: "Blocked by a safety check",
-  failed: "Failed",
-  aborted: "Cancelled",
-  generating: "Still generating",
-};
-
 /** In the inbox's order: open, pending, resolved, closed. */
 const TICKET_STATUSES = Object.keys(STATUS_LABEL) as (keyof typeof STATUS_LABEL)[];
 const STATUS_TONE = { open: 1, pending: 3, resolved: 5, closed: 2 } as const;
-
-/** Draft outcomes as at most five coloured parts; the rarer failure states share one. */
-function draftSegments(byStatus: Record<string, number>): StackedSegment[] {
-  const n = (k: string) => byStatus[k] ?? 0;
-  const known = new Set(["sent", "discarded", "ready", "refused"]);
-  const other = Object.entries(byStatus).reduce((sum, [k, v]) => (known.has(k) ? sum : sum + v), 0);
-  return [
-    { key: "sent", label: DRAFT_STATUS_LABELS.sent!, value: n("sent"), tone: 5 },
-    { key: "discarded", label: DRAFT_STATUS_LABELS.discarded!, value: n("discarded"), tone: 4 },
-    { key: "ready", label: DRAFT_STATUS_LABELS.ready!, value: n("ready"), tone: 1 },
-    { key: "refused", label: DRAFT_STATUS_LABELS.refused!, value: n("refused"), tone: 3 },
-    { key: "other", label: "Blocked, failed or cancelled", value: other, tone: 2 },
-  ];
-}
 
 const th = "px-3 py-2 font-medium whitespace-nowrap";
 const td = "px-3 py-2";
@@ -229,12 +206,10 @@ export function DraftsSection({ drafts }: { drafts: UsageAnalytics["drafts"] }) 
         />
       </dl>
       {generated > 0 ? (
-        <StackedBar
-          hideEmpty
-          label="Drafts by outcome"
-          formatValue={formatCount}
-          segments={draftSegments(drafts.byStatus)}
-        />
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium">From draft to helpful reply</h3>
+          <Funnel label="AI drafts, from created to rated helpful" steps={draftFunnel(drafts)} />
+        </div>
       ) : (
         <EmptyState icon={MessageSquareText} title="No drafts in this period">
           Agents create drafts from a ticket with “Generate draft”.

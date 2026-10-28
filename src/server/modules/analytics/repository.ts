@@ -84,7 +84,8 @@ export interface DraftStats {
   byStatus: Record<string, number>;
   /** Sent drafts with an edit ratio (0 = sent unchanged, 1 = rewritten). */
   edited: { n: number; mean: number | null; median: number | null };
-  feedback: { up: number; down: number };
+  /** Agent ratings on drafts of any status; `sentUp` counts sent drafts rated helpful (the funnel's last step). */
+  feedback: { up: number; down: number; sentUp: number };
 }
 
 export async function draftStats(db: Executor, workspaceId: string, days: number): Promise<DraftStats> {
@@ -104,6 +105,7 @@ export async function draftStats(db: Executor, workspaceId: string, days: number
         >`percentile_disc(0.5) WITHIN GROUP (ORDER BY ${aiDraft.editRatio}) FILTER (WHERE ${aiDraft.status} = 'sent')`,
         up: sql<string>`count(*) FILTER (WHERE ${aiDraft.feedback} = 'up')`,
         down: sql<string>`count(*) FILTER (WHERE ${aiDraft.feedback} = 'down')`,
+        sentUp: sql<string>`count(*) FILTER (WHERE ${aiDraft.status} = 'sent' AND ${aiDraft.feedback} = 'up')`,
       })
       .from(aiDraft)
       .where(inWindow),
@@ -111,7 +113,7 @@ export async function draftStats(db: Executor, workspaceId: string, days: number
   return {
     byStatus: Object.fromEntries(statusRows.map((r) => [r.status, num(r.count)])),
     edited: { n: num(agg?.edited), mean: numOrNull(agg?.mean), median: numOrNull(agg?.median) },
-    feedback: { up: num(agg?.up), down: num(agg?.down) },
+    feedback: { up: num(agg?.up), down: num(agg?.down), sentUp: num(agg?.sentUp) },
   };
 }
 

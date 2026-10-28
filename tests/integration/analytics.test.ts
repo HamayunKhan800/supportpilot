@@ -197,6 +197,8 @@ beforeAll(async () => {
     feedbackReason: "incorrect",
   });
   await draft(acmeId, today, { status: "ready" });
+  // Rated helpful but not sent: counts as "up", not as a sent draft rated helpful.
+  await draft(acmeId, today, { status: "ready", feedback: "up" });
   await draft(acmeId, today, { status: "refused", errorCode: "below_min_score" });
   await draft(acmeId, old, { status: "sent", editRatio: 1 }, daysAgo(40));
 
@@ -281,11 +283,11 @@ describe("usage analytics (FR-AN1)", () => {
 
   it("drafts: outcomes, edit ratio of sent drafts (nearest-rank median), feedback", async () => {
     const { drafts } = await getUsageAnalytics(owner.headers, 30);
-    expect(drafts.byStatus).toEqual({ sent: 3, discarded: 1, ready: 1, refused: 1 });
+    expect(drafts.byStatus).toEqual({ sent: 3, discarded: 1, ready: 2, refused: 1 });
     expect(drafts.edited.n).toBe(3);
     expect(drafts.edited.mean).toBeCloseTo(0.3);
     expect(drafts.edited.median).toBeCloseTo(0.3);
-    expect(drafts.feedback).toEqual({ up: 1, down: 2 });
+    expect(drafts.feedback).toEqual({ up: 2, down: 2, sentUp: 1 });
   });
 
   it("triage: suggestions, overrides (a cleared category counts), auto-applied, left for review", async () => {
@@ -344,7 +346,7 @@ describe("usage analytics (FR-AN1)", () => {
     expect(data.drafts).toEqual({
       byStatus: {},
       edited: { n: 0, mean: null, median: null },
-      feedback: { up: 0, down: 0 },
+      feedback: { up: 0, down: 0, sentUp: 0 },
     });
     expect(data.triage.succeeded).toBe(0);
     expect(data.ai.features.every((f) => f.calls === 0 && f.latencyMs.p50 === null)).toBe(true);
@@ -354,7 +356,7 @@ describe("usage analytics (FR-AN1)", () => {
   it("each workspace sees only its own numbers (T1)", async () => {
     const globex = await getUsageAnalytics(globexOwner.headers, 30);
     expect(globex.tickets.created).toBe(1);
-    expect(globex.drafts).toMatchObject({ byStatus: { sent: 1 }, feedback: { up: 1, down: 0 } });
+    expect(globex.drafts).toMatchObject({ byStatus: { sent: 1 }, feedback: { up: 1, down: 0, sentUp: 1 } });
     expect(globex.triage).toMatchObject({ succeeded: 1, overridden: 1 });
     expect(globex.ai.features[0]).toMatchObject({ calls: 1, latencyMs: { p50: 1 } });
     expect(globex.ai.daily.reduce((n, d) => n + d.tokens, 0)).toBe(5000);
