@@ -171,7 +171,7 @@ describe("worker function tasks (lambda-tasks)", () => {
     expect(steps[0]!.env.BETTER_AUTH_SECRET).toBeUndefined();
   });
 
-  it("seed-reset resets the demo (with the web settings it needs), then drains", () => {
+  it("seed-reset resets the demo with the auth secret it is given, then drains", () => {
     const steps = planTask("seed-reset", 100_000, env);
     expect(steps.map((s) => s.step)).toEqual(["seed-reset", "drain"]);
     expect(steps[0]!.args).toEqual([".build/seed-demo.mjs", "--reset"]);

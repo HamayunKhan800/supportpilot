@@ -168,7 +168,7 @@ Key design rules:
 | **M4**   | Knowledge ingestion     | Upload → worker → chunk → embed → HNSW index; retrieval API                                                                      | Ingestion integration tests; retrieval recall baseline recorded      |
 | **M5**   | AI features             | Triage (structured output), streamed RAG drafts with citations, approve/edit/send, failure handling, budgets                     | Unit tests with mocked LLM; fault-injection test; injection test set |
 | **M6**   | AI eval & observability | Golden set, eval runner (manual/nightly in CI to control cost), OTel traces, Sentry, analytics page                              | Eval report with accuracy, recall, latency, and cost numbers         |
-| **M6.6** | Accounts                | Password reset, email verification by code, Google/GitHub sign-in (ADR-0020); email sending switched on at M8                    | Integration + browser tests with an in-memory outbox                 |
+| **M6.6** | Accounts                | Password reset, email verification by code, Google/GitHub sign-in (ADR-0020); email sending switched on with the custom domain   | Integration + browser tests with an in-memory outbox                 |
 | **M7**   | Security review         | Threat-model review, ZAP baseline, CodeQL, dependency/secret scans, ASVS-based checklist                                         | 0 high/critical open, or documented with justification               |
 | **M8**   | Deployment              | Prod (+ staging) environment, migrations in pipeline, backups, alerts, runbook, rollback                                         | Live URL verified by a smoke test in CI                              |
 | **M9**   | Portfolio packaging     | README, diagram, screenshots, 3-min demo video script, case study with _measured_ results, limitations                           | Fresh-clone setup reproduced from the README                         |
@@ -179,13 +179,13 @@ Key design rules:
 
 ## 6. Decisions (approved 2026-10-19)
 
-| Decision     | Choice                                                                                                    |
-| ------------ | --------------------------------------------------------------------------------------------------------- |
-| Project      | **SupportPilot**                                                                                          |
-| Deployment   | **Low-cost containers** + managed Postgres/pgvector; platform picked at M8 (ADR-0008)                     |
-| LLM provider | **Google Gemini API free tier**, plus a deterministic mock provider; provider-agnostic gateway (ADR-0006) |
-| Python       | **Not included**: TypeScript only                                                                         |
-| Owner time   | 5–10 h/week (review, approvals, account setup)                                                            |
+| Decision     | Choice                                                                                                                                                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project      | **SupportPilot**                                                                                                                                                                    |
+| Deployment   | **AWS Lambda** (one container image) + Neon Postgres/pgvector, picked at M8 ([ADR-0021](adr/0021-aws-lambda-deployment.md); first plan [ADR-0008](adr/0008-deployment-low-cost.md)) |
+| LLM provider | **Google Gemini API free tier**, plus a deterministic mock provider; provider-agnostic gateway (ADR-0006)                                                                           |
+| Python       | **Not included**: TypeScript only                                                                                                                                                   |
+| Owner time   | 5–10 h/week (review, approvals, account setup)                                                                                                                                      |
 
 ## 7. Known limitations of this research
 

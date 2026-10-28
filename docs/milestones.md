@@ -717,3 +717,14 @@ Plan step 6, [ADR-0019](adr/0019-evaluation-method.md), [docs/eval/README.md](ev
 - **Found and fixed:** node-postgres ignored `channel_binding=require`; the app now turns on channel binding itself (verified with a stand-in TLS server).
 - **Monitoring:** a weekly uptime check (GitHub Actions, Mondays 11:23 PKT) emails on failure; a $5 AWS budget alert.
 - **Not done yet:** custom domain with CloudFront (stricter TLS policy, HTTP redirect), email sending and Sentry in production.
+
+## M9 · Portfolio presentation: done (2026-10-28)
+
+- **README:** an At a glance section with verified results (test counts from CI run 40644122793, the evaluation, ASVS totals), a live demo button, a 1-minute demo and a What I'd do next list; stale lines fixed (test counts, ADR count, Postgres versions, roadmap).
+- **Screenshots:** 19 retaken on the live demo with real Gemini (desktop light and dark, phone), including a real portal ticket. Gemini triaged it in about 5 seconds and wrote a draft citing 2 articles. A new shot shows triage left for review (90% < 95%). The evaluation dashboard shots are kept from the local Gemini run, because the live database has no evaluation runs.
+- **Architecture:** the README and docs/02 diagrams show the AWS setup (rendered with Mermaid 11 to check the syntax); docs/02 section 7 points to ADR-0021.
+- **Demo video:** a 66-second silent walkthrough recorded on the live site at real speed: customer request, triage, cited draft, approval, the customer's tracking page ([GIF](demo/walkthrough.gif), [MP4](demo/walkthrough.mp4)).
+- **Case study:** [case-study.md](case-study.md), covering the problem, decisions, results, ten things that went wrong and the fixes, and talking points.
+- **Channel binding** (owner approved): the app now turns on node-postgres's `enableChannelBinding` for `channel_binding=require` addresses. With a stand-in TLS server, the app pool, pg-boss and the migration script all chose `SCRAM-SHA-256-PLUS`.
+- **Cleanup:** the crypto inventory shows where live secrets are kept (SSM SecureString) and the database TLS row; leftover "at M8" notes were updated; a stale test title was fixed.
+- **Seen on the live site:** this morning all 35 help articles had failed to index because failed Gemini calls from before the key fix had used up the day's embedding cap. The 12:05 PKT reset re-indexed all 35 in about 2 minutes. Still open: failed attempts shouldn't count against the cap, and a 401 should stop retries at once.

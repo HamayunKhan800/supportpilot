@@ -274,7 +274,7 @@ AI coding assistants were used to build this project, under a written policy: AI
 | Accounts: reset, verification, Google/GitHub | Done (email with the domain) |
 | M7 · Security review                         | Done                         |
 | M8 · Deployment and live demo                | Live; custom domain later    |
-| M9 · Portfolio presentation                  | In progress                  |
+| M9 · Portfolio presentation                  | Done                         |
 
 What was built and verified in each milestone: [milestone log](docs/milestones.md).
 
