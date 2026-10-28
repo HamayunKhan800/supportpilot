@@ -178,6 +178,28 @@ resource "aws_lambda_alias" "worker" {
   function_version = aws_lambda_function.worker[0].version
 }
 
+# ---- rollback target ---------------------------------------------------------------------
+
+# `previous` marks the version that was live before the last release (plan M8 step 5).
+# release.sh moves it to the outgoing `live` version; rollback.sh swaps the two aliases, so a
+# second rollback rolls forward again. Terraform only creates it: after that the scripts own
+# its version, so Terraform ignores changes to it.
+resource "aws_lambda_alias" "previous" {
+  for_each = local.deployed ? local.function_name : {}
+
+  name          = local.previous_alias_name
+  description   = "The version live before the last release (rollback target)."
+  function_name = each.value
+  function_version = (each.key == "web"
+    ? aws_lambda_function.web[0].version
+    : aws_lambda_function.worker[0].version
+  )
+
+  lifecycle {
+    ignore_changes = [function_version]
+  }
+}
+
 # Wake-ups and the schedule invoke asynchronously. One retry covers a passing failure; jobs
 # left in the queue are picked up by the next wake-up anyway.
 resource "aws_lambda_function_event_invoke_config" "worker" {

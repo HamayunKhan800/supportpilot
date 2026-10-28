@@ -11,7 +11,8 @@ locals {
     web    = "supportpilot-web"
     worker = "supportpilot-worker"
   }
-  alias_name = "live"
+  alias_name          = "live"
+  previous_alias_name = "previous"
 
   function_arn = {
     for k, n in local.function_name : k => "arn:aws:lambda:${local.region}:${local.account}:function:${n}"

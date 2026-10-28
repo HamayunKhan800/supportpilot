@@ -2,10 +2,15 @@ name: Deploy
 
 # Builds the arm64 image, pushes it to ECR and releases it to both Lambda functions (plan M8
 # R3, R4): migrate on the new worker version first, then move both `live` aliases, then
-# smoke-test the public address. Started by hand for now (Actions → Deploy → Run workflow);
-# step 5 starts it automatically after CI passes on main. The "production" environment asks
-# the owner to approve before anything touches AWS.
+# smoke-test the public address. Starts by itself when CI passes for a push to main (plan M8
+# step 5), or by hand (Actions → Deploy → Run workflow, e.g. to rebuild the demo). Either way
+# the "production" environment asks the owner to approve before anything touches AWS.
+# Undo a release with the Rollback workflow.
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       seed:
@@ -24,8 +29,55 @@ env:
   AWS_REGION: ap-southeast-2
 
 jobs:
+  # Decides which commit to release, without approval and without AWS. After CI, that is the
+  # commit CI tested (not whatever main points at by then), and only if CI passed for a push
+  # to main in this repository, so pull requests and forks can never start a deploy, and only
+  # if no newer commit has reached main since (its own CI run deploys that one).
+  gate:
+    name: Which commit to release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+      go: ${{ steps.pick.outputs.go }}
+    steps:
+      - name: Pick the commit
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_EVENT: ${{ github.event.workflow_run.event }}
+          RUN_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+        run: |
+          go=true
+          if [[ "$EVENT" == "workflow_run" ]]; then
+            sha="$RUN_SHA"
+            main="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+            if [[ "$RUN_CONCLUSION" != "success" || "$RUN_EVENT" != "push" || "$RUN_REPO" != "$GITHUB_REPOSITORY" ]]; then
+              go=false; echo "CI was ${RUN_CONCLUSION} for a ${RUN_EVENT} from ${RUN_REPO}: nothing to deploy."
+            elif [[ "$sha" != "$main" ]]; then
+              go=false; echo "A newer commit (${main}) is on main; its own CI run will deploy it."
+            fi
+          else
+            sha="$GITHUB_SHA"
+            conclusion="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$sha" \
+              --json conclusion,status --jq '[.[] | select(.status == "completed")][0].conclusion // "none"')"
+            echo "CI for ${sha}: ${conclusion}"
+            [[ "$conclusion" == "success" ]] || { echo "::error::Deploy only commits that passed CI."; exit 1; }
+          fi
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "go=${go}" >> "$GITHUB_OUTPUT"
+          echo "Release ${sha}: ${go}"
+
   deploy:
     name: Build, release, smoke test
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
     # Arm runner (free for public repositories): the image is built natively for the functions'
     # arm64 architecture, no emulation.
     runs-on: ubuntu-24.04-arm
@@ -33,10 +85,9 @@ jobs:
     environment: production
     permissions:
       contents: read
-      actions: read # check that CI passed for this commit
     env:
       AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
-      TAG: sha-${{ github.sha }}
+      TAG: sha-${{ needs.gate.outputs.sha }}
     steps:
       - name: Check the account variable
         run: |
@@ -44,16 +95,9 @@ jobs:
             echo "::error::Set the repository variable AWS_ACCOUNT_ID (the bootstrap script prints it)."
             exit 1
           fi
-      - name: CI passed for this commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          conclusion="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" \
-            --json conclusion,status --jq '[.[] | select(.status == "completed")][0].conclusion // "none"')"
-          echo "CI for ${GITHUB_SHA}: ${conclusion}"
-          [[ "$conclusion" == "success" ]] || { echo "::error::Deploy only commits that passed CI."; exit 1; }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.gate.outputs.sha }}
           persist-credentials: false
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:

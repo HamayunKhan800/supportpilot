@@ -1,0 +1,98 @@
+name: Rollback
+
+# Puts the previous release back on both Lambda functions (plan M8 R3, R9): every release
+# records the versions it replaced in each function's `previous` alias, and this swaps `live`
+# and `previous` (infra/scripts/rollback.sh). Running it again rolls forward. Only aliases
+# move: no build, no migration (migrations are additive, so the older code runs on the newer
+# schema). The "production" environment asks the owner to approve. Runbook: infra/README.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Same group as Deploy: a rollback never runs alongside a release.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-2
+
+jobs:
+  rollback:
+    name: Swap live and previous, smoke test
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          # Same robot key and role as Deploy (github-keys.sh); the role may move aliases.
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/supportpilot/supportpilot-deploy
+          role-skip-session-tagging: true
+          role-session-name: rollback-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      - name: Swap live and previous
+        id: swap
+        run: infra/scripts/rollback.sh
+      - name: Which commit is live now
+        id: live
+        run: |
+          image="$(aws lambda get-function --function-name supportpilot-web --qualifier live \
+            --query Code.ImageUri --output text)"
+          tag="${image##*:}"
+          if [[ ! "$tag" =~ ^sha-[0-9a-f]{40}$ ]]; then
+            echo "::error::Unexpected image tag on the live version: ${tag}" >&2
+            exit 1
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "sha=${tag#sha-}" >> "$GITHUB_OUTPUT"
+          url="$(aws lambda get-function-url-config --function-name supportpilot-web --qualifier live \
+            --query FunctionUrl --output text)"
+          url="${url%/}"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          cold="$(curl -sS -o /dev/null -w '%{http_code} in %{time_total} s' --max-time 60 "${url}/api/health")"
+          echo "First response: ${cold}"
+          echo "cold=${cold}" >> "$GITHUB_OUTPUT"
+      # Smoke-test with the tests of the commit that is now live, not of main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.live.outputs.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Smoke test the live site
+        env:
+          SMOKE_BASE_URL: ${{ steps.live.outputs.url }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -s exec vitest run --project smoke --testTimeout=60000
+      - name: Summary
+        if: always() && steps.swap.outcome == 'success'
+        env:
+          TAG: ${{ steps.live.outputs.tag }}
+          URL: ${{ steps.live.outputs.url }}
+          COLD: ${{ steps.live.outputs.cold }}
+          WEB: ${{ steps.swap.outputs.web_version }}
+          WORKER: ${{ steps.swap.outputs.worker_version }}
+        run: |
+          {
+            echo "### Rolled back to ${TAG}"
+            echo
+            echo "- Live: ${URL}"
+            echo "- Versions: web ${WEB}, worker ${WORKER}"
+            echo "- First response: ${COLD}"
+            echo "- To undo, run Rollback again. Fix forward with a new commit before the next Infrastructure apply."
+          } >> "$GITHUB_STEP_SUMMARY"

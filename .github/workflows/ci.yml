@@ -273,6 +273,9 @@ jobs:
       - name: Bootstrap helper tests (Neon address, GitHub token, Gemini key)
         working-directory: infra/bootstrap
         run: python3 -m unittest -v test_neon_url test_gh_secret test_gemini_key
+      - name: Release and rollback script tests (stand-in AWS CLI)
+        working-directory: infra/scripts
+        run: python3 -m unittest -v test_release_rollback
       # The binary is pinned by checksum instead of using a third-party action.
       - name: Trivy misconfiguration scan
         run: |

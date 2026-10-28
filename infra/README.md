@@ -92,18 +92,28 @@ trivy config --severity MEDIUM,HIGH,CRITICAL .
 
 ## Deploying
 
-[`deploy.yml`](../.github/workflows/deploy.yml) deploys only commits that passed CI, after the owner approves the `production` environment. It runs on GitHub's Arm runner, so the image is built natively for the functions. [`release.sh`](scripts/release.sh) then:
+[`deploy.yml`](../.github/workflows/deploy.yml) starts by itself when CI passes for a push to `main`, and waits for the owner to approve the `production` environment. A small first job, without AWS access, picks the commit CI tested, and skips it if CI failed, if the run came from a pull request or fork, or if a newer commit has reached `main` since (that commit's own CI run deploys it). Started by hand (**Actions → Deploy → Run workflow**, e.g. with **Rebuild the demo workspace**), it deploys the latest `main` if CI passed for it. It runs on GitHub's Arm runner, so the image is built natively for the functions. [`release.sh`](scripts/release.sh) then:
 
 1. publishes a worker version with the new image and runs `migrate` on that version ([`run-task.sh`](scripts/run-task.sh)). If it fails, nothing serving traffic has changed;
 2. publishes a web version;
-3. moves both `live` aliases, then the workflow smoke-tests the public address (12 checks that need no database password; the database smoke tests run in CI).
+3. points each function's `previous` alias at the version that is live now (the rollback target), then moves both `live` aliases. The workflow then smoke-tests the public address (12 checks that need no database password; the database smoke tests run in CI).
 
-The log shows the previous `live` versions, which a rollback needs.
+The script tests ([`test_release_rollback.py`](scripts/test_release_rollback.py), in CI) run both scripts against a stand-in AWS CLI: a failed migration moves no alias, a release records the outgoing versions, a rollback swaps and a second one rolls forward.
 
 ## Rollback
 
-Deploys move the `live` alias to a new version; rolling back moves it to the previous one (plan M8 step 5). A Terraform change to the functions publishes a new version from the image already running and moves `live` to it. So **after a rollback, fix forward before applying infrastructure changes**, or the apply would move `live` forward again.
+Every release leaves the versions it replaced in each function's `previous` alias (plan M8 step 5). To put them back:
+
+1. **Actions → Rollback → Run workflow**, and approve.
+2. [`rollback.sh`](scripts/rollback.sh) swaps `live` and `previous` on both functions, website first, so visitors get the older code within seconds. Nothing is built or migrated.
+3. The workflow reads the commit now live from the image tag, smoke-tests the site with that commit's tests and lists the versions in the summary.
+
+Running **Rollback** again swaps back (roll forward). It refuses, changing nothing, when a function's `previous` is already its `live` version. Both functions always move together, so the website and the worker run the same release.
+
+Older code can run on the newer database because migrations stay additive (the project rule, plan M8 D8): a release that must remove a column or table does it in a later release, once no version that could be rolled back to still uses it.
+
+Rollback shares Deploy's queue, so the two never run at once. A Terraform change to the functions publishes a new version from the image already running and moves `live` to it, so **after a rollback, fix forward (push a fix and let it deploy) before applying infrastructure changes**, or the apply would move `live` forward again.
 
 ## Costs
 
-Expected about $0 a month at demo traffic: Lambda's always-free allowance is 1 million requests and 400,000 GB-seconds a month ([pricing](https://aws.amazon.com/lambda/pricing/)); Parameter Store standard parameters, OIDC and IAM are free, and Scheduler includes 14 million invocations a month ([pricing](https://aws.amazon.com/eventbridge/pricing/)). ECR storage is $0.10 per GB-month ([pricing](https://aws.amazon.com/ecr/pricing/)); its 500 MB allowance belongs to the older 12-month free tier, so the plan assumes it is paid from the credit: 3 images of a few hundred MB come to a few cents. The Budgets alert emails at 50% and 100% of $5, counting usage before credits, since the Free plan's $100 credit would otherwise hide it.
+Expected about $0 a month at demo traffic: Lambda's always-free allowance is 1 million requests and 400,000 GB-seconds a month ([pricing](https://aws.amazon.com/lambda/pricing/)); Parameter Store standard parameters and IAM are free, and Scheduler includes 14 million invocations a month ([pricing](https://aws.amazon.com/eventbridge/pricing/)). ECR storage is $0.10 per GB-month ([pricing](https://aws.amazon.com/ecr/pricing/)); its 500 MB allowance belongs to the older 12-month free tier, so the plan assumes it is paid from the credit: 3 images of a few hundred MB come to a few cents. The Budgets alert emails at 50% and 100% of $5, counting usage before credits, since the Free plan's $100 credit would otherwise hide it.

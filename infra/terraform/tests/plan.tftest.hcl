@@ -59,6 +59,11 @@ run "first_apply_creates_registry_and_roles_only" {
   }
 
   assert {
+    condition     = length(aws_lambda_alias.previous) == 0
+    error_message = "No rollback alias before the functions exist."
+  }
+
+  assert {
     condition     = length(aws_scheduler_schedule.demo_reset) == 0 && length(aws_ssm_parameter.better_auth_url) == 0
     error_message = "The schedule and the address setting need the functions."
   }
@@ -150,6 +155,14 @@ run "functions_are_created_once_an_image_exists" {
 
   variables {
     image_tag = "sha-0123456789abcdef0123456789abcdef01234567"
+  }
+
+  assert {
+    condition = (
+      length(aws_lambda_alias.previous) == 2
+      && alltrue([for k, a in aws_lambda_alias.previous : a.name == "previous" && a.function_name == "supportpilot-${k}"])
+    )
+    error_message = "Both functions need a `previous` alias: the rollback target (infra/scripts/rollback.sh)."
   }
 
   assert {

@@ -175,6 +175,7 @@ describe("GitHub Actions users", () => {
   const cases = [
     { policy: infraUserPolicy, role: "role/supportpilot-infra", workflow: "infra.yml" },
     { policy: deployUserPolicy, role: "role/supportpilot/supportpilot-deploy", workflow: "deploy.yml" },
+    { policy: deployUserPolicy, role: "role/supportpilot/supportpilot-deploy", workflow: "rollback.yml" },
   ];
 
   it("may do nothing but assume their own role", () => {
