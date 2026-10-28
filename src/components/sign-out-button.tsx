@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { useProgressRouter } from "@/lib/use-progress-router";
 
 export function SignOutButton() {
-  const router = useProgressRouter();
   const [pending, setPending] = useState(false);
   return (
     <Button
@@ -15,8 +13,10 @@ export function SignOutButton() {
       onClick={async () => {
         setPending(true);
         await authClient.signOut();
-        router.replace("/sign-in");
-        router.refresh();
+        // A full page load, not a client-side change: the router could still hold pages fetched while
+        // signed in (a soft change to /sign-in sometimes stayed in the app until a refresh), and a
+        // fresh load also clears everything the app kept in memory.
+        window.location.replace("/sign-in");
       }}
     >
       {pending ? "Signing out…" : "Sign out"}
