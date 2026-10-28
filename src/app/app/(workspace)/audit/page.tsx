@@ -53,7 +53,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
             <caption className="sr-only">Audit events</caption>
             <thead className="bg-muted/50 text-muted-foreground text-left text-xs">
               <tr>
-                <th scope="col" className="px-4 py-2 font-medium">
+                <th scope="col" className="hidden px-4 py-2 font-medium sm:table-cell">
                   When
                 </th>
                 <th scope="col" className="px-4 py-2 font-medium">
@@ -70,7 +70,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
                 const extra = detail(e.action, e.metadata);
                 return (
                   <tr key={e.id} className="border-t align-top">
-                    <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
+                    <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap sm:table-cell">
                       <time dateTime={e.createdAt.toISOString()}>{formatDateTime(e.createdAt)}</time>
                     </td>
                     <td className="px-4 py-3">{actorLabel(e)}</td>
@@ -80,6 +80,13 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
                         <div className="min-w-0">
                           <div>{labelFor(e.action)}</div>
                           {extra && <div className="text-muted-foreground break-words">{extra}</div>}
+                          {/* Phones: the time moves here, so "What" keeps room to read. */}
+                          <time
+                            dateTime={e.createdAt.toISOString()}
+                            className="text-muted-foreground mt-1 block text-xs sm:hidden"
+                          >
+                            {formatDateTime(e.createdAt)}
+                          </time>
                         </div>
                       </div>
                     </td>

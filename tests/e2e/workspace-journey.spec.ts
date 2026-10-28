@@ -92,9 +92,9 @@ test("owner sees the agent, can change their role, and sees it in the audit log"
   await expect(page).toHaveURL(/\/app$/);
   await page.goto("/app/members");
   await page.getByLabel("Role for Aaron Agent").selectOption("admin");
-  await expect(page.getByRole("row", { name: /Aaron Agent/ }).locator('[data-slot="badge"]')).toHaveText(
-    "admin",
-  );
+  await expect(
+    page.getByRole("row", { name: /Aaron Agent/ }).locator('[data-slot="badge"]:visible'),
+  ).toHaveText("admin");
   const toasts = page.getByRole("region", { name: "Notifications" });
   await expect(toasts.getByRole("dialog", { name: "Aaron Agent is now an admin" })).toBeVisible();
 

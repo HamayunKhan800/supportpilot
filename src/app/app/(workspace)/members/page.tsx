@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { EmptyState, PageHeader, Section } from "@/components/page";
 import { TableScroll } from "@/components/table-scroll";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { initials } from "@/lib/initials";
 import { getMembersPage } from "@/server/modules/workspaces/service";
@@ -48,7 +49,7 @@ export default async function MembersPage() {
                 <th scope="col" className="px-4 py-2 font-medium">
                   Name
                 </th>
-                <th scope="col" className="px-4 py-2 font-medium">
+                <th scope="col" className="hidden px-4 py-2 font-medium sm:table-cell">
                   Role
                 </th>
                 <th scope="col" className="hidden px-4 py-2 font-medium sm:table-cell">
@@ -77,11 +78,26 @@ export default async function MembersPage() {
                           {m.name}
                           {m.userId === ctx.user.id && <span className="text-muted-foreground"> (you)</span>}
                         </div>
-                        <div className="text-muted-foreground break-all">{m.email}</div>
+                        <div className="text-muted-foreground [overflow-wrap:anywhere]">
+                          {/* Prefer breaking before the @; anywhere else only if a part is too long. */}
+                          {m.email.split("@")[0]}
+                          {m.email.includes("@") && (
+                            <>
+                              <wbr />@{m.email.slice(m.email.indexOf("@") + 1)}
+                            </>
+                          )}
+                        </div>
+                        {/* Phones: the role sits under the email, so the name column keeps its width. */}
+                        <Badge
+                          variant={m.role === "owner" ? "default" : "secondary"}
+                          className={cn("mt-1.5 sm:hidden", ROLE_BADGE[m.role])}
+                        >
+                          {m.role}
+                        </Badge>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 sm:table-cell">
                     <Badge
                       variant={m.role === "owner" ? "default" : "secondary"}
                       className={ROLE_BADGE[m.role]}

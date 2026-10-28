@@ -111,7 +111,7 @@ export function MetricTabs({ label, metrics }: { label: string; metrics: Metric[
                 {m.value}
               </span>
               {m.change && Icon && (
-                <span className="text-muted-foreground flex items-start gap-1 text-xs leading-4">
+                <span className="text-muted-foreground hidden items-start gap-1 text-xs leading-4 sm:flex">
                   <Icon aria-hidden="true" className="mt-px size-3.5 shrink-0" />
                   <span>{m.change.text}</span>
                 </span>
@@ -125,8 +125,12 @@ export function MetricTabs({ label, metrics }: { label: string; metrics: Metric[
         id={`${base}-panel`}
         aria-labelledby={`${base}-tab-${current.id}`}
         // Room above the plot for the tooltip, so it never sits on the tabs.
-        className="px-4 pt-10 pb-4 sm:px-6 sm:pt-12 sm:pb-6"
+        className={cn("px-4 pb-4 sm:px-6 sm:pt-12 sm:pb-6", current.change ? "pt-4" : "pt-10")}
       >
+        {/* Phones: the tabs show label and number only; the chosen one's change sits here. */}
+        {current.change && (
+          <p className="text-muted-foreground mb-6 text-xs sm:hidden">{current.change.text}</p>
+        )}
         <AreaChart key={current.id} {...current.chart} className="h-56 sm:h-72" />
       </div>
     </div>

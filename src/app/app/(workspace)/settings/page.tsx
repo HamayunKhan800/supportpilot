@@ -118,13 +118,13 @@ export default async function AiSettingsPage() {
                 <th scope="col" className="px-3 py-2 text-right font-medium">
                   Calls
                 </th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">
+                <th scope="col" className="hidden px-3 py-2 text-right font-medium sm:table-cell">
                   Tokens in / out
                 </th>
                 <th scope="col" className="px-3 py-2 text-right font-medium">
                   Est. cost
                 </th>
-                <th scope="col" className="min-w-44 px-3 py-2 font-medium">
+                <th scope="col" className="hidden min-w-44 px-3 py-2 font-medium sm:table-cell">
                   Outcomes
                 </th>
               </tr>
@@ -137,13 +137,20 @@ export default async function AiSettingsPage() {
                     {!f.countsTowardBudget && (
                       <span className="text-muted-foreground block text-xs">not counted in the budget</span>
                     )}
+                    {/* Phones: tokens and outcomes move under the name instead of off-screen. */}
+                    <span className="text-muted-foreground mt-0.5 block text-xs tabular-nums sm:hidden">
+                      {int.format(f.inputTokens)} in / {int.format(f.outputTokens)} out ·{" "}
+                      {outcomes(f.outcomes)}
+                    </span>
                   </th>
                   <td className="px-3 py-2 text-right tabular-nums">{int.format(f.calls)}</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">
+                  <td className="hidden px-3 py-2 text-right whitespace-nowrap tabular-nums sm:table-cell">
                     {int.format(f.inputTokens)} / {int.format(f.outputTokens)}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{usd.format(f.estimatedCostUsd)}</td>
-                  <td className="text-muted-foreground px-3 py-2">{outcomes(f.outcomes)}</td>
+                  <td className="text-muted-foreground hidden px-3 py-2 sm:table-cell">
+                    {outcomes(f.outcomes)}
+                  </td>
                 </tr>
               ))}
             </tbody>

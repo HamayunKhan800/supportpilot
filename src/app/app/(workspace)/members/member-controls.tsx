@@ -136,7 +136,7 @@ export function MemberActions({ memberId, name, role }: { memberId: string; name
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end">
         <label htmlFor={id} className="sr-only">
           Role for {name}
         </label>
