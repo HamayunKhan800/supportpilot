@@ -1,8 +1,15 @@
 /**
  * Auth policy constants, kept separate so they can be unit-tested and documented.
- * Sources: NIST SP 800-63B-4 §3.1.1.2 (passwords), docs/01-requirements.md (FR-A2 workspaces, FR-A3 invitations).
+ * Sources: OWASP ASVS 5.0 V6.2 and NIST SP 800-63B-4 §3.1.1.2 (passwords), docs/01-requirements.md (FR-A2 workspaces, FR-A3 invitations).
  */
-export const PASSWORD_MIN_LENGTH = 15; // single-factor passwords (no MFA yet)
+/**
+ * 8 characters: the OWASP ASVS 5.0 minimum (V6.2.1, which strongly recommends 15). Chosen by the
+ * owner (2026-10-28) because 15 put people off signing up. Every new password is also checked
+ * against breached passwords (Have I Been Pwned, V6.2.4/V6.2.12) and product and company words
+ * (V6.2.11), which blocks the common short ones. Known gap: NIST SP 800-63B-4 asks for 15 when a
+ * password is the only sign-in factor, as it is here (no MFA yet).
+ */
+export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128; // NIST: permit at least 64
 
 /**

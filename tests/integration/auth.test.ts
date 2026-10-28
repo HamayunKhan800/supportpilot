@@ -36,17 +36,17 @@ describe("sign-up (FR-A1)", () => {
     expect(Object.keys(second.json).sort()).toEqual(Object.keys(first.json).sort());
   });
 
-  it("enforces the 15-character minimum (NIST SP 800-63B-4)", async () => {
+  it("enforces the 8-character minimum (ASVS V6.2.1)", async () => {
     const c = new TestClient(handler);
     const short = await c.post("/sign-up/email", {
       email: "short@example.com",
-      password: "a".repeat(14),
+      password: "a".repeat(7),
       name: "S",
     });
     expect(short.status).toBe(400);
     const ok = await c.post("/sign-up/email", {
       email: "short@example.com",
-      password: "a".repeat(15),
+      password: "a".repeat(8),
       name: "S",
     });
     expect(ok.status).toBe(200);

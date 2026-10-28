@@ -8,8 +8,8 @@ import {
 } from "@/server/platform/auth/policy";
 
 describe("password policy (NIST SP 800-63B-4 §3.1.1.2)", () => {
-  it("requires 15+ characters and permits at least 64", () => {
-    expect(PASSWORD_MIN_LENGTH).toBe(15);
+  it("requires 8+ characters (ASVS V6.2.1) and permits at least 64", () => {
+    expect(PASSWORD_MIN_LENGTH).toBe(8);
     expect(PASSWORD_MAX_LENGTH).toBeGreaterThanOrEqual(64);
   });
 });

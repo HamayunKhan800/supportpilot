@@ -43,13 +43,13 @@ test("sign-up checks fields when they are left, and measures the password length
   await expect(page.getByText("Enter a valid email address.")).toBeHidden();
 
   const password = page.getByLabel("Password");
-  await password.fill("short pass");
-  await expect(page.getByText("10 of 15 characters")).toBeVisible();
+  await password.fill("short");
+  await expect(page.getByText("5 of 8 characters")).toBeVisible();
   await password.press("Tab");
-  await expect(page.getByText("Use at least 15 characters.")).toBeVisible();
+  await expect(page.getByText("Use at least 8 characters.")).toBeVisible();
   await password.fill("a much longer passphrase");
   await expect(page.getByText("Long enough")).toBeVisible();
-  await expect(page.getByText("Use at least 15 characters.")).toBeHidden();
+  await expect(page.getByText("Use at least 8 characters.")).toBeHidden();
 });
 
 test("wide screens show the form alone in a centred column", async ({ page }) => {
