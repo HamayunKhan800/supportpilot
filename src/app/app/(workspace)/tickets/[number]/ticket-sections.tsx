@@ -193,7 +193,7 @@ function QueueStep({
 
 type QueueItem = Awaited<ReturnType<typeof listTicketsForAgent>>["items"][number];
 
-/** The list beside the ticket on very wide screens (Front / Plain style split view). */
+/** The list beside the ticket when the page area is wide enough (Front / Intercom style split view). */
 export function QueueColumn({
   items,
   current,
@@ -206,7 +206,7 @@ export function QueueColumn({
   now: number;
 }) {
   return (
-    <nav aria-label="Tickets in this list" className="hidden 2xl:block">
+    <nav aria-label="Tickets in this list" className="hidden @min-[70rem]:block">
       <ul className="bg-card sticky top-6 max-h-[calc(100svh-3rem)] divide-y overflow-y-auto rounded-xl border">
         {items.map((i) => {
           const here = i.number === current;

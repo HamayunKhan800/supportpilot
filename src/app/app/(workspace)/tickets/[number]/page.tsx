@@ -65,7 +65,7 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/a
   const nextHref = nav?.next ? ticketHref(nav.next, queue) : null;
 
   return (
-    <div data-wide="xl" className="flex flex-col gap-6">
+    <div data-wide="xl" className="@container flex flex-col gap-6">
       <TicketKeys previousHref={previousHref} nextHref={nextHref} />
       <LiveRefresh key={t.id} notice={customerReplyNotice(t.customerName, messages)} />
       <TicketHeader
@@ -80,9 +80,11 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/a
       <div
         className={cn(
           "grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]",
+          // The list beside the ticket appears when the page area (not the window: the sidebar
+          // may be collapsed) leaves the conversation >= ~33rem: 70rem - 16 - 18 - 2 gaps.
           items.length > 0
-            ? "2xl:grid-cols-[17rem_minmax(0,1fr)_20rem]"
-            : "2xl:grid-cols-[minmax(0,1fr)_20rem]",
+            ? "@min-[70rem]:grid-cols-[16rem_minmax(0,1fr)_18rem] @min-[76rem]:grid-cols-[17rem_minmax(0,1fr)_20rem]"
+            : "@min-[76rem]:grid-cols-[minmax(0,1fr)_20rem]",
         )}
       >
         {items.length > 0 && <QueueColumn items={items} current={t.number} queue={queue} now={d.loadedAt} />}
