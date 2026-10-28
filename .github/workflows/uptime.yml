@@ -1,19 +1,19 @@
 name: Uptime
 
-# Checks the live demo four times a day (plan M8 step 7). When a scheduled run fails, GitHub
-# emails the person who added or last changed the schedule
+# Checks the live demo once a week (plan M8 step 7; weekly by the owner's choice). When a
+# scheduled run fails, GitHub emails the person who added or last changed the schedule
 # (https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs).
 # Rarely on purpose: the readiness check wakes the database, and Neon's free plan bills compute
-# by the hour while it is awake (it sleeps again after 5 idle minutes), so four checks a day
-# keep it asleep almost all the time. GitHub may delay scheduled runs at busy times, and turns
+# by the hour while it is awake (it sleeps again after 5 idle minutes), so a weekly check
+# costs almost nothing. GitHub may delay scheduled runs at busy times, and turns
 # them off in a public repository after 60 days without activity
 # (https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
 # Runbook: docs/runbook.md.
 on:
   schedule:
-    # 05:23, 11:23, 17:23 and 23:23 in Pakistan (UTC+5). Off the hour, when GitHub is busiest,
-    # and clear of the 12:05 demo reset.
-    - cron: "23 0,6,12,18 * * *"
+    # Mondays at 11:23 in Pakistan (UTC+5). Off the hour, when GitHub is busiest, and clear of
+    # the daily demo reset. Run it by hand any time (Actions → Uptime → Run workflow).
+    - cron: "23 6 * * 1"
   workflow_dispatch:
 
 permissions: {}

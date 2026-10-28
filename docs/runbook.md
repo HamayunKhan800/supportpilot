@@ -23,7 +23,7 @@ Times are Pakistan time (PKT, UTC+5). Anything tied to Google's daily quota foll
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Every push to `main`                    | CI and Security. When CI passes, **Deploy** starts and waits for approval, unless only documentation changed since the last release                              |
 | 00:05 Pacific time (12:05 or 13:05 PKT) | The demo reset (EventBridge Scheduler → worker `seed-reset`): the demo workspace is rebuilt, visitor tickets are removed and the help articles are indexed again |
-| 05:23, 11:23, 17:23, 23:23 PKT          | **Uptime** checks the health and readiness endpoints, the landing, sign-in and portal pages. GitHub emails the owner if a run fails                              |
+| Mondays 11:23 PKT                       | **Uptime** checks the health and readiness endpoints, the landing, sign-in and portal pages. GitHub emails the owner if a run fails                              |
 | After each new ticket or upload         | The web function wakes the worker (asynchronous invoke) to triage, draft and index; the worker stops when its queue is empty                                     |
 | Midnight Pacific time                   | The app's own daily AI limits start again: 200 Gemini calls and 800 embeddings for the whole deployment                                                          |
 
