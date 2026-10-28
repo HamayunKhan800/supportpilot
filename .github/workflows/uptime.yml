@@ -1,0 +1,83 @@
+name: Uptime
+
+# Checks the live demo four times a day (plan M8 step 7). When a scheduled run fails, GitHub
+# emails the person who added or last changed the schedule
+# (https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs).
+# Rarely on purpose: the readiness check wakes the database, and Neon's free plan bills compute
+# by the hour while it is awake (it sleeps again after 5 idle minutes), so four checks a day
+# keep it asleep almost all the time. GitHub may delay scheduled runs at busy times, and turns
+# them off in a public repository after 60 days without activity
+# (https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+# Runbook: docs/runbook.md.
+on:
+  schedule:
+    # 05:23, 11:23, 17:23 and 23:23 in Pakistan (UTC+5). Off the hour, when GitHub is busiest,
+    # and clear of the 12:05 demo reset.
+    - cron: "23 0,6,12,18 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Live site answers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      LIVE_URL: ${{ vars.LIVE_URL }}
+    steps:
+      - name: Check pages, health and the database
+        run: |
+          if [[ ! "$LIVE_URL" =~ ^https://[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::Set the repository variable LIVE_URL to the site's https:// address (no trailing slash)."
+            exit 1
+          fi
+          # path | text the answer must contain
+          checks=(
+            '/api/health|"status":"ok"'
+            '/api/ready|"status":"ready"'
+            '/|SupportPilot'
+            '/sign-in|SupportPilot'
+            '/p/nimbus-demo|Nimbus'
+          )
+          failed=0
+          {
+            echo "### Uptime: ${LIVE_URL}"
+            echo
+            echo "| Check | Result | Time |"
+            echo "| --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for check in "${checks[@]}"; do
+            path="${check%%|*}" expect="${check#*|}" result="" took=""
+            # Three tries, 20 s apart: a cold start plus a sleeping database can take a few
+            # seconds, and one slow answer is not an outage.
+            for attempt in 1 2 3; do
+              if out="$(curl -sS --max-time 30 -w '\n%{http_code} %{time_total}' "${LIVE_URL}${path}" 2>&1)"; then
+                read -r code took <<<"$(tail -n 1 <<<"$out")"
+                if [[ "$code" == 200 ]] && grep -qF -- "$expect" <<<"$out"; then
+                  result="ok"; break
+                fi
+                result="HTTP ${code}"
+              else
+                result="no answer"
+              fi
+              [[ "$attempt" == 3 ]] || sleep 20
+            done
+            echo "${path}: ${result} (${took:-?} s)"
+            if [[ "$result" == ok ]]; then
+              echo "| \`${path}\` | ok | ${took} s |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              failed=1
+              echo "::error::${path} failed three times: ${result}"
+              echo "| \`${path}\` | **${result}** | ${took:-?} s |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          if [[ "$failed" == 1 ]]; then
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "What to do: [runbook, site down](https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/runbook.md#the-site-is-down)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$failed"
