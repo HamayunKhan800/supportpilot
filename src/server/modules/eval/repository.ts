@@ -155,6 +155,22 @@ export async function listRecentRuns(
     .limit(limit);
 }
 
+/** One item a run measured as wrong; `result` is the stored JSON, untrusted until parsed. */
+export type EvalMissRow = Pick<EvalItemRow, "suite" | "itemKey" | "result">;
+
+/**
+ * The items a run got wrong, for "what it got wrong" on the dashboard: not passed, and not a
+ * provider failure (an error isn't a wrong answer). Bounded; a full run has 420 items.
+ */
+export async function listMisses(db: Executor, runId: string, limit = 500): Promise<EvalMissRow[]> {
+  return db
+    .select({ suite: evalItem.suite, itemKey: evalItem.itemKey, result: evalItem.result })
+    .from(evalItem)
+    .where(and(eq(evalItem.runId, runId), eq(evalItem.passed, false), eq(evalItem.failed, false)))
+    .orderBy(evalItem.suite, evalItem.itemKey)
+    .limit(limit);
+}
+
 /** How many runs each provider has, so the dashboard can open on the one with results. */
 export async function countRunsByProvider(db: Executor): Promise<Partial<Record<EvalProvider, number>>> {
   const rows = await db

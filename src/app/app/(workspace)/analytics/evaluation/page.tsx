@@ -12,6 +12,7 @@ import { requireAppWorkspace } from "../../workspace-context";
 import { AnalyticsHeader, OptionLinks } from "../analytics-header";
 import { RunComparison } from "./comparison";
 import { LatestRun } from "./latest-run";
+import { Misses } from "./misses";
 import { Block, PROVIDER_LABELS } from "./report-parts";
 import { Trend } from "./trend";
 
@@ -58,7 +59,7 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
     if (err instanceof AppError && err.status === 403) return <Forbidden what="analytics" />;
     throw err;
   }
-  const { provider, runCounts, runs } = overview;
+  const { provider, runCounts, runs, misses } = overview;
   const latest = headlineRun(runs);
 
   return (
@@ -78,6 +79,7 @@ export default async function EvaluationPage({ searchParams }: PageProps<"/app/a
       {latest ? (
         <>
           <LatestRun run={latest.run} newer={latest.newer} />
+          <Misses rows={misses} />
           {runs.length > 1 && <RunComparison newer={runs[0]!} older={runs[1]!} />}
           {runs.length > 1 && <Trend runs={runs} />}
           <AboutNumbers />

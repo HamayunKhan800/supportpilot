@@ -1,5 +1,6 @@
 import type { EvalProvider } from "@/server/modules/eval/constants";
 import * as evalRepo from "@/server/modules/eval/repository";
+import { headlineRun } from "@/server/modules/eval/summary-view";
 import { requireWorkspace } from "@/server/platform/auth/context";
 import { getDb } from "@/server/platform/db/client";
 
@@ -47,6 +48,8 @@ export interface EvaluationOverview {
   runCounts: Partial<Record<EvalProvider, number>>;
   /** Newest first. */
   runs: evalRepo.EvalRunListing[];
+  /** What the headline run (headlineRun) got wrong; empty without runs. */
+  misses: evalRepo.EvalMissRow[];
 }
 
 /**
@@ -62,5 +65,7 @@ export async function getEvaluationOverview(
   const runCounts = await evalRepo.countRunsByProvider(db);
   const provider = requested ?? ((runCounts.gemini ?? 0) > 0 ? "gemini" : "mock");
   const runs = await evalRepo.listRecentRuns(db, provider, EVAL_TREND_RUNS);
-  return { provider, runCounts, runs };
+  const headline = headlineRun(runs)?.run;
+  const misses = headline ? await evalRepo.listMisses(db, headline.id) : [];
+  return { provider, runCounts, runs, misses };
 }

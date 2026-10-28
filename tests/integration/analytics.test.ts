@@ -11,7 +11,7 @@ import { generateTrackingToken } from "@/server/modules/tickets/tracking-token";
 import { wilson } from "@/server/modules/eval/stats";
 import { getAuth } from "@/server/platform/auth";
 import { getDb } from "@/server/platform/db/client";
-import { aiDraft, aiUsage, evalRun, ticket, ticketTriage } from "@/server/platform/db/schema";
+import { aiDraft, aiUsage, evalItem, evalRun, ticket, ticketTriage } from "@/server/platform/db/schema";
 import { transaction } from "@/server/platform/db/tx";
 import { AppError } from "@/server/platform/errors";
 import { stopWebBoss } from "@/server/platform/jobs/boss";
@@ -413,6 +413,7 @@ describe("evaluation overview", () => {
       provider: "mock",
       runCounts: {},
       runs: [],
+      misses: [],
     });
   });
 
@@ -439,6 +440,29 @@ describe("evaluation overview", () => {
     }
     // Asking for mock still shows mock.
     expect((await getEvaluationOverview(owner.headers, "mock")).runs).toHaveLength(1);
+  });
+
+  it("lists what the headline run got wrong: not passed items, not provider failures, not other runs", async () => {
+    const complete = await run("mock", 3);
+    const newerPartial = await run("mock", 1, { status: "stopped", finishedAt: null });
+    const item = (runId: string, itemKey: string, passed: boolean, failed: boolean) => ({
+      runId,
+      suite: "triage" as const,
+      itemKey,
+      passed,
+      failed,
+      result: { key: itemKey },
+    });
+    await db()
+      .insert(evalItem)
+      .values([
+        item(complete, "tri-001", true, false),
+        item(complete, "tri-002", false, false),
+        item(complete, "tri-003", false, true),
+        item(newerPartial, "tri-004", false, false),
+      ]);
+    const { misses } = await getEvaluationOverview(owner.headers, "mock");
+    expect(misses).toEqual([{ suite: "triage", itemKey: "tri-002", result: { key: "tri-002" } }]);
   });
 
   it(`shows at most the last ${EVAL_TREND_RUNS} runs`, async () => {
