@@ -14,7 +14,7 @@ import {
 
 /**
  * A thin bar along the top edge while a page change is in progress. It appears only after
- * 120 ms, creeps towards the end while waiting, then fills and fades when the new URL lands.
+ * 120 ms, sweeps while waiting (busy, not a percentage), then fades when the new URL lands.
  * Purely visual (aria-hidden): Next.js already announces the new page title to screen readers.
  * Styling lives in globals.css because the CSP forbids inline styles.
  */

@@ -208,10 +208,11 @@
 
 /*
  * Page-change progress bar (src/components/navigation-progress.tsx, design step 8.1).
- * Hidden for the first 120 ms so fast page changes show nothing; then it creeps towards 90%
- * (ease-out, so it moves most at the start), and fills and fades when the page lands.
- * Only transform and opacity animate. Under reduced motion the global rule above makes the
- * creep jump straight to its end: a still bar that simply appears and disappears.
+ * Hidden for the first 120 ms so fast page changes show nothing. It then shows a short segment
+ * sweeping across the top edge: a "working" signal, not a percentage, because nothing measures
+ * how far the page load has got (an earlier version crept towards 90%, which read as real
+ * progress). When the page lands it fades out. Only transform and opacity animate.
+ * Reduced motion: a still full-width line that fades in and out; no sweep.
  */
 @layer components {
   .nav-progress {
@@ -219,19 +220,28 @@
     inset: 0 0 auto 0;
     z-index: 100;
     height: 2px;
-    background: var(--primary);
-    transform-origin: left center;
-    transform: scaleX(0);
+    overflow: hidden;
     opacity: 0;
     pointer-events: none;
   }
+  .nav-progress::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 30%;
+    background: var(--primary);
+    transform: translateX(-100%);
+  }
   .nav-progress[data-nav-progress="loading"] {
-    animation:
-      nav-progress-show 150ms ease-out 120ms both,
-      nav-progress-creep 8s cubic-bezier(0.08, 0.7, 0.2, 1) 120ms both;
+    animation: nav-progress-show 150ms ease-out 120ms both;
   }
   .nav-progress[data-nav-progress="done"] {
-    animation: nav-progress-done 320ms ease-out both;
+    animation: nav-progress-done 200ms ease-out both;
+  }
+  .nav-progress[data-nav-progress="loading"]::before,
+  .nav-progress[data-nav-progress="done"]::before {
+    /* From off the left edge to off the right edge: 100% / 30% of the width, plus its own. */
+    animation: nav-progress-sweep 1.2s cubic-bezier(0.65, 0, 0.35, 1) 120ms infinite;
   }
   @keyframes nav-progress-show {
     from {
@@ -241,26 +251,37 @@
       opacity: 1;
     }
   }
-  @keyframes nav-progress-creep {
+  @keyframes nav-progress-done {
     from {
-      transform: scaleX(0.08);
+      opacity: 1;
     }
     to {
-      transform: scaleX(0.9);
+      opacity: 0;
     }
   }
-  @keyframes nav-progress-done {
-    0% {
-      transform: scaleX(1);
-      opacity: 1;
+  @keyframes nav-progress-sweep {
+    from {
+      transform: translateX(-100%);
     }
-    60% {
-      transform: scaleX(1);
-      opacity: 1;
+    to {
+      transform: translateX(333.4%);
     }
-    100% {
-      transform: scaleX(1);
-      opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-progress::before {
+      width: 100%;
+      transform: none;
+    }
+    .nav-progress[data-nav-progress="loading"]::before,
+    .nav-progress[data-nav-progress="done"]::before {
+      animation: none;
+    }
+    /* The fades are kept (opacity only). Layered !important outranks the global 0.01ms rule. */
+    .nav-progress[data-nav-progress="loading"] {
+      animation-duration: 150ms !important;
+    }
+    .nav-progress[data-nav-progress="done"] {
+      animation-duration: 200ms !important;
     }
   }
 
