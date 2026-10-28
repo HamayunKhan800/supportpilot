@@ -114,7 +114,8 @@ function MessageItem({ m, customerName, last }: { m: Message; customerName: stri
         tone={internal ? "warning" : customer ? "neutral" : "brand"}
         className="relative mt-1"
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      {/* Capped at the reading measure: long emails stay near 70 characters a line. */}
+      <div className="max-w-measure flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
           <span className="font-medium">
             {who}

@@ -128,7 +128,7 @@ export default async function DocumentPage({ params }: PageProps<"/app/knowledge
                   </span>
                 </div>
                 {/* Untrusted text: rendered as text by React, never as HTML. */}
-                <p className="text-muted-foreground text-sm leading-relaxed break-words whitespace-pre-wrap">
+                <p className="text-muted-foreground max-w-measure text-sm leading-relaxed break-words whitespace-pre-wrap">
                   {c.content}
                 </p>
               </li>

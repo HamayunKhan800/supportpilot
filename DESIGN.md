@@ -37,6 +37,11 @@ typography:
     fontWeight: 400
     lineHeight: 1.1
     letterSpacing: "-0.015em"
+  bar-title:
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 600
+    lineHeight: 1.5
   page-title:
     fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.5rem"
@@ -185,10 +190,15 @@ grotesque that does the daily work.
 - **Display** (Newsreader 400, 2.5 / 3.5 / 4.5 / 5rem at base / sm / lg / xl, 1.05, -0.02em): the
   landing hero only. Its footnote numbers are Geist 500 at 0.36em (never under 14px).
 - **Headline** (Newsreader 400, 1.875rem → 2.5–2.75rem, 1.1–1.15, -0.015em): landing sections.
-- **Page title** (Geist 600, 24/32): one per app page.
+- **Bar title** (Geist 600, 16/24): the h1 of list, settings and admin pages, set in the top bar
+  beside the breadcrumb (`PageHeader`). Compact on purpose: those pages are frames for their
+  tables and forms, which carry the weight.
+- **Page title** (Geist 600, 24/32; 20/28 on phones for tickets): the h1 of a page about one
+  item, the ticket subject or the knowledge article title.
 - **Title** (Geist 600, 20/28) and card titles (Geist 500, 14/20).
-- **Body** (Geist 400, 14/20 in the app; 16/24 large on the landing). Descriptions are capped at
-  52ch (`max-w-measure`).
+- **Body** (Geist 400, 14/20 in the app; 16/24 large on the landing). Descriptions, ticket
+  messages and knowledge passages are capped at 52ch (`max-w-measure`, about 70 Geist
+  characters).
 - **Small** (13/18) and **Label** (12/16, 500). Nothing smaller than 12px in the app (11px only
   inside the landing page's miniature product mock).
 
