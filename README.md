@@ -6,7 +6,18 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 [![Security](https://github.com/HamayunKhan800/supportpilot/actions/workflows/security.yml/badge.svg)](https://github.com/HamayunKhan800/supportpilot/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> **Status:** open-source portfolio project, built one tested milestone at a time. **[Live demo](https://uvum4mohfhovga35knouyzhqmi0wkxnr.lambda-url.ap-southeast-2.on.aws)** on AWS Lambda with real Gemini models ([how to sign in](#live-demo)); a custom domain and email sending come next. It also runs locally with a few commands ([Quick start](#quick-start-local)), and a built-in mock AI means it works fully offline, with no API key.
+[![Open the live demo](https://img.shields.io/badge/Open_the_live_demo-1a1a1d?style=for-the-badge)](https://uvum4mohfhovga35knouyzhqmi0wkxnr.lambda-url.ap-southeast-2.on.aws)
+
+> Live on AWS Lambda with real Gemini models: sign in with a [public demo account](#live-demo). It also runs locally with a few commands and a built-in offline AI, no API key needed ([Quick start](#quick-start-local)). Open-source portfolio project, built one tested milestone at a time. **Short on time?** Read the [case study](docs/case-study.md).
+
+## At a glance
+
+- **What it is:** a multi-tenant help desk. AI labels each new ticket and drafts replies from the company's own help articles, with citations. A person approves every reply.
+- **AI quality, measured on real Gemini models:** the right article in the top 5 for 99.1% of 110 questions, the right triage category for 94.0% of 150 tickets, 100% of 133 citations pointing at a real passage, and all 20 prompt-injection attacks resisted ([evaluation](#evaluation-real-gemini-models)).
+- **Tested:** 1,444 unit tests (96% of lines covered), 565 integration tests on real PostgreSQL and 130 browser tests with accessibility scans in both themes. CI runs them all on every push.
+- **Security:** self-reviewed against OWASP ASVS 5.0 Level 2: 183 requirements pass, 9 pass in part and 2 fail as documented accepted risks. No High or Critical findings ([security](#security)).
+- **Deployed as code:** Terraform on AWS Lambda (Sydney) with Neon PostgreSQL. After CI passes, one approval releases a new version with database migrations and smoke tests; a one-click rollback was tested both ways ([infrastructure](infra/README.md)).
+- **Built with AI coding assistants, checked by tests and official docs** ([policy](CONTRIBUTING.md#ai-assisted-development-policy)).
 
 ![A ticket in SupportPilot: the conversation, an AI draft citing two help articles, and the AI triage card waiting for review](docs/screenshots/app/ticket-light.png)
 
@@ -14,7 +25,7 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 
 ## Contents
 
-- [Live demo](#live-demo)
+- [At a glance](#at-a-glance) · [Live demo](#live-demo)
 - [What it does](#what-it-does)
 - [Engineering highlights](#engineering-highlights)
 - [Screenshots](#screenshots)
@@ -23,7 +34,7 @@ AI-assisted customer support. SupportPilot triages new tickets and drafts replie
 - [Tech stack](#tech-stack)
 - [Security](#security)
 - [Testing and CI](#testing-and-ci)
-- [Limitations](#limitations)
+- [Limitations](#limitations) · [What I'd do next](#what-id-do-next)
 - [Roadmap](#roadmap)
 - [Quick start (local)](#quick-start-local) · [Scripts](#scripts) · [Configuration](#configuration) · [API](#operational-endpoints)
 - [Documentation](#documentation)
@@ -149,21 +160,21 @@ flowchart LR
   5. The agent edits, previews and approves the reply. It is sent as a public reply and recorded in the audit log.
 - **When a ticket arrives:** a background job labels it. The label is applied only if confidence ≥ the workspace threshold and no person has set that field. Otherwise it shows as _Needs review_.
 
-More detail: [architecture](docs/02-architecture.md) (data model, API contract, flows) and [19 architecture decision records](docs/adr/).
+More detail: [architecture](docs/02-architecture.md) (data model, API contract, flows) and [21 architecture decision records](docs/adr/).
 
 ## Tech stack
 
-| Area       | Choice                                                                     | Why                                                                                      |
-| ---------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Language   | TypeScript (strict), Node.js 24 LTS                                        | One language from database to browser; the most-used language on GitHub (Octoverse 2025) |
-| Web        | Next.js 16 (App Router), React 19                                          | Server rendering, route handlers and streaming in one framework                          |
-| Data       | PostgreSQL 17 + pgvector, Drizzle ORM, SQL migrations                      | Relational data, vectors and the job queue in one database                               |
-| Auth       | Better Auth                                                                | Database sessions, organisations and roles; NIST SP 800-63B-4 password rules             |
-| AI         | Vercel AI SDK, Google Gemini; a deterministic mock                         | Structured output and streaming; the mock keeps tests and local work offline and free    |
-| UI         | Tailwind CSS 4, shadcn/ui on Base UI primitives, Geist fonts (self-hosted) | Accessible primitives on a small design system of its own tokens                         |
-| Validation | Zod                                                                        | One schema for API input, AI output and environment variables                            |
-| Quality    | Vitest, Playwright + axe, ESLint, Prettier                                 | Unit, integration on a real database, browser tests with accessibility scans             |
-| Ops        | Docker, GitHub Actions, pino, OpenTelemetry, Sentry                        | Reproducible image, pinned CI, logs and traces without customer data                     |
+| Area       | Choice                                                                      | Why                                                                                      |
+| ---------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Language   | TypeScript (strict), Node.js 24 LTS                                         | One language from database to browser; the most-used language on GitHub (Octoverse 2025) |
+| Web        | Next.js 16 (App Router), React 19                                           | Server rendering, route handlers and streaming in one framework                          |
+| Data       | PostgreSQL + pgvector (17 locally, 18 on Neon), Drizzle ORM, SQL migrations | Relational data, vectors and the job queue in one database                               |
+| Auth       | Better Auth                                                                 | Database sessions, organisations and roles; NIST SP 800-63B-4 password rules             |
+| AI         | Vercel AI SDK, Google Gemini; a deterministic mock                          | Structured output and streaming; the mock keeps tests and local work offline and free    |
+| UI         | Tailwind CSS 4, shadcn/ui on Base UI primitives, Geist fonts (self-hosted)  | Accessible primitives on a small design system of its own tokens                         |
+| Validation | Zod                                                                         | One schema for API input, AI output and environment variables                            |
+| Quality    | Vitest, Playwright + axe, ESLint, Prettier                                  | Unit, integration on a real database, browser tests with accessibility scans             |
+| Ops        | AWS Lambda, Terraform, Docker, GitHub Actions, pino, OpenTelemetry, Sentry  | Scales to zero, infrastructure as code, pinned CI, logs and traces without customer data |
 
 The research behind these choices, with sources: [docs/00](docs/00-research-and-plan.md).
 
@@ -201,17 +212,17 @@ The research behind these choices, with sources: [docs/00](docs/00-research-and-
 
 Threat model: [docs/03](docs/03-threat-model.md) (STRIDE, OWASP Top 10:2025, OWASP LLM Top 10 2026). Known gaps with mitigations and revisit dates: [accepted risks](docs/security/accepted-risks.md). Reporting a vulnerability: [SECURITY.md](SECURITY.md).
 
-**Security review (M7).** Checked against [OWASP ASVS 5.0.0 Level 2](docs/security/asvs-l2.md): of 253 requirements, 174 pass, 8 partial, 2 fail (both accepted risks), 10 wait for deployment and 59 don't apply. It found 22 issues, none High or Critical; 19 are fixed or documented, 2 are accepted (no two-factor sign-in yet; a cookie-name rule the auth library doesn't support) and 1 waits for deployment. It was done by the developer with AI help, not by an independent tester. Full report: [m7-review.md](docs/security/m7-review.md).
+**Security review (M7).** Checked against [OWASP ASVS 5.0.0 Level 2](docs/security/asvs-l2.md): of 253 requirements, 183 pass, 9 partial, 2 fail (both accepted risks) and 59 don't apply; the 10 that needed a live site were checked on it in M8. It found 22 issues, none High or Critical; 19 are fixed or documented, 2 are accepted (no two-factor sign-in yet; a cookie-name rule the auth library doesn't support) and 1 was closed once the site was live. It was done by the developer with AI help, not by an independent tester. Full report: [m7-review.md](docs/security/m7-review.md).
 
 ## Testing and CI
 
-| Layer         | What runs                                                                                                                                                                                                                                                |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit          | 1,242 tests. Coverage thresholds: 80% lines, functions and statements, and 75% branches.                                                                                                                                                                 |
-| Integration   | 508 tests on real PostgreSQL + pgvector: services, the REST API, tenancy, the job worker, and the prompt-injection set.                                                                                                                                  |
-| End to end    | 15 Playwright suites on desktop and mobile Chromium against the production build: 63 pass, and 6 are skipped by design (desktop-only or mobile-only checks). They include axe scans in both themes, 20 visual baselines and a keyboard-only walkthrough. |
-| AI evaluation | The full evaluation with the mock AI on every push, with floors. The Gemini run is manual only, behind a protected environment.                                                                                                                          |
-| Pipeline      | Lint with zero warnings, strict typecheck, formatting, production build and smoke tests, a fail-fast config check, a Docker build with container smoke tests (non-root, HEALTHCHECK), and the security scans above.                                      |
+| Layer         | What runs                                                                                                                                                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit          | 1,444 tests, covering 96% of lines. Coverage thresholds: 80% lines, functions and statements, and 75% branches.                                                                                                                                                             |
+| Integration   | 565 tests on real PostgreSQL + pgvector: services, the REST API, tenancy, the job worker, and the prompt-injection set.                                                                                                                                                     |
+| End to end    | 20 Playwright suites on desktop and mobile Chromium against the production build: 130 pass, and 10 are skipped by design (desktop-only or mobile-only checks). They include axe scans in both themes, visual comparisons and a keyboard-only walkthrough.                   |
+| AI evaluation | The full evaluation with the mock AI on every push, with floors. The Gemini run is manual only, behind a protected environment.                                                                                                                                             |
+| Pipeline      | Lint with zero warnings, strict typecheck, formatting, production build and smoke tests, a fail-fast config check, a Docker build with container smoke tests (non-root, HEALTHCHECK), Terraform tests, and the security scans above. On `main`, an approved deploy follows. |
 
 AI coding assistants were used to build this project, under a written policy: AI output is a draft, every change must pass typecheck, lint and tests, and framework APIs are checked against official docs ([CONTRIBUTING.md](CONTRIBUTING.md#ai-assisted-development-policy)).
 
@@ -227,24 +238,32 @@ AI coding assistants were used to build this project, under a written policy: AI
   - Existing workspaces keep the threshold they had saved.
   - Prompt v2 was measured on the same 150 tickets whose labelling rubric it was written from, with one run on one model.
 - **The Gemini free tier may use inputs to improve Google's products,** so use demo data only.
-- **Email is built but not switched on:** password reset and email verification are tested against an in-memory outbox and turn on at deployment (M8), once a domain can be verified for sending. Until then they're hidden, and invite and tracking links are copied and shared by hand.
+- **Email is built but not switched on:** password reset and email verification are tested against an in-memory outbox and turn on with the custom domain, once it can be verified for sending. Until then they're hidden, and invite and tracking links are copied and shared by hand.
 - **English-only interface**; the AI detects the customer's language.
 - **Scale:** one region and a single database. Per-IP limits need a trusted proxy ([AR-004](docs/security/accepted-risks.md)).
 
+## What I'd do next
+
+1. **Custom domain behind CloudFront:** a stricter TLS policy (no CBC ciphers), a redirect from HTTP to HTTPS, and the real visitor IP for per-IP rate limits ([AR-004](docs/security/accepted-risks.md)).
+2. **Switch on email** (Resend) for password resets, verification and reply notifications. The code and its tests already exist.
+3. **Two-factor sign-in** for owners and admins (accepted risk AR-007).
+4. **Check the AI grader against people:** have humans rate a sample of drafts, so groundedness is no longer graded by AI alone.
+5. **Measure triage again on new tickets** to confirm the 0.95 threshold, and add error tracking and alarms to the live site beyond the weekly uptime check.
+
 ## Roadmap
 
-| Milestone                                    | Status                      |
-| -------------------------------------------- | --------------------------- |
-| M0–M2 · Foundation, accounts, workspaces     | Done                        |
-| M3 · Ticketing and customer portal           | Done                        |
-| M4 · Knowledge base and search               | Done                        |
-| M5 · AI triage and cited drafts              | Done                        |
-| M6 · Evaluation and observability            | Finishing (baseline done)   |
-| Design system                                | Done                        |
-| Accounts: reset, verification, Google/GitHub | Done (email sending at M8)  |
-| M7 · Security review                         | Done                        |
-| M8 · Deployment and live demo                | Live; domain and email next |
-| M9 · Portfolio presentation                  | Planned                     |
+| Milestone                                    | Status                       |
+| -------------------------------------------- | ---------------------------- |
+| M0–M2 · Foundation, accounts, workspaces     | Done                         |
+| M3 · Ticketing and customer portal           | Done                         |
+| M4 · Knowledge base and search               | Done                         |
+| M5 · AI triage and cited drafts              | Done                         |
+| M6 · Evaluation and observability            | Done                         |
+| Design system                                | Done                         |
+| Accounts: reset, verification, Google/GitHub | Done (email with the domain) |
+| M7 · Security review                         | Done                         |
+| M8 · Deployment and live demo                | Live; custom domain later    |
+| M9 · Portfolio presentation                  | In progress                  |
 
 What was built and verified in each milestone: [milestone log](docs/milestones.md).
 

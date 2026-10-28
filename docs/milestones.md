@@ -492,7 +492,7 @@ Plan: [`docs/plans/m5-ai-features.md`](plans/m5-ai-features.md), approved 2026-1
 | 95  | **The draft model was overloaded during the smoke run.** Between 09:05 and 09:30 PKT, `gemini-3.8-flash` answered 3 of 23 requests; the rest got 503 "high demand" or no answer in time, while `gemini-3.5-flash-lite` answered every request in about a second. The gateway failed safely (clear retryable message, circuit opened after 5 failures), but drafting was unavailable for as long as the model was overloaded.             | ADR-0016: a draft falls back once to Flash-Lite when the first model fails on Google's side before any text arrives. Never on a 429 (that would get round the project's rate limits), a rejected request, invalid output, a cancellation or the workspace's own limits. Each attempt is checked, counted and costed separately, with a circuit breaker per model. In the next run 16 of 19 drafts came from the fallback, all correct. |
 | 96  | **The 15-second "first chunk" timeout didn't apply while Google held a request.** Drafts took up to 65 s, one waited 38 s for a 32-token answer. In `ai` 7.0.142 the timer starts only after the provider begins its HTTP response (`await callLanguageModel()` runs before `startFirstChunkTimeout()`), so a queued request waits for the 60 s total limit. The mock tests didn't catch it because mock streams always respond at once. | The gateway runs its own deadline from sending the request to the first text; on expiry the call is a timeout (so the fallback takes over after 15 s). A new test holds the request before any response, as Google did; it fails without the fix.                                                                                                                                                                                      |
 
-## M6 · AI evaluation and observability: in progress
+## M6 · AI evaluation and observability: done (2026-10-24)
 
 Plan: [`docs/plans/m6-evaluation.md`](plans/m6-evaluation.md), approved 2026-10-23.
 
@@ -626,7 +626,7 @@ Plan D10, FR-AN1.
 | 125 | **`?days=07` was accepted as 7 days.** The period was converted to a number before matching, so `07` also meant 7: two URLs for one page, which only matters for caching and analytics, but the rule was meant to be exact. Found by the new unit tests before commit. | The value is compared as text against `7`, `30` and `90`; anything else shows the default 30 days.                                                      |
 | 126 | **Development errors reached the owner's Sentry.** `next dev` loads `.env.local`, where the DSN lived for the step 4 check, so an aborted request during a local run was reported (tagged `local`, scrubbed like production).                                          | Documented in [docs/observability.md](observability.md): run with `SENTRY_DSN=` or keep the DSN out of `.env.local`. Local runs for this step unset it. |
 
-### Step 6: the Gemini run and report (in progress)
+### Step 6: the Gemini run and report (2026-10-23 to 24)
 
 Plan step 6, [ADR-0019](adr/0019-evaluation-method.md), [docs/eval/README.md](eval/README.md).
 
@@ -707,3 +707,13 @@ Plan step 6, [ADR-0019](adr/0019-evaluation-method.md), [docs/eval/README.md](ev
 - Tests: unit 1381, integration 543, browser 118 passed (10 skipped on purpose); ZAP baseline exit code 0.
 - A production-only bug in the M7-01 fix (sign-up 500) was caught by the browser tests before commit.
 - Not tested: anything on a live deployment (M8), and no independent tester.
+
+## M8 · Deployment: live (2026-10-28; custom domain later)
+
+- Plan and full change log: [m8-deployment](plans/m8-deployment.md). Decision: [ADR-0021](adr/0021-aws-lambda-deployment.md). Operations: [runbook](runbook.md), [infrastructure](../infra/README.md).
+- **Where it runs:** AWS Lambda in Sydney (a web function and a worker function from one image) with Neon PostgreSQL 18, set up with Terraform. Secrets live in SSM Parameter Store. The app scales to zero when idle.
+- **How it ships:** after CI passes on `main`, one approval in the `production` environment publishes the worker, runs migrations, publishes the web function, then runs 12 smoke tests on the live site. Rollback swaps the live and previous versions; it was run both ways (8 to 7, then back to 8).
+- **Checked on the live site:** TLS 1.2 and 1.3 only, HSTS, request-smuggling probes refused, TRACE refused (closes M7-11), and the app's database connection refuses a wrong host or a self-signed certificate. The 10 ASVS rows that needed a live site are filled in: 183 pass, 9 partial, 2 fail (accepted risks).
+- **Found and fixed:** node-postgres ignored `channel_binding=require`; the app now turns on channel binding itself (verified with a stand-in TLS server).
+- **Monitoring:** a weekly uptime check (GitHub Actions, Mondays 11:23 PKT) emails on failure; a $5 AWS budget alert.
+- **Not done yet:** custom domain with CloudFront (stricter TLS policy, HTTP redirect), email sending and Sentry in production.
