@@ -46,7 +46,7 @@ Each idea is adopted because it solves a problem above. We take inspiration, not
 
 - **Colour:** generated in OKLCH from `--accent-hue`, `--accent-chroma` and a `contrast` mode. 12-step roles for `gray`, `accent`, `success`, `warning`, `danger` and `info`. These map onto the existing shadcn tokens (`--primary`, `--muted`, `--border`, `--ring`, `--chart-1..5`, `--sidebar-*`), so all current components restyle without rewrites.
 - **Contrast tested in code:** a unit test computes WCAG contrast for every text/background pair in both themes and fails CI below 4.5:1 for text and 3:1 for UI borders and focus rings.
-- **Type:** Geist Sans 400/500/600 and Geist Mono 400/500. Scale: 12/16 label, 13/18 small, 14/20 body, 16/24 large, 20/28 title, 24/32 page heading, 32/40 marketing only.
+- **Type:** Geist Sans 400/500/600 and Geist Mono 400/500. Scale: 12/16 label, 13/18 small, 14/20 body, 16/24 large, 20/28 title, 24/32 page heading, 32/40 marketing only. Landing-page display headings use Newsreader 400 (OFL, self-hosted, optical sizing; added 2026-10-28); the app stays Geist.
 - **Spacing:** a 4 px grid. **Radius:** 6 px controls, 8 px cards, 12 px floating layers.
 - **Motion:** 120–200 ms ease-out for menus and panels only, and none with `prefers-reduced-motion`.
 - **Charts:** 5 distinct, colour-blind-safer hues taken from the status and accent scales, plus direct labels, so colour is never the only cue.

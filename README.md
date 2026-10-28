@@ -175,17 +175,17 @@ More detail: [architecture](docs/02-architecture.md) (data model, API contract, 
 
 ## Tech stack
 
-| Area       | Choice                                                                      | Why                                                                                      |
-| ---------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Language   | TypeScript (strict), Node.js 24 LTS                                         | One language from database to browser; the most-used language on GitHub (Octoverse 2025) |
-| Web        | Next.js 16 (App Router), React 19                                           | Server rendering, route handlers and streaming in one framework                          |
-| Data       | PostgreSQL + pgvector (17 locally, 18 on Neon), Drizzle ORM, SQL migrations | Relational data, vectors and the job queue in one database                               |
-| Auth       | Better Auth                                                                 | Database sessions, organisations and roles; NIST SP 800-63B-4 password rules             |
-| AI         | Vercel AI SDK, Google Gemini; a deterministic mock                          | Structured output and streaming; the mock keeps tests and local work offline and free    |
-| UI         | Tailwind CSS 4, shadcn/ui on Base UI primitives, Geist fonts (self-hosted)  | Accessible primitives on a small design system of its own tokens                         |
-| Validation | Zod                                                                         | One schema for API input, AI output and environment variables                            |
-| Quality    | Vitest, Playwright + axe, ESLint, Prettier                                  | Unit, integration on a real database, browser tests with accessibility scans             |
-| Ops        | AWS Lambda, Terraform, Docker, GitHub Actions, pino, OpenTelemetry, Sentry  | Scales to zero, infrastructure as code, pinned CI, logs and traces without customer data |
+| Area       | Choice                                                                                                     | Why                                                                                      |
+| ---------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Language   | TypeScript (strict), Node.js 24 LTS                                                                        | One language from database to browser; the most-used language on GitHub (Octoverse 2025) |
+| Web        | Next.js 16 (App Router), React 19                                                                          | Server rendering, route handlers and streaming in one framework                          |
+| Data       | PostgreSQL + pgvector (17 locally, 18 on Neon), Drizzle ORM, SQL migrations                                | Relational data, vectors and the job queue in one database                               |
+| Auth       | Better Auth                                                                                                | Database sessions, organisations and roles; NIST SP 800-63B-4 password rules             |
+| AI         | Vercel AI SDK, Google Gemini; a deterministic mock                                                         | Structured output and streaming; the mock keeps tests and local work offline and free    |
+| UI         | Tailwind CSS 4, shadcn/ui on Base UI primitives, Geist, plus Newsreader for landing headings (self-hosted) | Accessible primitives on a small design system of its own tokens                         |
+| Validation | Zod                                                                                                        | One schema for API input, AI output and environment variables                            |
+| Quality    | Vitest, Playwright + axe, ESLint, Prettier                                                                 | Unit, integration on a real database, browser tests with accessibility scans             |
+| Ops        | AWS Lambda, Terraform, Docker, GitHub Actions, pino, OpenTelemetry, Sentry                                 | Scales to zero, infrastructure as code, pinned CI, logs and traces without customer data |
 
 The research behind these choices, with sources: [docs/00](docs/00-research-and-plan.md).
 

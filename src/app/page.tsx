@@ -1,5 +1,6 @@
 import { BookOpen, Check, History, RefreshCw, Settings2, Undo2, Users } from "lucide-react";
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { Fragment } from "react";
@@ -143,7 +144,23 @@ const navLink =
 const textLink =
   "text-foreground decoration-foreground/30 hover:decoration-foreground rounded-sm underline underline-offset-4 transition-colors";
 const container = "mx-auto w-full max-w-6xl px-4 sm:px-6";
-const h2 = "text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-[2.5rem] sm:leading-[1.1]";
+const h2 =
+  "font-display text-3xl font-normal tracking-[-0.015em] text-balance sm:text-[2.5rem] sm:leading-[1.1]";
+/**
+ * Newsreader (SIL Open Font License, src/app/fonts/Newsreader-OFL.txt) for the landing page's
+ * display headings only; body text and the app stay Geist. One 57 KB Latin file, regular weight,
+ * with the optical-size axis so large headings use the display cut. Self-hosted, so
+ * `font-src 'self'` holds; the metric-matched Times New Roman fallback limits reflow on load.
+ */
+const newsreader = localFont({
+  src: "./fonts/newsreader-latin-400.woff2",
+  weight: "400",
+  style: "normal",
+  display: "swap",
+  variable: "--font-newsreader",
+  fallback: ["ui-serif", "Georgia", "Times New Roman", "serif"],
+  adjustFontFallback: "Times New Roman",
+});
 const lead = "text-muted-foreground text-base leading-relaxed text-pretty sm:text-lg";
 
 /** The Handoff mark drawn as two outlines, large and faint: the closing section's backdrop. */
@@ -272,7 +289,7 @@ export default async function Home() {
         </div>
       </LandingHeader>
 
-      <main id="main" className="flex-1">
+      <main id="main" className={cn(newsreader.variable, "flex-1")}>
         {/* Hero */}
         <section
           data-theme="dark"
@@ -285,7 +302,7 @@ export default async function Home() {
           <div className={cn(container, "relative pt-16 sm:pt-24 lg:pt-28")}>
             <HeroHeadline
               id="hero-heading"
-              className="max-w-4xl text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.035em] text-balance sm:text-[3.25rem] lg:max-w-none lg:text-[4rem]"
+              className="font-display max-w-4xl text-[2.5rem] leading-[1.05] font-normal tracking-[-0.02em] text-balance sm:text-[3.25rem] lg:max-w-none lg:text-[4rem]"
             >
               <span className="sr-only">{HEADLINE_A + HEADLINE_B}</span>
               <span aria-hidden="true">
@@ -351,7 +368,7 @@ export default async function Home() {
             <h2
               id="problem-heading"
               data-reveal
-              className="max-w-4xl text-3xl leading-[1.15] font-semibold tracking-[-0.03em] text-balance sm:text-[2.75rem]"
+              className="font-display max-w-4xl text-3xl leading-[1.15] font-normal tracking-[-0.015em] text-balance sm:text-[2.75rem]"
             >
               Most answers already exist in your help centre.{" "}
               <span className="text-muted-foreground">
@@ -587,7 +604,7 @@ export default async function Home() {
             <h2
               id="start-heading"
               data-reveal
-              className="max-w-3xl text-4xl leading-[1.05] font-semibold tracking-[-0.04em] text-balance sm:text-6xl"
+              className="font-display max-w-3xl text-4xl leading-[1.05] font-normal tracking-[-0.02em] text-balance sm:text-6xl"
             >
               Put your help centre to work.
             </h2>
