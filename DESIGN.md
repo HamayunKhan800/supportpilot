@@ -294,5 +294,8 @@ carries its citations. No grid, glow, dot field or stat row: the measured figure
 results table, and the product appears straight after the hero, inside the first screen: the
 hero is sized to its content, not to the screen. The headline rises and sharpens once on load
 (two lines, 700 ms, the second 100 ms later) and then stays still, as on Linear and Attio; it
-replaced a typing loop and its pause button (2026-10-28). Browser surfaces (selection, caret,
+replaced a typing loop and its pause button (2026-10-28). The product picture is the real ticket
+screen, still and at its true size, with a cited draft waiting for approval (`hero-ticket.tsx`); it
+replaced a self-playing demo (owner's choice, 2026-10-28), as Linear, Plain and Front show their
+real product still in the first screen. Browser surfaces (selection, caret,
 scrollbars, checkbox and radio accent) take the ink palette.

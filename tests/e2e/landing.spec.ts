@@ -1,10 +1,9 @@
-import type { Page } from "@playwright/test";
 import { audit, expect, test } from "./fixtures";
 
 /**
  * The landing page (docs/design/landing.md): calls to action, section links, the workflow tabs,
  * scroll reveals (and their absence with reduced motion), no sideways scrolling on a phone, and
- * no Content Security Policy violations from the new styles, and the live demo in the hero.
+ * no Content Security Policy violations from the new styles, and the still product picture under the hero.
  */
 
 test("the calls to action lead to sign-up and sign-in", async ({ page, isMobile }) => {
@@ -152,57 +151,20 @@ test("the page fits a phone screen and keeps the CSP clean", async ({ page }) =>
   expect(violations).toEqual([]);
 });
 
-test.describe("the live demo in the hero", () => {
-  const demo = (page: Page) =>
-    page.getByRole("group", { name: /^Interactive demo of the SupportPilot inbox/ });
-
-  test("plays by itself: a new ticket arrives and gets a draft", async ({ page }) => {
-    await page.goto("/");
-    await demo(page).scrollIntoViewIfNeeded();
-    await expect(page.getByText("Playing. Click anything to take over.")).toBeVisible();
-    // The script brings in #129 and drafts a reply to it.
-    await expect(
-      demo(page).getByText("Can I add a second admin to our plan?").filter({ visible: true }).first(),
-    ).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(
-      demo(page).getByText("Reply sent to Daniel Kim.").filter({ visible: true }).first(),
-    ).toBeVisible({ timeout: 20_000 });
-  });
-
-  test("the visitor can take over, approve a draft and see a refusal", async ({ page, isMobile }) => {
-    await page.goto("/");
-    await demo(page).getByRole("button", { name: "Approve & send" }).click();
-    await expect(page.getByText(/^Your turn:/)).toBeVisible();
-    await expect(
-      demo(page).getByText("Reply sent to Priya Shah.").filter({ visible: true }).first(),
-    ).toBeVisible();
-
-    // The Portuguese request: triage isn't confident enough, and no article answers it.
-    const pick = isMobile
-      ? demo(page).getByRole("button", { name: /^#130/ })
-      : demo(page).getByRole("button", { name: /Vocês vendem licença vitalícia/ });
-    await pick.click();
-    await expect(demo(page).getByText("Needs review").filter({ visible: true }).first()).toBeVisible();
-    await demo(page).getByRole("button", { name: "Generate draft" }).click();
-    await expect(demo(page).getByText(/^No article is close enough to this question/)).toBeVisible();
-
-    await page.getByRole("button", { name: "Replay" }).click();
-    await expect(page.getByText("Playing. Click anything to take over.")).toBeVisible();
-  });
-
-  test("can be paused, and waits for the visitor with reduced motion", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Pause", exact: true }).click();
-    await expect(page.getByText("Paused. Press play, or try it yourself.")).toBeVisible();
-
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
-    await page.waitForTimeout(3500);
-    await expect(demo(page).getByText("Can I add a second admin to our plan?")).toHaveCount(0);
-  });
+test("the product picture under the hero is the real ticket screen, still and captioned", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const figure = page.getByRole("figure").filter({ hasText: "The ticket screen, with sample data" });
+  await expect(
+    figure.getByText(/^The ticket screen, with sample data: the AI draft cites two help articles/),
+  ).toBeVisible();
+  // A picture, not a demo: hidden from assistive technology, nothing to focus or click.
+  const picture = figure.locator("[aria-hidden=true]").first();
+  await expect(picture.getByText("Approve & send")).toBeVisible();
+  await expect(picture.getByText("Every citation matches a source")).toBeVisible();
+  await expect(picture.locator("a, button, input, textarea, [tabindex]")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^(Pause|Play|Replay)$/ })).toHaveCount(0);
 });
 
 test.describe("the hero headline", () => {

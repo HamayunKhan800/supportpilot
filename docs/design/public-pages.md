@@ -27,7 +27,8 @@ logo ("Handoff": a circle passing to a square) is an original SVG.
   grid that brighten and lift around the pointer (a slow drift without one) and a few lights
   travelling along the grid lines. It starts when the browser is idle, pauses off screen and in
   background tabs, draws nothing with reduced motion, and is hidden from assistive technology.
-  Below it, `hero-live.tsx` plays the real inbox flow and lets the visitor take over.
+  Below it, `hero-ticket.tsx`: the real ticket screen, still, at true size, with sample data
+  (it replaced a self-playing demo of the inbox on 2026-10-28).
 - **Sections** (how it works, guardrails, the customer's side, team tools, evaluation,
   engineering): each a working fragment of the product rather than a screenshot. Section headings
   sharpen from a blur as they scroll in; the main cards carry a soft light on the border that

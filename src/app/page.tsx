@@ -9,7 +9,7 @@ import { ApiSample } from "@/components/marketing/landing/api-sample";
 import { CustomerSide } from "@/components/marketing/landing/customer-side";
 import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
-import { HeroLive } from "@/components/marketing/landing/hero-live";
+import { HeroTicket } from "@/components/marketing/landing/hero-ticket";
 import { LandingHeader } from "@/components/marketing/landing/landing-header";
 import { MobileMenu } from "@/components/marketing/landing/mobile-menu";
 import { Reveal } from "@/components/marketing/landing/reveal";
@@ -331,7 +331,7 @@ export default async function Home() {
         {/* The product, straight after the claims: the first picture on the page. */}
         <div className="pt-16 sm:pt-20">
           <div className={container}>
-            <HeroLive />
+            <HeroTicket />
             <div className="flex flex-col gap-4 border-t py-10 sm:flex-row sm:items-center sm:gap-10">
               <p className="text-muted-foreground shrink-0 text-sm">Built with</p>
               <ul className="flex flex-wrap gap-x-7 gap-y-2 text-[15px] font-medium tracking-tight">
