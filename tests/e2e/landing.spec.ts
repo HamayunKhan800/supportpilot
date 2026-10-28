@@ -219,6 +219,18 @@ test.describe("the hero headline", () => {
     await expect(heading).toHaveAttribute("data-type-phase", "type");
   });
 
+  test("its footnote numbers link to the sources under it", async ({ page }) => {
+    await page.goto("/");
+    const heading = page.getByRole("heading", { level: 1 });
+    await heading.getByRole("link", { name: "Source 1" }).click();
+    await expect(page).toHaveURL(/#source-1$/);
+    await expect(page.getByRole("list", { name: "Sources" }).getByRole("listitem").first()).toContainText(
+      "133 of 133 citations",
+    );
+    await heading.getByRole("link", { name: "Source 2" }).click();
+    await expect(page).toHaveURL(/#source-2$/);
+  });
+
   test("with reduced motion it stays still and shows no button", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");

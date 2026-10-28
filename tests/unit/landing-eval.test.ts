@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { rangeBarClasses } from "@/components/marketing/landing/eval-results";
-import { HERO_FACTS, LANDING_METRICS } from "@/lib/landing";
+import { HERO_FOOTNOTES, LANDING_METRICS } from "@/lib/landing";
 
 describe("landing evaluation bars", () => {
   it.each(LANDING_METRICS.map((m) => [m.label, m] as const))("%s has a class for every position", (_, m) => {
@@ -22,17 +22,16 @@ describe("landing evaluation bars", () => {
   });
 });
 
-describe("hero facts", () => {
-  it("take the evaluation numbers from the results table and link to public evidence", () => {
-    const retrieval = LANDING_METRICS.find((m) => m.label.startsWith("Right help article"))!;
-    const injection = LANDING_METRICS.find((m) => m.label.startsWith("Prompt-injection"))!;
-    expect(HERO_FACTS[0]!.value).toBe(retrieval.result);
-    expect(HERO_FACTS[1]).toMatchObject({
-      value: injection.result,
-      label: "of 20 prompt-injection attacks resisted",
-    });
-    expect(injection.n).toBe("20 attacks");
-    for (const f of HERO_FACTS)
-      expect(f.href).toMatch(/^https:\/\/github\.com\/HamayunKhan800\/supportpilot\/blob\/main\/docs\//);
+describe("hero footnotes", () => {
+  it("state the citation result from the results table and link to their evidence", () => {
+    const citations = LANDING_METRICS.find((m) => m.label.startsWith("Citations"))!;
+    expect(citations).toMatchObject({ result: "100%", n: "133 citations" });
+    expect(HERO_FOOTNOTES[0]!.text).toContain(
+      "133 of 133 citations pointed at a passage the model was given",
+    );
+    expect(HERO_FOOTNOTES.map((f) => f.id)).toEqual(["source-1", "source-2"]);
+    expect(HERO_FOOTNOTES[0]!.link.href).toMatch(
+      /^https:\/\/github\.com\/HamayunKhan800\/supportpilot\/blob\/main\/docs\//,
+    );
   });
 });

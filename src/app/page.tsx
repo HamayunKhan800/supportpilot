@@ -1,5 +1,5 @@
 import { BookOpen, Check, History, RefreshCw, Settings2, Undo2, Users } from "lucide-react";
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -9,7 +9,6 @@ import { ApiSample } from "@/components/marketing/landing/api-sample";
 import { CustomerSide } from "@/components/marketing/landing/customer-side";
 import { EvalResults } from "@/components/marketing/landing/eval-results";
 import { Guardrails } from "@/components/marketing/landing/guardrails";
-import { HeroField } from "@/components/marketing/landing/hero-field";
 import { HeroHeadline } from "@/components/marketing/landing/hero-headline";
 import { HeroLive } from "@/components/marketing/landing/hero-live";
 import { LandingHeader } from "@/components/marketing/landing/landing-header";
@@ -26,15 +25,15 @@ import {
   ARCHITECTURE_URL,
   EVAL_METHOD_URL,
   EVAL_REPORT_URL,
-  HERO_FACTS,
+  ASVS_URL,
+  HERO_FOOTNOTES,
   LANDING_METRICS_NOTE,
   REPO_URL,
 } from "@/lib/landing";
-import { parseThemePreference, THEME_COLORS, THEME_COOKIE } from "@/lib/theme";
+import { parseThemePreference, THEME_COOKIE } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /** The hero at the top is always dark, so the address bar is too, whatever the theme. */
-export const viewport: Viewport = { themeColor: THEME_COLORS.dark };
 
 export const metadata: Metadata = {
   title: { absolute: "SupportPilot · Support replies drafted by AI, approved by your team" },
@@ -122,6 +121,7 @@ const ENGINEERING = [
   "Unit, integration and browser tests with axe accessibility checks in CI",
   "OpenTelemetry traces for every AI call, structured logs and Sentry",
   "Rate-limited sign-in, validated input and hardened headers",
+  "Self-reviewed against OWASP ASVS 5.0 Level 2: 183 of 194 applicable checks pass",
 ];
 
 const FOOTER_PRODUCT = [
@@ -240,6 +240,24 @@ const CHAR_INDEX = [
 /** A short pause after "AI," before the second half, as a person typing would. */
 const LINE_B_OFFSET = "[--o:37]";
 
+/**
+ * A footnote number in the headline: a real link to the source under the waterline (typeset after
+ * the punctuation, as footnotes are). The hit area is at least 24 px (WCAG 2.5.8).
+ */
+function FootnoteRef({ n }: { n: number }) {
+  return (
+    <sup className="ml-[0.04em] align-super font-sans text-[max(0.36em,0.875rem)] leading-none font-medium">
+      <a
+        href={`#source-${n}`}
+        aria-label={`Source ${n}`}
+        className="inline-flex min-h-6 min-w-6 items-center justify-start rounded-sm tabular-nums underline-offset-4 hover:underline"
+      >
+        {n}
+      </a>
+    </sup>
+  );
+}
+
 function TypedChars({ text, last = false }: { text: string; last?: boolean }) {
   return Array.from(text).map((ch, i) => (
     <span
@@ -297,92 +315,79 @@ export default async function Home() {
           below it (WCAG 2.2 2.4.11); globals.css does the same for narrow screens app-wide. */}
       <main
         id="main"
-        data-fixed-theme-color
         className={cn(newsreader.variable, "flex-1 [&_:is(a,button,input,summary)]:scroll-mt-20")}
       >
-        {/* Hero */}
+        {/* Hero: the waterline. The headline's claims carry footnote numbers, as a drafted reply
+            carries its sources; the footnotes sit under the seam (DESIGN.md, "The Cited Draft"). */}
         <section
-          data-theme="dark"
           aria-labelledby="hero-heading"
-          className="land-band text-foreground relative -mt-16 overflow-clip pt-16"
+          className="relative isolate -mt-16 flex min-h-svh flex-col overflow-hidden pt-16"
         >
-          <div aria-hidden="true" className="land-grid pointer-events-none absolute inset-0" />
-          <div aria-hidden="true" className="land-glow pointer-events-none absolute inset-0" />
-          <HeroField />
-          <div className={cn(container, "relative pt-16 sm:pt-24 lg:pt-28")}>
+          <div
+            data-theme="dark"
+            className={cn(container, "relative flex flex-1 flex-col pt-20 sm:pt-28 lg:pt-32")}
+          >
             <HeroHeadline
               id="hero-heading"
-              className="font-display max-w-4xl text-[2.5rem] leading-[1.05] font-normal tracking-[-0.02em] text-balance sm:text-[3.25rem] lg:max-w-none lg:text-[4rem]"
+              labelledBy="hero-sentence"
+              className="font-display text-[2.5rem] leading-[1.05] font-normal tracking-[-0.02em] sm:text-[3.5rem] lg:text-[4.5rem] xl:text-[5rem]"
             >
-              <span className="sr-only">{HEADLINE_A + HEADLINE_B}</span>
-              <span aria-hidden="true">
-                <TypedChars text={HEADLINE_A} />
-                <span className={cn("text-muted-foreground lg:block", LINE_B_OFFSET)}>
+              <span id="hero-sentence" className="sr-only">
+                {HEADLINE_A + HEADLINE_B}
+              </span>
+              {/* Line one stays in the page's colours inside the dark-themed hero. */}
+              <span className="text-foreground block pb-[0.16em] text-balance [--foreground:var(--page-foreground)]">
+                <span aria-hidden="true">
+                  <TypedChars text={HEADLINE_A.trimEnd()} />
+                </span>
+                <FootnoteRef n={1} />
+              </span>
+              <span className="hero-water text-foreground block pt-[0.2em] text-balance">
+                <span aria-hidden="true" className="hero-water-fill" />
+                <span aria-hidden="true" className={LINE_B_OFFSET}>
                   <TypedChars text={HEADLINE_B} last />
                 </span>
+                <FootnoteRef n={2} />
               </span>
             </HeroHeadline>
-            <div className="mt-7">
-              <div className="flex max-w-2xl flex-col gap-7">
-                <p className={lead}>
-                  SupportPilot sorts each new ticket, finds the help articles that answer it and drafts a
-                  reply that cites them. Nothing reaches a customer until an agent approves it.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    href="/sign-up"
-                    className={buttonVariants({ size: "lg", className: "h-11 px-5 text-[15px]" })}
+
+            <div className="flex flex-1 flex-col justify-end gap-10 pt-14 pb-12 sm:pb-16 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+              <ol aria-label="Sources" className="grid max-w-3xl gap-6 text-sm sm:grid-cols-2 sm:gap-10">
+                {HERO_FOOTNOTES.map((f, i) => (
+                  <li
+                    key={f.id}
+                    id={f.id}
+                    className="target:ring-foreground/25 -m-2 flex scroll-mt-24 gap-3 rounded-md p-2 leading-relaxed target:ring-1"
                   >
-                    Create a workspace
-                  </Link>
-                  <a
-                    href={REPO_URL}
-                    className={buttonVariants({
-                      size: "lg",
-                      variant: "outline",
-                      className: "border-foreground/20 h-11 bg-transparent px-5 text-[15px]",
-                    })}
-                  >
-                    View the source on GitHub
-                  </a>
-                </div>
+                    <span className="text-foreground font-medium tabular-nums">{i + 1}</span>
+                    <p className="text-muted-foreground text-pretty">
+                      {f.text}{" "}
+                      <a href={f.link.href} className={textLink}>
+                        {f.link.label}
+                      </a>
+                    </p>
+                  </li>
+                ))}
+              </ol>
+              <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3">
+                <Link
+                  href="/sign-up"
+                  className={buttonVariants({ size: "lg", className: "h-11 px-5 text-[15px]" })}
+                >
+                  Create a workspace
+                </Link>
+                <a href={REPO_URL} className={cn(textLink, "text-[15px]")}>
+                  View the source on GitHub
+                </a>
               </div>
             </div>
+          </div>
+        </section>
 
-            <ul
-              aria-label="Facts, each with its evidence"
-              className="border-foreground/15 mt-12 grid grid-cols-2 border-t lg:grid-cols-4"
-            >
-              {HERO_FACTS.map((f, i) => (
-                <li
-                  key={f.label}
-                  className={cn(
-                    "border-foreground/15 flex",
-                    i % 2 === 1 && "border-l",
-                    i >= 2 && "border-t lg:border-t-0",
-                    i === 2 && "lg:border-l",
-                  )}
-                >
-                  <a
-                    href={f.href}
-                    className="group/fact focus-visible:ring-ring flex w-full flex-col gap-1 rounded-sm px-4 py-5 outline-none focus-visible:ring-2 sm:px-6"
-                  >
-                    <span className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
-                      {f.value}
-                    </span>
-                    <span className="text-muted-foreground group-hover/fact:text-foreground text-sm leading-snug transition-colors">
-                      {f.label}
-                      <span aria-hidden="true">{"\u00a0"}↗</span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-12 sm:mt-14">
-              <HeroLive />
-            </div>
-
+        {/* The product, straight after the claims: the first picture on the page. */}
+        <div className="pt-16 sm:pt-20">
+          <div className={container}>
+            <HeroLive />
             <div className="flex flex-col gap-4 border-t py-10 sm:flex-row sm:items-center sm:gap-10">
               <p className="text-muted-foreground shrink-0 text-sm">Built with</p>
               <ul className="flex flex-wrap gap-x-7 gap-y-2 text-[15px] font-medium tracking-tight">
@@ -394,7 +399,7 @@ export default async function Home() {
               </ul>
             </div>
           </div>
-        </section>
+        </div>
 
         {/* The problem, and what changes */}
         <section aria-labelledby="problem-heading" className="py-24 sm:py-32">
@@ -613,6 +618,9 @@ export default async function Home() {
                 </a>
                 <a href={ARCHITECTURE_URL} className={textLink}>
                   Architecture
+                </a>
+                <a href={ASVS_URL} className={textLink}>
+                  Security review
                 </a>
               </p>
             </div>

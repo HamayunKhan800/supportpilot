@@ -31,10 +31,13 @@ type Phase = "type" | "erase" | "still";
 export function HeroHeadline({
   id,
   className,
+  labelledBy,
   children,
 }: {
   id: string;
   className: string;
+  /** Id of the element holding the full sentence, when the heading also contains links. */
+  labelledBy?: string;
   children: ReactNode;
 }) {
   const [phase, setPhase] = useState<Phase>("type");
@@ -72,7 +75,13 @@ export function HeroHeadline({
 
   return (
     <>
-      <h1 ref={headingRef} id={id} className={className} data-type-phase={paused ? "still" : phase}>
+      <h1
+        ref={headingRef}
+        id={id}
+        aria-labelledby={labelledBy}
+        className={className}
+        data-type-phase={paused ? "still" : phase}
+      >
         {children}
       </h1>
       <button

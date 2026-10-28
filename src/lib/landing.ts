@@ -78,31 +78,34 @@ const metric = (prefix: string) => {
   return m;
 };
 
-/** One fact in the row under the hero: a checkable number, what it means, and where the proof is. */
-export interface HeroFact {
-  value: string;
-  label: string;
-  href: string;
+/** A footnote under the hero's waterline: what the headline's claim rests on, and where to check it. */
+export interface HeroFootnote {
+  /** Fragment id the headline's superscript number links to. */
+  id: string;
+  text: string;
+  link: { label: string; href: string };
 }
 
+const citations = metric("Citations");
+const citationCount = citations.n.replace(/\D/g, "");
+
 /**
- * The row of facts under the landing hero (after the usage numbers on Langfuse's home page, but
- * only facts with public evidence: no customer logos, users or reviews, which the project doesn't
- * have). The evaluation numbers are read from LANDING_METRICS so they can't drift apart; the ASVS
- * count is the summary table of docs/security/asvs-l2.md (183 pass of 194 applicable: 9 partial,
- * 2 accepted risks).
+ * The hero's footnotes ("The Cited Draft", DESIGN.md): the headline's two claims carry numbers, as
+ * a drafted reply carries its sources, and these say what each claim rests on. The citation count
+ * is read from LANDING_METRICS, so the hero and the results table can't drift apart.
  */
-export const HERO_FACTS: HeroFact[] = [
+export const HERO_FOOTNOTES: HeroFootnote[] = [
   {
-    value: metric("Right help article").result,
-    label: "right help article in the top five search results",
-    href: EVAL_REPORT_URL,
+    id: "source-1",
+    text:
+      citations.result === "100%"
+        ? `Every draft cites the help-article passages it is based on. In our public test, ${citationCount} of ${citationCount} citations pointed at a passage the model was given.`
+        : `Every draft cites the help-article passages it is based on. In our public test, ${citations.result} of ${citations.n} pointed at a passage the model was given.`,
+    link: { label: "Evaluation report", href: EVAL_REPORT_URL },
   },
   {
-    value: metric("Prompt-injection").result,
-    label: `of ${metric("Prompt-injection").n.replace("attacks", "prompt-injection attacks")} resisted`,
-    href: EVAL_REPORT_URL,
+    id: "source-2",
+    text: "Nothing reaches a customer until an agent approves it. When your help centre has no answer, the AI declines instead of guessing.",
+    link: { label: "How it works", href: "#how-it-works" },
   },
-  { value: "420", label: "labelled test items, run on real Gemini models", href: EVAL_METHOD_URL },
-  { value: "183 of 194", label: "applicable OWASP ASVS Level 2 checks pass", href: ASVS_URL },
 ];

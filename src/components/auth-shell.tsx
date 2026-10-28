@@ -12,7 +12,6 @@ import { REPO_URL } from "@/lib/landing";
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative isolate flex min-h-svh flex-1 flex-col overflow-hidden">
-      <div aria-hidden="true" className="land-grid auth-backdrop pointer-events-none absolute inset-0" />
       <HeroField quiet className="auth-backdrop" />
       <header className="relative px-5 py-5 sm:px-8">
         <Logo />

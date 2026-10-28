@@ -89,14 +89,13 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
         </svg>
       </button>
       {/* Rendered at the top of the page: the header's backdrop blur would otherwise make it the
-          containing block of this fixed panel. Same dark ink as the header. */}
+          containing block of this fixed panel. Same page colours as the header. */}
       {open &&
         createPortal(
           <div
             ref={panel}
             id={id}
-            data-theme="dark"
-            className="menu-in text-foreground fixed inset-x-0 top-16 bottom-0 z-40 flex flex-col overflow-y-auto bg-[var(--band-bg)] px-5 pt-2 pb-8"
+            className="menu-in text-foreground bg-background fixed inset-x-0 top-16 bottom-0 z-40 flex flex-col overflow-y-auto px-5 pt-2 pb-8"
           >
             <nav aria-label="Main" className="flex flex-col">
               <ul className="flex flex-col">

@@ -3,9 +3,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 /**
- * The landing page's sticky header. As on Vercel and Linear, it is see-through with no divider
- * while the page is at the top (the hero's background runs up behind it), so it reads as part of
- * the hero; the frosted background and the bottom border appear
+ * The landing page's sticky header. It is see-through with no divider while the page is at the
+ * top (it sits on the hero's paper field, so it reads as part of the page); the frosted background and the bottom border appear
  * only once the page scrolls under it. Sets `data-scrolled` directly (no re-render per scroll).
  */
 export function LandingHeader({ children }: { children: ReactNode }) {
@@ -23,8 +22,7 @@ export function LandingHeader({ children }: { children: ReactNode }) {
   return (
     <header
       ref={ref}
-      data-theme="dark"
-      className="landing-header text-foreground data-[scrolled]:border-border data-[scrolled]:glass-bar sticky top-0 z-40 border-b border-transparent transition-[border-color] duration-200 ease-out data-[scrolled]:[--glass-alpha:88%] data-[scrolled]:[--glass-base:var(--band-bg)] motion-reduce:transition-none"
+      className="landing-header text-foreground data-[scrolled]:border-border data-[scrolled]:glass-bar sticky top-0 z-40 border-b border-transparent transition-[border-color] duration-200 ease-out data-[scrolled]:[--glass-alpha:88%] data-[scrolled]:[--glass-base:var(--background)] motion-reduce:transition-none"
     >
       {children}
     </header>
