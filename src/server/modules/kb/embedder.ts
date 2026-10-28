@@ -1,6 +1,7 @@
 import { createGoogle } from "@ai-sdk/google";
 import { APICallError, embedMany, InvalidResponseDataError, RetryError, TypeValidationError } from "ai";
 
+import { apiKeyGuardedFetch, UnsendableApiKeyError } from "@/server/modules/ai/api-key";
 import { EMBEDDING_DIMENSIONS } from "@/server/platform/db/schema";
 
 import { IngestError } from "./ingest-errors";
@@ -177,6 +178,8 @@ export interface GeminiEmbedderOptions {
 export function classifyEmbeddingError(err: unknown): IngestError {
   if (err instanceof IngestError) return err;
   const last = RetryError.isInstance(err) ? err.lastError : err;
+  // A damaged key: nothing was sent, and retrying can't help.
+  if (last instanceof UnsendableApiKeyError) return new IngestError("embedding_rejected", { cause: last });
   // The API answered, but not with what was asked for (wrong count, malformed body).
   if (InvalidResponseDataError.isInstance(last) || TypeValidationError.isInstance(last)) {
     return new IngestError("embedding_invalid", { cause: last });
@@ -194,7 +197,8 @@ export function classifyEmbeddingError(err: unknown): IngestError {
 
 export function createGeminiEmbedder(options: GeminiEmbedderOptions): Embedder {
   const dimensions = options.dimensions ?? EMBEDDING_DIMENSIONS;
-  const google = createGoogle({ apiKey: options.apiKey, ...(options.fetch ? { fetch: options.fetch } : {}) });
+  const fetch = apiKeyGuardedFetch(options.apiKey, options.fetch);
+  const google = createGoogle({ apiKey: options.apiKey, ...(fetch ? { fetch } : {}) });
   const model = google.embedding(GEMINI_EMBEDDING_MODEL);
 
   async function embed(values: string[], signal?: AbortSignal): Promise<number[][]> {
@@ -241,38 +245,53 @@ export function embeddingCostMicros(modelId: string, tokens: number): number {
  * Reserves one unit per text against a daily cap before the provider is called (plan M8
  * step 2), so a public demo can't use up the provider's free daily embedding quota. When the
  * texts don't fit, nothing is sent and the call fails with `embedding_daily_limit`.
+ *
+ * With `release`, a call the provider rejected (`embedding_rejected`: a damaged or invalid key,
+ * a bad request) gives its units back, so a configuration fault can't use up the day. Failures
+ * that may have reached the provider's quota (429, 5xx, timeouts) stay counted, so the cap
+ * still bounds retries.
  */
 export function withDailyEmbeddingCap(
   embedder: Embedder,
   reserve: (texts: number) => Promise<boolean>,
+  release?: (texts: number) => Promise<void>,
 ): Embedder {
-  const ensure = async (texts: number) => {
+  const capped = async <T>(texts: number, call: () => Promise<T>): Promise<T> => {
     if (!(await reserve(texts))) throw new IngestError("embedding_daily_limit");
+    try {
+      return await call();
+    } catch (err) {
+      if (release && err instanceof IngestError && err.code === "embedding_rejected") {
+        await release(texts).catch(() => {}); // best effort: the original error matters more
+      }
+      throw err;
+    }
   };
   return {
     modelId: embedder.modelId,
     similarityFloor: embedder.similarityFloor,
     async embedDocuments(items, signal) {
-      if (items.length > 0) await ensure(items.length);
-      return embedder.embedDocuments(items, signal);
+      if (items.length === 0) return embedder.embedDocuments(items, signal);
+      return capped(items.length, () => embedder.embedDocuments(items, signal));
     },
     async embedQuery(query, signal) {
-      await ensure(1);
-      return embedder.embedQuery(query, signal);
+      return capped(1, () => embedder.embedQuery(query, signal));
     },
   };
 }
 
 /**
  * Chooses the embedder from validated settings (AI_PROVIDER, GEMINI_API_KEY). With `dailyCap`,
- * Gemini calls count against it; the offline mock costs nothing and is never capped.
+ * Gemini calls count against it (and `releaseCap` gives back the units of rejected calls); the
+ * offline mock costs nothing and is never capped.
  */
 export function createEmbedderFromEnv(
   env: { AI_PROVIDER: "mock" | "gemini"; GEMINI_API_KEY?: string },
   dailyCap?: (texts: number) => Promise<boolean>,
+  releaseCap?: (texts: number) => Promise<void>,
 ): Embedder {
   if (env.AI_PROVIDER === "mock") return createMockEmbedder();
   if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini");
   const gemini = createGeminiEmbedder({ apiKey: env.GEMINI_API_KEY });
-  return dailyCap ? withDailyEmbeddingCap(gemini, dailyCap) : gemini;
+  return dailyCap ? withDailyEmbeddingCap(gemini, dailyCap, releaseCap) : gemini;
 }

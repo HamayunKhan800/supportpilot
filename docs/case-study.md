@@ -50,7 +50,7 @@ Measured on real Gemini models (420 test items, 24 October 2026; ranges are 95% 
 
 Engineering:
 
-- **Tests:** 1,444 unit (96% of lines), 565 integration on real PostgreSQL, 130 browser tests with axe accessibility scans in both themes. All run in CI on every push.
+- **Tests:** 1,455 unit (96% of lines), 566 integration on real PostgreSQL, 130 browser tests with axe accessibility scans in both themes. All run in CI on every push.
 - **Security:** a self-review against OWASP ASVS 5.0 Level 2: 183 pass, 9 partial, 2 fail as documented accepted risks, 59 not applicable. 22 findings, none High or Critical.
 - **Delivery:** after CI passes, one approval deploys: worker, migrations, web, then 12 smoke tests on the live site. Rollback was tested in both directions.
 
@@ -63,7 +63,7 @@ Engineering:
 5. **AWS blocked keyless sign-in from GitHub.** New AWS accounts sit under a policy that denies creating the OIDC identity provider. I used two IAM users instead, each allowed only to assume one narrowly scoped role, with their keys released only to approved jobs on `main`, rotated every few months.
 6. **A dependency registry refused CI.** `public.ecr.aws` answered 429 to anonymous pulls of the Lambda Web Adapter. It is now built from source, pinned to the release commit by checksum.
 7. **The first live demo reset failed.** The seed needs the auth secret, which the worker deliberately can't read. Rather than widen its access, the worker gives the seed a throwaway secret; nothing the seed stores depends on it.
-8. **A pasted API key broke the AI.** Copying from a phone added two stray characters, and the retries used up the day's embedding allowance. A setup script now cleans a pasted key, checks it with Google and saves it only if Google accepts it. Still open: failed attempts shouldn't count against the daily cap, and a 401 should stop retries at once.
+8. **A pasted API key broke the AI.** Copying from a phone added two stray characters, and the retries used up the day's embedding allowance. A setup script now cleans a pasted key, checks it with Google and saves it only if Google accepts it. It happened again on the live site on 28 October, so the app itself now guards against it: a key that can't be sent in a header fails at once as a permanent error with no retries, and calls the provider rejects (a damaged or invalid key, a bad request) give their place in the daily limits back. Overloads, rate limits and timeouts stay counted, so the limits still bound retries.
 9. **Database settings the driver silently ignored.** Neon's connection pooler drops the `statement_timeout` startup option, so it is now set on the database role. The Node driver also ignored `channel_binding=require`, so the app now turns on its channel-binding option itself; a stand-in TLS server confirmed the driver then chooses `SCRAM-SHA-256-PLUS`.
 10. **A production-only bug.** A security fix caused a 500 error on sign-up in the production build only. The browser tests, which run against the production build, caught it before it was committed.
 
@@ -82,4 +82,4 @@ Engineering:
 - **"Why Lambda, not containers or Kubernetes?"** The demo is used rarely; scaling to zero makes it almost free. The costs are cold starts, a 4 MB upload limit and a wake-up path for the worker, all documented in an ADR.
 - **"How do you keep tenants apart?"** Every query takes the workspace ID, roles are checked on the server, and every route has cross-workspace tests.
 - **"How did you use AI tools?"** As a fast first draft under a written policy: every change passes type checks, lint and tests, and framework APIs are checked against the official docs. Item 10 above, for example, was caught by the browser tests before it was committed.
-- **"What would you do next?"** The custom domain behind CloudFront, email sending, two-factor sign-in, people rating a sample of drafts, and fixing the daily-cap accounting from item 8.
+- **"What would you do next?"** The custom domain behind CloudFront, email sending, two-factor sign-in, people rating a sample of drafts.

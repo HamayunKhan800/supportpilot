@@ -111,6 +111,24 @@ export async function reserveDailyCall(
   return rows.length === 1;
 }
 
+/**
+ * Gives back `units` reserved today in a scope, for calls the provider rejected (they used none
+ * of its quota). Never goes below zero. A call reserved just before midnight Pacific and
+ * rejected just after gives back to the new day, which is harmless at these numbers.
+ */
+export async function releaseDailyCall(db: Executor, scope: string, units = 1): Promise<void> {
+  if (!Number.isInteger(units) || units < 1) throw new Error("units must be a positive integer");
+  await db
+    .update(aiDailyCalls)
+    .set({ calls: sql`greatest(${aiDailyCalls.calls} - ${units}, 0)` })
+    .where(
+      and(
+        eq(aiDailyCalls.scope, scope),
+        eq(aiDailyCalls.day, sql`(now() AT TIME ZONE 'America/Los_Angeles')::date`),
+      ),
+    );
+}
+
 /** Calls made today (Pacific date) in a scope, for the settings page and tests. */
 export async function dailyCallsToday(db: Executor, scope: string): Promise<number> {
   const [row] = await db

@@ -7,6 +7,7 @@ import {
   TypeValidationError,
 } from "ai";
 import type { AiUsageOutcome } from "@/server/platform/db/schema";
+import { UnsendableApiKeyError } from "./api-key";
 
 /**
  * Why an AI call did not produce a result. Callers map these to plain-language messages;
@@ -83,6 +84,8 @@ export function classifyAiError(err: unknown, { clientAborted }: { clientAborted
   if (err instanceof AiError) return err;
   if (clientAborted) return new AiError("ai_aborted", { cause: err });
   const last = RetryError.isInstance(err) ? err.lastError : err;
+  // A damaged key: nothing was sent, and retrying can't help.
+  if (last instanceof UnsendableApiKeyError) return new AiError("ai_rejected", { cause: last });
   if (
     NoObjectGeneratedError.isInstance(last) ||
     JSONParseError.isInstance(last) ||

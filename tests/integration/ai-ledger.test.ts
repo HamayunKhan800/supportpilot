@@ -24,6 +24,7 @@ import {
   dailyCallsToday,
   getAiPolicy,
   insertAiUsageRecord,
+  releaseDailyCall,
   reserveDailyCall,
 } from "@/server/modules/ai/repository";
 import { insertAiUsage } from "@/server/modules/kb/repository";
@@ -216,6 +217,31 @@ describe("global daily call cap (D12b)", () => {
     expect(await reserveDailyCall(db(), "fresh", 3, 4)).toBe(false); // too big even for an empty day
     expect(await dailyCallsToday(db(), "fresh")).toBe(0);
     await expect(reserveDailyCall(db(), "embeddings", 10, 0)).rejects.toThrow(/units/);
+  });
+
+  it("gives back reserved units for rejected calls: today only, never below zero", async () => {
+    await db()
+      .insert(aiDailyCalls)
+      .values({
+        day: sql`(now() AT TIME ZONE 'America/Los_Angeles')::date - 1`,
+        scope: "embeddings",
+        calls: 9,
+      });
+    expect(await reserveDailyCall(db(), "embeddings", 10, 10)).toBe(true);
+    expect(await reserveDailyCall(db(), "embeddings", 10, 1)).toBe(false); // full
+    await releaseDailyCall(db(), "embeddings", 3);
+    expect(await dailyCallsToday(db(), "embeddings")).toBe(7);
+    expect(await reserveDailyCall(db(), "embeddings", 10, 3)).toBe(true); // room again
+    await releaseDailyCall(db(), "embeddings", 50);
+    expect(await dailyCallsToday(db(), "embeddings")).toBe(0); // floored at zero
+    await releaseDailyCall(db(), "unused-scope"); // no row today: nothing happens
+    expect(await dailyCallsToday(db(), "unused-scope")).toBe(0);
+    const [yesterday] = await db()
+      .select({ calls: aiDailyCalls.calls })
+      .from(aiDailyCalls)
+      .where(sql`${aiDailyCalls.day} = (now() AT TIME ZONE 'America/Los_Angeles')::date - 1`);
+    expect(yesterday!.calls).toBe(9); // other days untouched
+    await expect(releaseDailyCall(db(), "embeddings", 0)).rejects.toThrow(/units/);
   });
 
   it("never overshoots with batches under concurrency", async () => {

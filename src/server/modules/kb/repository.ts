@@ -10,7 +10,7 @@ import {
 } from "@/server/platform/db/schema";
 import type { Executor, Transaction } from "@/server/platform/db/tx";
 import { DAILY_EMBEDDING_SCOPE } from "@/server/modules/ai/config";
-import { insertAiUsageRecord, reserveDailyCall } from "@/server/modules/ai/repository";
+import { insertAiUsageRecord, releaseDailyCall, reserveDailyCall } from "@/server/modules/ai/repository";
 
 /**
  * Knowledge-base data access. Every function takes `workspaceId` and filters by it
@@ -470,4 +470,9 @@ export async function findChunksForDisplay(
  */
 export function reserveEmbeddingTexts(db: Executor, texts: number, limit: number): Promise<boolean> {
   return reserveDailyCall(db, DAILY_EMBEDDING_SCOPE, limit, texts);
+}
+
+/** Gives back embedding units for texts the provider rejected (see withDailyEmbeddingCap). */
+export function releaseEmbeddingTexts(db: Executor, texts: number): Promise<void> {
+  return releaseDailyCall(db, DAILY_EMBEDDING_SCOPE, texts);
 }

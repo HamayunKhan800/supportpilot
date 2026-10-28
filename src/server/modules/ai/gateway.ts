@@ -20,6 +20,7 @@ import type { MockResponder } from "./mock-model";
 import {
   getAiPolicy,
   insertAiUsageRecord,
+  releaseDailyCall,
   reserveDailyCall,
   type AiPolicy,
   type AiUsageRecord,
@@ -95,6 +96,8 @@ export interface AiTextResult {
 export interface AiLedger {
   getPolicy(workspaceId: string): Promise<AiPolicy | null>;
   reserveDailyCall(limit: number): Promise<boolean>;
+  /** Gives one reserved call back (the provider rejected it). Optional for test fakes. */
+  releaseDailyCall?(): Promise<void>;
   recordUsage(workspaceId: string, row: AiUsageRecord): Promise<void>;
 }
 
@@ -102,6 +105,7 @@ export function createPostgresLedger(db: Executor): AiLedger {
   return {
     getPolicy: (workspaceId) => getAiPolicy(db, workspaceId),
     reserveDailyCall: (limit) => reserveDailyCall(db, DAILY_CALL_SCOPE, limit),
+    releaseDailyCall: () => releaseDailyCall(db, DAILY_CALL_SCOPE),
     recordUsage: (workspaceId, row) => insertAiUsageRecord(db, workspaceId, row),
   };
 }
@@ -232,6 +236,15 @@ export function createAiGateway(options: AiGatewayOptions): AiGateway {
         },
         "ai call failed",
       );
+    }
+    // A rejected call (bad or damaged key, bad request) used none of the provider's quota, so it
+    // doesn't count against the daily cap. Overloads, rate limits and timeouts stay counted.
+    if (code === "ai_rejected" && ledger.releaseDailyCall) {
+      try {
+        await ledger.releaseDailyCall();
+      } catch (err) {
+        log.warn({ feature, workspaceId: ctx.workspaceId, err }, "could not release the daily call");
+      }
     }
     try {
       await ledger.recordUsage(ctx.workspaceId, {

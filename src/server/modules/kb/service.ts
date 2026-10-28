@@ -256,8 +256,10 @@ const globalForEmbedder = globalThis as unknown as { __spSearchEmbedder?: Embedd
 export function webEmbedder(): Embedder {
   if (!globalForEmbedder.__spSearchEmbedder) {
     const env = getEnv();
-    globalForEmbedder.__spSearchEmbedder = createEmbedderFromEnv(env, (texts) =>
-      repo.reserveEmbeddingTexts(getDb().db, texts, env.AI_DAILY_EMBEDDING_LIMIT),
+    globalForEmbedder.__spSearchEmbedder = createEmbedderFromEnv(
+      env,
+      (texts) => repo.reserveEmbeddingTexts(getDb().db, texts, env.AI_DAILY_EMBEDDING_LIMIT),
+      (texts) => repo.releaseEmbeddingTexts(getDb().db, texts),
     );
   }
   return globalForEmbedder.__spSearchEmbedder;

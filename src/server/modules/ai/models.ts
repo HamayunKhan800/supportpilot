@@ -1,5 +1,6 @@
 import { createGoogle } from "@ai-sdk/google";
 import type { LanguageModel } from "ai";
+import { apiKeyGuardedFetch } from "./api-key";
 import { AI_FEATURES, FEATURE_SETTINGS, MOCK_MODEL_ID, type AiFeature } from "./config";
 import { createMockLanguageModel, type MockResponder } from "./mock-model";
 
@@ -34,7 +35,8 @@ export function createMockModels(
 }
 
 export function createGeminiModels(options: { apiKey: string; fetch?: typeof globalThis.fetch }): AiModels {
-  const google = createGoogle({ apiKey: options.apiKey, ...(options.fetch ? { fetch: options.fetch } : {}) });
+  const fetch = apiKeyGuardedFetch(options.apiKey, options.fetch);
+  const google = createGoogle({ apiKey: options.apiKey, ...(fetch ? { fetch } : {}) });
   const make = (modelId: string) => ({ model: google.languageModel(modelId), modelId });
   const fallbacks: AiModels["fallbacks"] = {};
   for (const feature of AI_FEATURES) {
