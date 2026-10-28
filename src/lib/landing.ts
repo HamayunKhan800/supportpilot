@@ -12,6 +12,7 @@ export const REPO_URL = "https://github.com/HamayunKhan800/supportpilot";
 export const EVAL_METHOD_URL = `${REPO_URL}/blob/main/docs/eval/README.md`;
 export const EVAL_REPORT_URL = `${REPO_URL}/blob/main/docs/eval/m6-baseline.md`;
 export const ARCHITECTURE_URL = `${REPO_URL}/blob/main/docs/02-architecture.md`;
+export const ASVS_URL = `${REPO_URL}/blob/main/docs/security/asvs-l2.md`;
 export const API_SPEC_PATH = "/api/v1/openapi.json";
 
 /** One row of the results table: what was measured, the result, its 95% interval and sample size. */
@@ -70,3 +71,38 @@ export const LANDING_METRICS: LandingMetric[] = [
 
 export const LANDING_METRICS_NOTE =
   "From one complete run against Google Gemini on the project's own labelled test set (420 items), plus a second run of the 150 triage tickets for the current triage prompt; the first prompt scored 87.3%. On the free tier the main draft model was often overloaded, so 132 of the 140 drafts came from the fallback model, gemini-3.5-flash-lite.";
+
+const metric = (prefix: string) => {
+  const m = LANDING_METRICS.find((x) => x.label.startsWith(prefix));
+  if (!m) throw new Error(`No landing metric starts with "${prefix}"`);
+  return m;
+};
+
+/** One fact in the row under the hero: a checkable number, what it means, and where the proof is. */
+export interface HeroFact {
+  value: string;
+  label: string;
+  href: string;
+}
+
+/**
+ * The row of facts under the landing hero (after the usage numbers on Langfuse's home page, but
+ * only facts with public evidence: no customer logos, users or reviews, which the project doesn't
+ * have). The evaluation numbers are read from LANDING_METRICS so they can't drift apart; the ASVS
+ * count is the summary table of docs/security/asvs-l2.md (183 pass of 194 applicable: 9 partial,
+ * 2 accepted risks).
+ */
+export const HERO_FACTS: HeroFact[] = [
+  {
+    value: metric("Right help article").result,
+    label: "right help article in the top five search results",
+    href: EVAL_REPORT_URL,
+  },
+  {
+    value: metric("Prompt-injection").result,
+    label: `of ${metric("Prompt-injection").n.replace("attacks", "prompt-injection attacks")} resisted`,
+    href: EVAL_REPORT_URL,
+  },
+  { value: "420", label: "labelled test items, run on real Gemini models", href: EVAL_METHOD_URL },
+  { value: "183 of 194", label: "applicable OWASP ASVS Level 2 checks pass", href: ASVS_URL },
+];

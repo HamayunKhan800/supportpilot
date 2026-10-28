@@ -26,6 +26,7 @@ import {
   ARCHITECTURE_URL,
   EVAL_METHOD_URL,
   EVAL_REPORT_URL,
+  HERO_FACTS,
   LANDING_METRICS_NOTE,
   REPO_URL,
 } from "@/lib/landing";
@@ -292,7 +293,13 @@ export default async function Home() {
         </div>
       </LandingHeader>
 
-      <main id="main" data-fixed-theme-color className={cn(newsreader.variable, "flex-1")}>
+      {/* The header stays pinned at every width here, so a control that focus scrolls to stays
+          below it (WCAG 2.2 2.4.11); globals.css does the same for narrow screens app-wide. */}
+      <main
+        id="main"
+        data-fixed-theme-color
+        className={cn(newsreader.variable, "flex-1 [&_:is(a,button,input,summary)]:scroll-mt-20")}
+      >
         {/* Hero */}
         <section
           data-theme="dark"
@@ -315,7 +322,7 @@ export default async function Home() {
                 </span>
               </span>
             </HeroHeadline>
-            <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="mt-7">
               <div className="flex max-w-2xl flex-col gap-7">
                 <p className={lead}>
                   SupportPilot sorts each new ticket, finds the help articles that answer it and drafts a
@@ -340,15 +347,39 @@ export default async function Home() {
                   </a>
                 </div>
               </div>
-              <p className="text-muted-foreground max-w-xs text-sm leading-relaxed lg:text-right">
-                Evaluated on 420 labelled tickets and questions with real Gemini models.{" "}
-                <a href={EVAL_REPORT_URL} className={textLink}>
-                  Read the report
-                </a>
-              </p>
             </div>
 
-            <div className="mt-14 sm:mt-16">
+            <ul
+              aria-label="Facts, each with its evidence"
+              className="border-foreground/15 mt-12 grid grid-cols-2 border-t lg:grid-cols-4"
+            >
+              {HERO_FACTS.map((f, i) => (
+                <li
+                  key={f.label}
+                  className={cn(
+                    "border-foreground/15 flex",
+                    i % 2 === 1 && "border-l",
+                    i >= 2 && "border-t lg:border-t-0",
+                    i === 2 && "lg:border-l",
+                  )}
+                >
+                  <a
+                    href={f.href}
+                    className="group/fact focus-visible:ring-ring flex w-full flex-col gap-1 rounded-sm px-4 py-5 outline-none focus-visible:ring-2 sm:px-6"
+                  >
+                    <span className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+                      {f.value}
+                    </span>
+                    <span className="text-muted-foreground group-hover/fact:text-foreground text-sm leading-snug transition-colors">
+                      {f.label}
+                      <span aria-hidden="true">{"\u00a0"}↗</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-12 sm:mt-14">
               <HeroLive />
             </div>
 
