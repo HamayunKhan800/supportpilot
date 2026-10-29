@@ -1,0 +1,965 @@
+/*
+ * The landing page, "The cited sentence" (docs/design/landing.md, DESIGN.md). Big sentences carry
+ * the page; the product's own citation number, button and screens sit inside them as words.
+ * Colours are the app's tokens (theme.css), so light, dark and the theme switch follow the app.
+ * Everything is scoped under .lp. No inline styles: values that depend on layout are set from
+ * script through the CSSOM, which the Content Security Policy allows.
+ */
+
+.lp {
+  --lp-wash: color-mix(in oklch, var(--foreground) 3.5%, var(--background));
+  --lp-wash-strong: color-mix(in oklch, var(--foreground) 6%, var(--background));
+  --lp-cite: color-mix(in oklch, var(--foreground) 9%, var(--background));
+  --lp-band: light-dark(oklch(0.175 0.006 286), oklch(0.12 0.004 286));
+  --lp-on-band: oklch(0.97 0.004 286);
+  --lp-on-band-quiet: oklch(0.8 0.012 286);
+  --lp-approve: var(--success-strong);
+  --lp-m: clamp(20px, 4.4vw, 64px);
+  /* Five type steps: display, heading, statement, body, small. */
+  --lp-display: clamp(52px, 7.6vw, 124px);
+  --lp-head: clamp(38px, 4.8vw, 80px);
+  --lp-state: clamp(22px, 2.1vw, 30px);
+  --lp-body: 18px;
+  --lp-small: 16px;
+  --lp-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: var(--lp-body);
+  line-height: 1.5;
+  overflow-x: clip;
+}
+.lp ::selection {
+  background: var(--foreground);
+  color: var(--background);
+}
+.lp :is(h1, h2) {
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.lp p {
+  text-wrap: pretty;
+}
+.lp-link {
+  font-weight: 550;
+  font-size: var(--lp-small);
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 2px;
+  white-space: nowrap;
+  transition: opacity 0.16s ease-out;
+}
+.lp-link:hover {
+  opacity: 0.7;
+}
+.lp-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+  margin-top: 36px;
+}
+
+/* ---------- hero: the sentence, with the citation in it ---------- */
+.lp-hero {
+  position: relative;
+  padding: clamp(72px, 11vh, 140px) var(--lp-m) clamp(96px, 14vh, 180px);
+}
+.lp-hero h1 {
+  font-size: var(--lp-display);
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.26em;
+}
+.lp-hero h1 .l {
+  white-space: nowrap;
+}
+.lp-hero h1 em {
+  font-style: normal;
+  color: var(--lp-approve);
+}
+.lp-cite {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  min-width: 1.5em;
+  height: 1.5em;
+  margin-left: 0.2em;
+  padding: 0 0.3em;
+  border-radius: 0.24em;
+  background: var(--lp-cite);
+  color: var(--foreground);
+  font-size: 0.36em;
+  font-weight: 600;
+  letter-spacing: 0;
+  vertical-align: 0.9em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease-out,
+    color 0.16s ease-out;
+}
+.lp-cite[aria-expanded="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.lp-passage {
+  width: min(420px, 100%);
+  min-height: 212px;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 24px 20px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.lp-passage[hidden] {
+  display: none;
+}
+.lp-passage .path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.lp-num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--lp-cite);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 650;
+}
+.lp-passage blockquote {
+  margin: 12px 0 18px;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+.lp-passage .foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.lp-passage .foot span:last-child {
+  color: var(--foreground);
+  font-weight: 550;
+}
+/* Above 980px the headline is always one line, so the passage hangs from the number from the
+   first paint (no layout shift on hydration). The fallbacks approximate where the number sits;
+   the script then measures the exact spot once the fonts have loaded. */
+@media (min-width: 981px) {
+  .lp-hero .lp-passage {
+    position: absolute;
+    z-index: 2;
+    left: var(--px, calc(var(--lp-m) + 3.98 * var(--lp-display)));
+    top: var(--py, calc(clamp(72px, 11vh, 140px) + 1.2 * var(--lp-display) + 16px));
+  }
+}
+@media (max-width: 980px) {
+  .lp-hero .lp-passage {
+    margin-top: 28px;
+  }
+}
+.lp-sub {
+  font-size: var(--lp-state);
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  max-width: 21em;
+  margin-top: clamp(28px, 4vh, 48px);
+}
+@media (min-width: 981px) {
+  .lp-hero .lp-sub {
+    max-width: min(21em, calc(var(--px, calc(var(--lp-m) + 3.98 * var(--lp-display))) - var(--lp-m) - 48px));
+  }
+}
+
+/* ---------- how it works: drag a ticket through its stages ---------- */
+.lp-how {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  min-height: 88svh;
+}
+.lp-how .left {
+  padding: clamp(56px, 8vh, 96px) 48px 40px var(--lp-m);
+}
+.lp-how .right {
+  grid-row: 1;
+  grid-column: 2;
+  display: grid;
+  place-items: center;
+  padding: 56px var(--lp-m) 40px 48px;
+  background: var(--lp-wash);
+}
+.lp-clause {
+  font-size: var(--lp-head);
+  max-width: 7.5em;
+}
+.lp-how .left p {
+  max-width: 26em;
+  margin-top: 24px;
+}
+.lp-slider {
+  grid-column: 1 / -1;
+  position: relative;
+  padding: 8px var(--lp-m) 40px;
+}
+.lp-slider::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 50%;
+  background: var(--lp-wash);
+}
+.lp-slider > * {
+  position: relative;
+}
+.lp-range {
+  appearance: none;
+  width: 100%;
+  height: 32px;
+  background: transparent;
+  cursor: pointer;
+}
+.lp-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  /* The passed part of a native range has no element of its own in WebKit. */
+  background: linear-gradient(90deg, var(--foreground) var(--p, 0%), var(--border) var(--p, 0%));
+}
+.lp-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  margin-top: -12px;
+  border-radius: 8px;
+  background: var(--primary);
+  border: 4px solid var(--background);
+}
+.lp-range::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+}
+.lp-range::-moz-range-progress {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--foreground);
+}
+.lp-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--primary);
+  border: 4px solid var(--background);
+}
+.lp-stops {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 12px;
+  font-size: var(--lp-small);
+  color: var(--muted-foreground);
+}
+.lp-stops span:nth-child(2) {
+  text-align: center;
+  transform: translateX(-17%);
+}
+.lp-stops span:nth-child(3) {
+  text-align: center;
+  transform: translateX(17%);
+}
+.lp-stops span:last-child {
+  text-align: right;
+}
+.lp-stops [data-on] {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* App fragments at true size: the app's own card, chips and buttons. */
+.lp-ui {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.lp-card {
+  width: min(460px, 100%);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.lp-card .hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.lp-card .hd span {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.lp-card .bd {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--card);
+  white-space: nowrap;
+}
+.lp-chip i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--success);
+}
+.lp-chip i[data-open] {
+  border-color: var(--info);
+}
+.lp-txt {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.lp-txt[data-customer] {
+  background: var(--lp-wash);
+  border-color: transparent;
+}
+.lp-src {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 14px;
+}
+.lp-src span:last-child {
+  color: var(--muted-foreground);
+}
+.lp-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lp-b {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 550;
+  background: var(--card);
+}
+.lp-b[data-primary] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.lp-who {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.lp-sent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lp-approve);
+}
+.lp-frag {
+  display: none;
+}
+.lp-frag[data-on] {
+  display: block;
+  animation: lp-fade 0.2s ease-out;
+}
+
+/* ---------- statements on colour fields ---------- */
+.lp-field {
+  min-height: 62svh;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 24px;
+  padding: clamp(48px, 7vh, 88px) var(--lp-m);
+}
+.lp-field h2 {
+  grid-column: 1 / span 9;
+  grid-row: 2;
+  align-self: end;
+  font-size: var(--lp-display);
+  line-height: 0.92;
+}
+.lp-field p {
+  grid-column: 8 / span 4;
+  grid-row: 1;
+  max-width: 24em;
+}
+.lp-field[data-mirror] h2 {
+  grid-column: 4 / span 9;
+  text-align: right;
+}
+.lp-field[data-mirror] p {
+  grid-column: 2 / span 4;
+}
+.lp-f1 {
+  background: var(--lp-wash);
+}
+.lp-f2 {
+  background: var(--lp-band);
+  color: var(--lp-on-band);
+}
+.lp-f3 {
+  background: var(--card);
+}
+.lp-f4 {
+  background: var(--lp-wash-strong);
+}
+.lp :is(.lp-f2, .lp-foot) ::selection {
+  background: var(--lp-on-band);
+  color: var(--lp-band);
+}
+
+/* ---------- nothing sends itself ---------- */
+.lp-show {
+  padding: clamp(120px, 18vh, 220px) var(--lp-m) 0;
+}
+.lp-poster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.24em;
+  row-gap: 0.12em;
+  font-size: var(--lp-head);
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+.lp-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+  box-sizing: border-box;
+  height: 1.18em;
+  padding: 0 0.5em 0 0.42em;
+  border-radius: 0.14em;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.86em;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease-out,
+    transform 0.16s var(--lp-ease);
+}
+.lp-send:hover {
+  background: var(--primary-hover);
+}
+.lp-send:active {
+  transform: scale(0.97);
+}
+.lp-send svg {
+  width: 0.62em;
+  height: 0.62em;
+  flex: none;
+}
+.lp-note {
+  font-size: var(--lp-state);
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  max-width: 24em;
+  margin-top: 32px;
+}
+
+/* ---------- sentences with evidence ---------- */
+.lp-ev {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: 24px;
+  row-gap: 40px;
+  align-items: start;
+  padding: clamp(120px, 18vh, 220px) var(--lp-m) 0;
+}
+.lp-ev .copy {
+  grid-column: 1 / span 6;
+}
+.lp-ev .proof {
+  grid-column: 8 / span 5;
+}
+.lp-ev[data-mirror] .copy {
+  grid-column: 7 / span 6;
+  grid-row: 1;
+}
+.lp-ev[data-mirror] .proof {
+  grid-column: 1 / span 5;
+  grid-row: 1;
+  align-self: center;
+}
+.lp-ev h2 {
+  font-size: var(--lp-head);
+}
+.lp-state {
+  font-size: var(--lp-state);
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  margin-top: 28px;
+  max-width: 22em;
+}
+.lp-state b {
+  font-weight: 560;
+  white-space: nowrap;
+}
+.lp-state .ok {
+  color: var(--lp-approve);
+}
+.lp-tally {
+  color: var(--muted-foreground);
+}
+.lp-tally .k,
+.lp-tally .k .ok {
+  transition: color 0.4s ease-out;
+}
+.lp-tally .k {
+  color: var(--foreground);
+}
+.lp-tally[data-run] .k:not([data-on]),
+.lp-tally[data-run] .k:not([data-on]) .ok {
+  color: var(--muted-foreground);
+}
+.lp-figcap {
+  font-size: var(--lp-small);
+  color: var(--muted-foreground);
+  margin-top: 12px;
+}
+.lp-evalcard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px 16px;
+}
+.lp-evalcard .t {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.lp-evalcard .t span {
+  font-size: 12px;
+  font-weight: 550;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--lp-cite);
+}
+.lp-evalcard .when {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+}
+.lp-evalcard .big {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 12px;
+}
+.lp-evalcard .big span {
+  font-size: 15px;
+  font-weight: 450;
+  color: var(--muted-foreground);
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+.lp-evalcard ol {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+.lp-evalcard li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  font-size: 14px;
+}
+.lp-evalcard li b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.lp-evalcard .met {
+  color: var(--lp-approve);
+}
+.lp-evalcard .note {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin-top: 14px;
+}
+.lp-code {
+  background: oklch(0.175 0.006 286);
+  color: oklch(0.93 0.006 286);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.lp-code .h {
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 550;
+  background: oklch(0.24 0.006 286);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lp-code .h span {
+  color: oklch(0.8 0.012 286);
+  font-weight: 450;
+}
+.lp-code pre {
+  padding: 18px;
+  font:
+    500 14px/1.7 var(--font-geist-mono),
+    ui-monospace,
+    monospace;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* ---------- the closing sentence with a blank ---------- */
+.lp-cta {
+  padding: clamp(140px, 20vh, 240px) var(--lp-m) clamp(120px, 16vh, 200px);
+}
+.lp-cta form {
+  font-size: var(--lp-head);
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.24em;
+  row-gap: 0.16em;
+}
+.lp-cta input {
+  font: inherit;
+  letter-spacing: -0.02em;
+  width: 6.6em;
+  height: 1.15em;
+  padding: 0 0.3em;
+  border: 0;
+  border-radius: 0.12em;
+  background: var(--lp-wash-strong);
+  color: var(--foreground);
+}
+.lp-cta input::placeholder {
+  color: var(--muted-foreground);
+}
+.lp-cta button {
+  font: inherit;
+  letter-spacing: -0.03em;
+  height: 1.15em;
+  padding: 0 0.36em;
+  border-radius: 0.12em;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  transition: background-color 0.16s ease-out;
+}
+.lp-cta button:hover {
+  background: var(--primary-hover);
+}
+.lp-cta p {
+  font-size: var(--lp-small);
+  color: var(--muted-foreground);
+  margin-top: 28px;
+}
+.lp-cta p a {
+  color: var(--foreground);
+  font-weight: 550;
+  border-bottom: 2px solid currentColor;
+}
+
+/* ---------- footer: an invitation over the name ---------- */
+.lp-foot {
+  /* Local tokens, so shared controls (the theme switch) read correctly on the dark band. */
+  --foreground: var(--lp-on-band);
+  --muted-foreground: var(--lp-on-band-quiet);
+  --border: oklch(0.338 0.011 286);
+  --accent: oklch(0.28 0.008 286);
+  --accent-foreground: var(--lp-on-band);
+  background: var(--lp-band);
+  color: var(--lp-on-band);
+  padding: clamp(72px, 10vh, 120px) var(--lp-m) 0;
+  overflow: hidden;
+}
+.lp-ft {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: 24px;
+  row-gap: 40px;
+}
+.lp-ft .inv {
+  grid-column: 1 / span 7;
+}
+.lp-ft h2 {
+  font-size: var(--lp-head);
+}
+.lp-ft .lp-inv-btn {
+  margin-top: 32px;
+  background: var(--lp-on-band);
+  color: var(--lp-band);
+}
+.lp-ft .lp-inv-btn:hover {
+  background: oklch(0.88 0.006 286);
+}
+.lp-ft ul {
+  grid-column: 10 / span 3;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  font-size: var(--lp-small);
+}
+.lp-ft ul a {
+  display: inline-block;
+  padding: 6px 0;
+  color: var(--lp-on-band-quiet);
+  transition: color 0.16s ease-out;
+}
+.lp-ft ul a:hover {
+  color: var(--lp-on-band);
+}
+.lp-legal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: clamp(72px, 12vh, 140px);
+  font-size: var(--lp-small);
+  color: var(--lp-on-band-quiet);
+}
+.lp-legal .cr {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.lp-name {
+  font-size: 15vw;
+  font-weight: 620;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  height: 0.7em;
+  margin-top: clamp(40px, 6vh, 72px);
+  white-space: nowrap;
+  overflow: clip;
+}
+.lp-name span {
+  display: inline-block;
+  margin-left: -0.05em;
+}
+
+/* ---------- motion: one authored moment (the citation opens), then quiet entrances ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .lp-hero h1 .l {
+    animation: lp-rise 0.8s var(--lp-ease) both;
+  }
+  .lp-hero h1 .l + .l {
+    animation-delay: 0.08s;
+  }
+  .lp-passage {
+    animation: lp-shutter 1.1s var(--lp-ease) 0.35s both;
+  }
+  .lp-passage > * {
+    animation: lp-settle 1.1s var(--lp-ease) 0.35s both;
+  }
+  .lp-sub,
+  .lp-hero .lp-act {
+    animation: lp-rise 0.8s var(--lp-ease) 0.16s both;
+  }
+}
+@keyframes lp-rise {
+  from {
+    opacity: 0;
+    translate: 0 0.3em;
+  }
+}
+@keyframes lp-shutter {
+  from {
+    clip-path: inset(0 0 100% 0 round 12px);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 12px);
+  }
+}
+@keyframes lp-settle {
+  from {
+    scale: 1.06;
+    opacity: 0.4;
+  }
+}
+@keyframes lp-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- tablet ---------- */
+@media (max-width: 980px) {
+  .lp-how {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .lp-how .right {
+    grid-row: auto;
+    grid-column: auto;
+    order: -1;
+    padding: 48px var(--lp-m);
+  }
+  .lp-slider::before {
+    inset: 0;
+  }
+  .lp-field {
+    grid-template-columns: 1fr;
+    row-gap: 48px;
+    min-height: 64svh;
+  }
+  .lp-field h2,
+  .lp-field[data-mirror] h2 {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
+  }
+  .lp-field p,
+  .lp-field[data-mirror] p {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .lp-ev .copy,
+  .lp-ev .proof,
+  .lp-ev[data-mirror] .copy,
+  .lp-ev[data-mirror] .proof {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  .lp-ft .inv,
+  .lp-ft ul {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- phone: its own composition ---------- */
+@media (max-width: 600px) {
+  .lp {
+    --lp-display: 16.4vw;
+    --lp-head: 10.6vw;
+    --lp-state: 22px;
+    --lp-body: 17px;
+  }
+  .lp-hero {
+    padding-top: 56px;
+    padding-bottom: 104px;
+  }
+  .lp-hero h1 {
+    flex-direction: column;
+  }
+  .lp-sub {
+    margin-top: 28px;
+  }
+  .lp-act {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .lp-act > a:first-child {
+    height: 52px;
+  }
+  .lp-act .lp-link {
+    align-self: center;
+    margin-top: 8px;
+  }
+  .lp-how .right {
+    padding: 32px var(--lp-m) 24px;
+    place-items: start center;
+  }
+  .lp-slider {
+    padding: 4px var(--lp-m) 8px;
+  }
+  .lp-range::-webkit-slider-thumb {
+    width: 40px;
+    height: 40px;
+    margin-top: -16px;
+  }
+  .lp-stops {
+    display: none;
+  }
+  .lp-how .left {
+    padding: 24px var(--lp-m) 72px;
+    background: var(--lp-wash);
+  }
+  .lp-field {
+    min-height: 58svh;
+    padding: 40px var(--lp-m) 44px;
+    row-gap: 40px;
+  }
+  .lp-field h2 {
+    line-height: 0.95;
+    font-size: 12.4vw;
+  }
+  .lp-field[data-mirror] p {
+    text-align: right;
+    justify-self: end;
+  }
+  .lp-poster {
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 12.4vw;
+  }
+  .lp-send {
+    font-size: 0.62em;
+    height: 1.5em;
+  }
+  .lp-cta form {
+    font-size: 8.6vw;
+  }
+  .lp-cta input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+  .lp-cta form > span {
+    flex-basis: 100%;
+  }
+  .lp-legal {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

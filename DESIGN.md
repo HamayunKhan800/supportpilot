@@ -26,17 +26,17 @@ colors:
   dark-focus-blue: "oklch(0.72 0.148 255)"
 typography:
   display:
-    fontFamily: "Newsreader, ui-serif, Georgia, serif"
-    fontSize: "5rem"
-    fontWeight: 400
-    lineHeight: 1.05
-    letterSpacing: "-0.02em"
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(52px, 7.6vw, 124px)"
+    fontWeight: 560
+    lineHeight: 0.98
+    letterSpacing: "-0.04em"
   headline:
-    fontFamily: "Newsreader, ui-serif, Georgia, serif"
-    fontSize: "2.5rem"
-    fontWeight: 400
-    lineHeight: 1.1
-    letterSpacing: "-0.015em"
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(38px, 4.8vw, 80px)"
+    fontWeight: 560
+    lineHeight: 0.98
+    letterSpacing: "-0.04em"
   bar-title:
     fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1rem"
@@ -127,8 +127,8 @@ numbered and open the passage they came from, and every number on a page links t
 came from.
 
 The app is dense and calm (14px body, 32px rows, keyboard-first); colour appears only when it
-means something. The landing page is the one place with a voice: a serif display face and a
-waterline hero (paper above, ink below), still ink-only. Rejected on purpose (owner decisions 2026-10-24): indigo/purple as a brand
+means something. The landing page is the one place with a voice: very large, tightly set Geist
+headlines on plain paper, the product shown as true-size fragments, still ink-only (2026-10-29). Rejected on purpose (owner decisions 2026-10-24): indigo/purple as a brand
 colour, a chat-bubble logo, eyebrow pills above headlines, two-tone headlines, numbered 01–04 step
 cards, big-number stat strips, ALL-CAPS section labels and icons in tinted tiles.
 
@@ -160,9 +160,8 @@ One ink, neutral paper, and four status hues that are never decorative.
   hover rows, muted chips.
 - **Hairline** (oklch(0.892 0.008 286)): borders and dividers; **Field Stroke**
   (oklch(0.6 0.011 286)) for input outlines (3:1).
-- **Band** (oklch(0.175 0.006 286); 0.13 in dark mode): the landing page's dark sections.
-- **Water** (the band colour; 0.115 in dark mode, with a hairline seam): the hero's ink field
-  under the waterline.
+- **Band** (oklch(0.175 0.006 286); 0.12 in dark mode): the landing page's footer, its only dark
+  section.
 
 ### Status (meaning only)
 
@@ -178,33 +177,33 @@ One ink, neutral paper, and four status hues that are never decorative.
 
 ## Typography
 
-**Display Font:** Newsreader 400 (self-hosted, optical sizing), landing page headings only.
-**Body Font:** Geist 400/500/600.
+**Heading and Body Font:** Geist 400/500/600 (self-hosted from the `geist` package).
 **Data Font:** Geist Mono 400/500 for identifiers, keys, code and measurements only.
 
-**Character:** an editorial serif voice for the few big claims, set against a precise
-grotesque that does the daily work.
+**Character:** one precise grotesque everywhere. The landing page gets its voice from size and
+tight spacing, not from a second typeface (Newsreader was removed on 2026-10-29).
 
 ### Hierarchy
 
-- **Display** (Newsreader 400, 2.5 / 3.5 / 4.5 / 5rem at base / sm / lg / xl, 1.05, -0.02em): the
-  landing hero only. Its footnote numbers are Geist 500 at 0.36em (never under 14px).
-- **Headline** (Newsreader 400, 1.875rem → 2.5–2.75rem, 1.1–1.15, -0.015em): landing sections.
+- **Display** (Geist 560, 52–124px fluid, 0.98, -0.04em): the landing hero only. Its citation chip
+  is Geist 600 at 0.36em.
+- **Headline** (Geist 560, 38–80px fluid, 0.98, -0.04em): landing sections. Never more than two
+  lines on a 390px phone.
 - **Bar title** (Geist 600, 16/24): the h1 of list, settings and admin pages, set in the top bar
   beside the breadcrumb (`PageHeader`). Compact on purpose: those pages are frames for their
   tables and forms, which carry the weight.
 - **Page title** (Geist 600, 24/32; 20/28 on phones for tickets): the h1 of a page about one
   item, the ticket subject or the knowledge article title.
 - **Title** (Geist 600, 20/28) and card titles (Geist 500, 14/20).
-- **Body** (Geist 400, 14/20 in the app; 16/24 large on the landing). Descriptions, ticket
+- **Body** (Geist 400, 14/20 in the app; 18/27 on the landing, never under 16px there). Descriptions, ticket
   messages and knowledge passages are capped at 52ch (`max-w-measure`, about 70 Geist
   characters).
-- **Small** (13/18) and **Label** (12/16, 500). Nothing smaller than 12px in the app (11px only
-  inside the landing page's miniature product mock).
+- **Small** (13/18) and **Label** (12/16, 500). Nothing smaller than 12px in the app. The landing
+  page's product fragments use the app's own sizes (12–15px) because they are pictures of it.
 
 ### Named Rules
 
-**The One Serif Rule.** Newsreader is only for landing headings; the app is Geist throughout.
+**The One Family Rule.** Geist everywhere, landing included; hierarchy comes from size and weight.
 **The Real Data Rule.** Monospace marks real identifiers and numbers, never "technical" flavour.
 
 ## Layout
@@ -212,8 +211,8 @@ grotesque that does the daily work.
 A 4px grid. The app has a 240px sidebar (56px collapsed) and content up to 1280px (wider pages
 up to 1600px); the ticket page is a split view: queue, conversation and details, with the queue
 appearing when the page area reaches 70rem. Rows are 32px; tables scroll horizontally inside
-their card on small screens. The landing page uses a centred column up to 1280px with generous
-section spacing (96–128px). Phones get one column, 44px tap areas on primary controls and never
+their card on small screens. The landing page runs edge to edge with fluid margins
+(20–64px) and sections 120–240px apart, product fragments set against a light wash. Phones get one column, 44px tap areas on primary controls and never
 less than 24px for any target.
 
 ## Elevation & Depth
@@ -271,8 +270,10 @@ overlapping a square (the person who approves it), the overlap cut out.
 - **Do** link every number to the report or document that proves it.
 - **Do** label AI output as AI, and show what it was based on.
 - **Do** keep motion under 300ms, ease-out, for menus and panels only; nothing on keyboard or
-  high-frequency actions; respect reduced motion. One exception: the landing headline's single
-  700 ms rise on load (seen once per visit).
+  high-frequency actions; respect reduced motion. Landing exceptions: on load the headline rises and
+  the passage card opens once (done by 1.5 s); sections come into focus once as
+  they scroll in, and the results sentence lights each result in one pass (about 5 s), then stays
+  lit. Reduced motion skips both.
 - **Do** test both themes: zero axe violations, 4.5:1 text, 3:1 borders and focus.
 - **Do** use lucide icons (one stroke weight) for every icon.
 
@@ -285,17 +286,14 @@ overlapping a square (the person who approves it), the overlap cut out.
 - **Don't** use text glyphs (↗ ✓ →) as icons, or monospace as decoration.
 - **Don't** add heavy dependencies, inline styles (strict CSP) or third-party fonts.
 
-### The waterline hero (2026-10-28)
+### The cited sentence (landing page, 2026-10-29)
 
-The hero is type and nothing else. The headline's first line sits on paper; the second line
-starts a full-width ink field, so the seam always falls between the two lines however they wrap.
-Each claim carries a footnote number that links to its source under the seam, as a drafted reply
-carries its citations. No grid, glow, dot field or stat row: the measured figures live in the
-results table, and the product appears straight after the hero, inside the first screen: the
-hero is sized to its content, not to the screen. The headline rises and sharpens once on load
-(two lines, 700 ms, the second 100 ms later) and then stays still, as on Linear and Attio; it
-replaced a typing loop and its pause button (2026-10-28). The product picture is the real ticket
-screen, still and at its true size, with a cited draft waiting for approval (`hero-ticket.tsx`); it
-replaced a self-playing demo (owner's choice, 2026-10-28), as Linear, Plain and Front show their
-real product still in the first screen. Browser surfaces (selection, caret,
-scrollbars, checkbox and radio accent) take the ink palette.
+The page makes one argument: the headline is itself a cited sentence. "AI drafts.[1] You
+approve." carries a real citation chip; pressing it opens the help-article passage it came from,
+exactly as an agent opens a source in the app. Every later section repeats the pattern in prose:
+a short sentence, one true-size fragment of the real product, nothing in frames. Green, the
+approval colour, appears in two places only: "You approve." and the sent state. The footer is the
+one dark band and ends with the product name set across the full width, cropped at the bottom
+(decorative, hidden from screen readers). No logos, testimonials, stat strips or video. The full
+rationale, references and measurements are in `docs/design/landing.md`. Browser surfaces
+(selection, caret, scrollbars, checkbox and radio accent) take the ink palette.

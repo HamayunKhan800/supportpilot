@@ -38,8 +38,6 @@
    * characters. 52ch keeps them near 72, inside the usual 45-75 (design review, 2026-10-28).
    */
   --container-measure: 52ch;
-  /* Landing-page display headings only (src/app/page.tsx loads Newsreader on that page). */
-  --font-display: var(--font-newsreader), ui-serif, Georgia, "Times New Roman", serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -375,58 +373,15 @@
  * the global rule above shortens durations but would keep a delayed element hidden).
  */
 :root {
-  /* Ink bands: the dark sections. Darker than the page in dark mode, so they still read as bands. */
-  --band-bg: oklch(0.175 0.006 286);
-  /* The hero's ink field under the waterline. */
-  --water-bg: oklch(0.175 0.006 286);
-  /* The page's own text colour, carried into dark-themed regions (custom properties inherit their
-     computed value, so this stays the page's colour inside a data-theme="dark" block). */
-  --page-foreground: var(--foreground);
   --land-ease: cubic-bezier(0.23, 1, 0.32, 1);
-}
-html[data-theme="dark"] {
-  --band-bg: oklch(0.13 0.004 286);
-  --water-bg: oklch(0.115 0.004 286);
-}
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) {
-    --band-bg: oklch(0.13 0.004 286);
-    --water-bg: oklch(0.115 0.004 286);
-  }
 }
 
 @layer components {
-  .land-band {
-    background-color: var(--band-bg);
-  }
-
-  /*
-   * The hero's waterline (DESIGN.md, "The Cited Draft"; Taste Skill "Waterline headline"): the
-   * headline's second line holds a full-width ink field from its own top edge down, so the seam
-   * always falls between the two lines however they wrap. The section clips it. In dark mode the
-   * field sits darker than the page with a hairline seam, rather than turning the page white.
-   */
-  .hero-water {
-    position: relative;
-  }
-  /* Landing page only: footnote and section links glide to their target instead of jumping. */
+  /* Landing page only: section links glide to their target instead of jumping. */
   @media (prefers-reduced-motion: no-preference) {
-    html:has(#hero-heading) {
+    html:has(.lp) {
       scroll-behavior: smooth;
     }
-  }
-  /* A real (aria-hidden) element rather than ::before, so contrast checkers that look at the
-     elements under the text (axe) see the ink they are drawn on. */
-  .hero-water-fill {
-    pointer-events: none;
-    position: absolute;
-    z-index: -1;
-    top: 0;
-    left: calc(50% - 50vw);
-    width: 100vw;
-    height: 200svh;
-    background-color: var(--water-bg);
-    border-top: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
   }
 
   /* Soft white light from above: ink only, no coloured glow. */
@@ -490,30 +445,9 @@ html[data-theme="dark"] {
     translate: 0 12px;
   }
 
-  /* The workflow tour's timer (workflow-tabs.tsx): each tab's line fills, then the next tab opens.
-     It holds still while the pointer or focus is inside, and while the section is off screen. */
-  .land-progress {
-    transform-origin: left;
-    animation: land-progress 7s linear forwards;
-  }
-  .land-progress[data-paused],
-  .land-tour:hover .land-progress,
-  .land-tour:focus-within .land-progress {
-    animation-play-state: paused;
-  }
-  @keyframes land-progress {
-    from {
-      scale: 0 1;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .land-in,
     .land-pop {
-      animation: none;
-    }
-    .land-progress {
-      display: none;
       animation: none;
     }
     html[data-reveal] [data-reveal]:not([data-revealed]) {
@@ -614,30 +548,6 @@ html[data-reveal] [data-reveal] > h2 {
 html[data-reveal] h2[data-reveal]:not([data-revealed]),
 html[data-reveal] [data-reveal]:not([data-revealed]) > h2 {
   filter: blur(8px);
-}
-/* Cards: a soft light follows the pointer along the border (spotlight.tsx sets --mx/--my). */
-/* The card itself must be positioned (give it `relative`); the ring sits just inside its border,
-   so cards with overflow-hidden keep it. */
-[data-spotlight]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  pointer-events: none;
-  background: radial-gradient(
-    260px circle at var(--mx, 50%) var(--my, 50%),
-    color-mix(in oklab, var(--foreground) 40%, transparent),
-    transparent 70%
-  );
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-  opacity: 0;
-  transition: opacity 200ms ease-out;
-}
-[data-spotlight]:hover::after {
-  opacity: 1;
 }
 @media (prefers-reduced-motion: reduce) {
   html[data-reveal] h2[data-reveal]:not([data-revealed]),
@@ -783,34 +693,5 @@ main[data-route-busy="data"] :is([data-busy-dim], section:not(section section)) 
   to {
     filter: blur(0);
     translate: 0 0;
-  }
-}
-
-/*
- * Hero headline (page.tsx): the two lines rise and sharpen once as the page opens, the second a
- * beat after the first, and are still by about 0.9 s. As on Linear and Attio (measured
- * 2026-10-28), the headline arrives once and then stays; it replaced a typing loop that needed a
- * pause button. Blur and a small rise only, no fading, so the text is painted from the first
- * frame. Reduced motion: the headline is simply there.
- */
-.hero-rise {
-  animation: hero-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
-}
-.hero-rise-2 {
-  animation-delay: 180ms;
-}
-@keyframes hero-rise {
-  from {
-    filter: blur(8px);
-    translate: 0 0.22em;
-  }
-  to {
-    filter: blur(0);
-    translate: 0 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-rise {
-    animation: none;
   }
 }

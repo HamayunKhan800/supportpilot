@@ -78,34 +78,42 @@ const metric = (prefix: string) => {
   return m;
 };
 
-/** A footnote under the hero's waterline: what the headline's claim rests on, and where to check it. */
-export interface HeroFootnote {
-  /** Fragment id the headline's superscript number links to. */
-  id: string;
-  text: string;
-  link: { label: string; href: string };
-}
+/** A count from the results table, as "133 of 133" or "94%" of a sample. */
+const countOf = (m: LandingMetric) => {
+  const n = Number(m.n.replace(/\D/g, ""));
+  const hits = Math.round((Number.parseFloat(m.result) / 100) * n);
+  return { hits, n };
+};
 
-const citations = metric("Citations");
-const citationCount = citations.n.replace(/\D/g, "");
+const cited = countOf(metric("Citations"));
+const declined = countOf(metric("Unanswerable"));
+const triage = metric("Right ticket category");
+const wrong = countOf(metric("Answerable questions wrongly"));
 
 /**
- * The hero's footnotes ("The Cited Draft", DESIGN.md): the headline's two claims carry numbers, as
- * a drafted reply carries its sources, and these say what each claim rests on. The citation count
- * is read from LANDING_METRICS, so the hero and the results table can't drift apart.
+ * The landing page's results sentence, one clause per measured result. Read from LANDING_METRICS,
+ * so the sentence and the results table can't drift apart. `perfect` marks a 100% result, the only
+ * figures the page sets in the success colour.
  */
-export const HERO_FOOTNOTES: HeroFootnote[] = [
+export const LANDING_TALLY: { figure: string; rest: string; perfect: boolean }[] = [
   {
-    id: "source-1",
-    text:
-      citations.result === "100%"
-        ? `Every draft cites the help-article passages it is based on. In our public test, ${citationCount} of ${citationCount} citations pointed at a passage the model was given.`
-        : `Every draft cites the help-article passages it is based on. In our public test, ${citations.result} of ${citations.n} pointed at a passage the model was given.`,
-    link: { label: "Evaluation report", href: EVAL_REPORT_URL },
+    figure: `${cited.hits} of ${cited.n}`,
+    rest: "citations pointed at a real passage",
+    perfect: cited.hits === cited.n,
   },
   {
-    id: "source-2",
-    text: "Nothing reaches a customer until an agent approves it. When your help centre has no answer, the AI declines instead of guessing.",
-    link: { label: "How it works", href: "#how-it-works" },
+    figure: `${declined.hits} of ${declined.n}`,
+    rest: "unanswerable questions were declined",
+    perfect: declined.hits === declined.n,
+  },
+  {
+    figure: `${Number.parseFloat(triage.result)}%`,
+    rest: `of ${triage.n} were labelled correctly`,
+    perfect: false,
+  },
+  {
+    figure: `${wrong.hits} of ${wrong.n}`,
+    rest: "answerable questions were wrongly declined",
+    perfect: false,
   },
 ];

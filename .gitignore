@@ -78,3 +78,4 @@ __pycache__/
 
 # Taste Skill working files (notes, dealt sheets)
 .taste-skill/
+.impeccable/mocks/

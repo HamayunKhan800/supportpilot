@@ -50,7 +50,7 @@ Measured on real Gemini models (420 test items, 24 October 2026; ranges are 95% 
 
 Engineering:
 
-- **Tests:** 1,455 unit (96% of lines), 566 integration on real PostgreSQL, 130 browser tests with axe accessibility scans in both themes. All run in CI on every push.
+- **Tests:** 1,452 unit (96% of lines), 571 integration on real PostgreSQL, 106 browser tests with axe accessibility scans in both themes. All run in CI on every push.
 - **Security:** a self-review against OWASP ASVS 5.0 Level 2: 183 pass, 9 partial, 2 fail as documented accepted risks, 59 not applicable. 22 findings, none High or Critical.
 - **Delivery:** after CI passes, one approval deploys: worker, migrations, web, then 12 smoke tests on the live site. Rollback was tested in both directions.
 

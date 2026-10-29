@@ -24,6 +24,18 @@ interface FocusReport {
 
 /** Describes the focused element, and compares how it looks focused and unfocused. */
 async function inspectFocus(page: Page): Promise<FocusReport | null> {
+  // The landing page scrolls smoothly, so a Tab stop below the fold arrives over a few frames:
+  // wait until the page stops moving, then check where the focused element ended up.
+  await page.evaluate(async () => {
+    const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    // Still for 8 frames in a row (a busy machine can start the scroll a frame or two late).
+    let last = scrollY;
+    for (let still = 0, i = 0; still < 8 && i < 180; i++) {
+      await frame();
+      still = scrollY === last ? still + 1 : 0;
+      last = scrollY;
+    }
+  });
   return page.evaluate(() => {
     const el = document.activeElement;
     if (!(el instanceof HTMLElement) || el === document.body) return null;

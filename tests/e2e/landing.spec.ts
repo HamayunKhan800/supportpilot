@@ -1,20 +1,30 @@
 import { audit, expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 
 /**
- * The landing page (docs/design/landing.md): calls to action, section links, the workflow tabs,
- * scroll reveals (and their absence with reduced motion), no sideways scrolling on a phone, and
- * no Content Security Policy violations from the new styles, and the still product picture under the hero.
+ * The landing page, "The cited sentence" (docs/design/landing.md): calls to action, the phone
+ * menu, section links, the citation in the headline, the stage slider, the inline Approve & send
+ * button, the results sentence's single highlight pass, the email box, scroll reveals (and their
+ * absence with reduced motion), no sideways scrolling and no Content Security Policy violations.
  */
 
-test("the calls to action lead to sign-up and sign-in", async ({ page, isMobile }) => {
+const HEADLINE = "AI drafts. You approve.";
+
+test("the calls to action lead to the demo, sign-up and sign-in", async ({ page, isMobile }) => {
   await page.goto("/");
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Support replies drafted by AI, approved by your team." }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: HEADLINE })).toBeVisible();
+
+  await page.getByRole("main").getByRole("link", { name: "Try the live demo" }).first().click();
+  await expect(page).toHaveURL(/\/demo$/);
+  // The test server has no DEMO_PASSWORD, so /demo explains instead of offering roles.
+  await expect(page.getByRole("heading", { level: 1, name: "Try the live demo" })).toBeVisible();
+  await expect(page.getByText("The demo isn’t set up on this server.")).toBeVisible();
+
+  await page.goto("/");
   await page.getByRole("link", { name: "Create a workspace" }).first().click();
   await expect(page).toHaveURL(/\/sign-up$/);
+
   await page.goto("/");
-  // On phones the header holds only the logo and a menu button (design step 11).
   if (isMobile) await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
@@ -35,13 +45,12 @@ test("on a phone the menu opens, traps focus, closes with Escape and on a link",
   await expect(button).toHaveAttribute("aria-expanded", "true");
   const nav = page.getByRole("navigation", { name: "Main" });
   await expect(nav.getByRole("link", { name: "How it works" })).toBeFocused();
+  await expect(nav.getByRole("link", { name: "Try the live demo" })).toHaveAttribute("href", "/demo");
   for (const theme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: theme });
     await audit(page, `landing menu (${theme})`);
   }
-  // The page behind does not scroll while the menu is open.
   expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe("hidden");
-  // The header turns solid so page text does not show through it.
   await expect(page.locator("header")).not.toHaveCSS("backdrop-filter", /blur/);
 
   // Tab from the last item comes back to the menu button.
@@ -55,80 +64,125 @@ test("on a phone the menu opens, traps focus, closes with Escape and on a link",
   expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe("");
 
   await button.click();
-  await nav.getByRole("link", { name: "Guardrails" }).click();
+  await nav.getByRole("link", { name: "Results" }).click();
   await expect(nav).toBeHidden();
-  await expect(
-    page.getByRole("heading", { level: 2, name: "Guardrails you can see on every draft" }),
-  ).toBeInViewport();
+  await expect(page.getByRole("heading", { level: 2, name: "Tested in public." })).toBeInViewport();
 });
 
 test("section links scroll to their sections", async ({ page, isMobile }) => {
-  test.skip(isMobile, "on phones the section links are in the menu (tested above)");
+  test.skip(isMobile, "the phone menu test covers its links");
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Main" });
   for (const [link, heading] of [
-    ["How it works", "From new ticket to approved reply"],
-    ["Guardrails", "Guardrails you can see on every draft"],
-    ["Evaluation", "Measured, not assumed"],
+    ["Results", "Tested in public."],
+    ["Developers", "Read every line."],
   ] as const) {
     await nav.getByRole("link", { name: link }).click();
     await expect(page.getByRole("heading", { level: 2, name: heading })).toBeInViewport();
   }
+  await nav.getByRole("link", { name: "How it works" }).click();
+  await expect(page.getByRole("slider", { name: "Ticket stage" })).toBeInViewport();
 });
 
-test("the workflow tabs switch scenes with the mouse and the keyboard", async ({ page }) => {
+test("the citation number in the headline opens and closes its passage", async ({ page }) => {
   await page.goto("/");
-  const tabs = page.getByRole("tablist", { name: "Stages of a ticket" });
-  const triage = tabs.getByRole("tab", { name: /^Triage/ });
-  const search = tabs.getByRole("tab", { name: /^Search/ });
-  const review = tabs.getByRole("tab", { name: /^Review and send/ });
-  await expect(triage).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#how-it-works").getByRole("tabpanel")).toContainText(
-    "Applied automatically: category and priority.",
-  );
+  const cite = page.getByRole("button", { name: "Citation 1: the passage it came from" });
+  const passage = page.getByRole("figure", { name: "Citation 1" });
+  await expect(cite).toHaveAttribute("aria-expanded", "true");
+  await expect(passage).toContainText("Annual plans can be refunded in full within 30 days");
+  await cite.click();
+  await expect(cite).toHaveAttribute("aria-expanded", "false");
+  await expect(passage).toBeHidden();
+  await cite.press("Enter");
+  await expect(passage).toBeVisible();
+  // The passage never covers the headline.
+  const [h1, fig] = await Promise.all([
+    page.getByRole("heading", { level: 1 }).boundingBox(),
+    passage.boundingBox(),
+  ]);
+  expect(fig!.y).toBeGreaterThanOrEqual(h1!.y + h1!.height);
+});
 
-  await search.click();
-  await expect(search).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#how-it-works").getByRole("tabpanel")).toContainText(
-    "Not close enough: not used",
-  );
-
-  await search.focus();
+test("the slider moves one ticket through its stages, by keyboard too", async ({ page }) => {
+  await page.goto("/");
+  const slider = page.getByRole("slider", { name: "Ticket stage" });
+  const how = page.locator("#how");
+  await expect(how.getByRole("heading", { level: 2 })).toHaveText("First, a ticket arrives");
+  await slider.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(how.getByRole("heading", { level: 2 })).toHaveText("Then it is labelled");
+  await expect(slider).toHaveAttribute("aria-valuetext", "Labelled");
   await page.keyboard.press("End");
-  await expect(review).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(review).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#how-it-works").getByRole("tabpanel")).toContainText("Sent an AI-drafted reply");
+  await expect(how.getByRole("heading", { level: 2 })).toHaveText("Last, a person approves");
+  await expect(how).toContainText("Approved by Ayesha and sent");
+});
+
+test("Approve & send in the sentence shows that a person sent it", async ({ page }) => {
+  await page.goto("/");
+  const send = page.getByRole("button", { name: "Approve & send" });
+  await send.click();
+  await expect(page.getByRole("button", { name: "Sent by you" })).toBeVisible();
+  await expect(page.getByText("Sent, by a person: you.")).toBeVisible();
+  await page.getByRole("button", { name: "Sent by you" }).click();
+  await expect(send).toBeVisible();
+});
+
+test("the results sentence lights each result once, then stays lit", async ({ page }) => {
+  await page.goto("/");
+  const tally = page.locator(".lp-tally");
+  await expect(tally).toContainText("133 of 133 citations pointed at a real passage");
+  await tally.scrollIntoViewIfNeeded();
+  await expect(tally).toHaveAttribute("data-run", "");
+  // Four clauses at 1.25 s each: done within five seconds (WCAG 2.2.2), then nothing moves.
+  await expect(tally).not.toHaveAttribute("data-run", /.*/, { timeout: 7_000 });
+  await expect(tally.locator(".k[data-on]")).toHaveCount(0);
+});
+
+test("the email box opens sign-up with the address filled in", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Work email").fill("sam@team.example");
+  await page.getByRole("button", { name: "Start" }).click();
+  await expect(page).toHaveURL(/\/sign-up\?email=sam%40team\.example$/);
+  await expect(page.getByLabel("Email")).toHaveValue("sam@team.example");
+  // Anything that is not an address is ignored.
+  await page.goto("/sign-up?email=%3Cscript%3E");
+  await expect(page.getByLabel("Email")).toHaveValue("");
 });
 
 test("sections below the fold come into focus as they scroll into view", async ({ page }) => {
   await page.goto("/");
-  // Chromium supports scroll-driven animations, so the scroll-linked version runs (not the timed
-  // fallback): blurred below the fold, sharp once well into view, never faded.
   await expect(page.locator("html")).toHaveAttribute("data-scroll-focus", "");
-  await expect(page.locator("html")).not.toHaveAttribute("data-reveal");
-  const tile = page.locator("#guardrails li[data-reveal]").first();
-  await expect(tile).not.toHaveAttribute("data-revealed");
-  // A real blur (not "blur(0px)"): a clipping ancestor with overflow: hidden would become the
-  // view timeline's scroller and leave everything sharp, which an earlier version missed.
+  // The block that holds the heading carries the blur (scroll-driven, so it eases with the scroll).
+  const block = page.locator("#results .copy");
   const blurPx = () =>
-    tile.evaluate((el) => Number(/blur\(([\d.]+)px\)/.exec(getComputedStyle(el).filter)?.[1] ?? 0));
-  await expect.poll(blurPx).toBeGreaterThan(4);
-  await expect(tile).toHaveCSS("opacity", "1");
-  await tile.scrollIntoViewIfNeeded();
-  await expect(tile).toHaveCSS("filter", /^(none|blur\(0px\))$/);
-  // Content already on screen when the page opens is never blurred.
+    block.evaluate((el) => Number(/blur\(([\d.]+)px\)/.exec(getComputedStyle(el).filter)?.[1] ?? 0));
+  await expect.poll(blurPx).toBeGreaterThan(2);
+  await block.scrollIntoViewIfNeeded();
+  await page.mouse.wheel(0, 400);
+  await expect.poll(blurPx).toBe(0);
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("filter", "none");
 });
 
-test("with reduced motion nothing is hidden or animated", async ({ page }) => {
+/** The big footer name is cropped only at the bottom: its last letter stays inside the footer. */
+async function footerNameFits(page: Page) {
+  return page.evaluate(() => {
+    const name = document.querySelector(".lp-name")!;
+    const word = name.firstElementChild!.getBoundingClientRect();
+    const box = name.getBoundingClientRect();
+    return word.right <= box.right + 1 && word.left >= 0;
+  });
+}
+
+test("with reduced motion nothing is hidden or animated, and the results are all lit", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await expect(page.locator("html")).not.toHaveAttribute("data-reveal");
   await expect(page.locator("html")).not.toHaveAttribute("data-scroll-focus");
-  await expect(page.locator("#guardrails li[data-reveal]").first()).toHaveCSS("opacity", "1");
-  await expect(page.locator("#guardrails li[data-reveal]").first()).toHaveCSS("filter", "none");
+  const tally = page.locator(".lp-tally");
+  await tally.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1_500);
+  await expect(tally).not.toHaveAttribute("data-run", /.*/);
   const running = await page.evaluate(
     () =>
       document
@@ -136,9 +190,13 @@ test("with reduced motion nothing is hidden or animated", async ({ page }) => {
         .filter((a) => a.playState === "running" && a.effect?.getTiming().iterations !== Infinity).length,
   );
   expect(running).toBe(0);
+  // Reduced motion shortens transitions instead of removing them; the name must still be measured right.
+  expect(await footerNameFits(page)).toBe(true);
 });
 
-test("the page fits a phone screen and keeps the CSP clean", async ({ page }) => {
+test("the page fits a phone screen, the footer name fits its width, and the CSP stays clean", async ({
+  page,
+}) => {
   const violations: string[] = [];
   page.on("console", (m) => {
     if (m.type() === "error" && /Content Security Policy|Refused to/i.test(m.text()))
@@ -148,146 +206,6 @@ test("the page fits a phone screen and keeps the CSP clean", async ({ page }) =>
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow, "no sideways scrolling").toBeLessThanOrEqual(0);
+  expect(await footerNameFits(page)).toBe(true);
   expect(violations).toEqual([]);
-});
-
-test("the product picture under the hero is the real ticket screen, still and captioned", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const figure = page.getByRole("figure").filter({ hasText: "The ticket screen, with sample data" });
-  await expect(
-    figure.getByText(/^The ticket screen, with sample data: the AI draft cites two help articles/),
-  ).toBeVisible();
-  // A picture, not a demo: hidden from assistive technology, nothing to focus or click.
-  const picture = figure.locator("[aria-hidden=true]").first();
-  await expect(picture.getByText("Approve & send")).toBeVisible();
-  await expect(picture.getByText("Every citation matches a source")).toBeVisible();
-  await expect(picture.locator("a, button, input, textarea, [tabindex]")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /^(Pause|Play|Replay)$/ })).toHaveCount(0);
-});
-
-test.describe("the hero headline", () => {
-  test("arrives once and then stays still, with no pause control", async ({ page }) => {
-    await page.goto("/");
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toHaveAccessibleName("Support replies drafted by AI, approved by your team.");
-    // Both lines finish rising within about a second, and nothing keeps running after that.
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            document
-              .getAnimations()
-              .filter((a) => (a.effect as KeyframeEffect | null)?.target?.closest?.("#hero-heading"))
-              .filter((a) => a.playState === "running").length,
-        ),
-      )
-      .toBe(0);
-    await expect(page.locator("#hero-heading .hero-rise")).toHaveCount(2);
-    await expect(page.getByRole("button", { name: /typing/i })).toHaveCount(0);
-  });
-
-  test("its footnote numbers link to the sources under it", async ({ page }) => {
-    await page.goto("/");
-    const heading = page.getByRole("heading", { level: 1 });
-    await heading.getByRole("link", { name: "Source 1" }).click();
-    await expect(page).toHaveURL(/#source-1$/);
-    await expect(page.getByRole("list", { name: "Sources" }).getByRole("listitem").first()).toContainText(
-      "133 of 133 citations",
-    );
-    await heading.getByRole("link", { name: "Source 2" }).click();
-    await expect(page).toHaveURL(/#source-2$/);
-  });
-
-  test("with reduced motion it does not move at all", async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    const names = await page
-      .locator("#hero-heading .hero-rise")
-      .evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName));
-    expect(names).toEqual(["none", "none"]);
-  });
-});
-
-test.describe("the live sections", () => {
-  test("the workflow tour advances by itself and stops once a tab is chosen", async ({ page }) => {
-    await page.goto("/");
-    const section = page.locator("#how-it-works");
-    await section.scrollIntoViewIfNeeded();
-    await page.mouse.move(0, 0);
-    const tabs = section.getByRole("tablist", { name: "Stages of a ticket" });
-    await expect(tabs.getByRole("tab", { name: /^Search/ })).toHaveAttribute("aria-selected", "true", {
-      timeout: 12_000,
-    });
-    await tabs.getByRole("tab", { name: /^Triage/ }).click();
-    await expect(tabs.getByRole("tab", { name: /^Triage/ })).toHaveAttribute("aria-selected", "true");
-    // The tour's progress line is gone: nothing moves on its own any more.
-    await expect(section.locator(".land-progress")).toHaveCount(0);
-  });
-
-  test("the citation check can be shown before and after", async ({ page }) => {
-    await page.goto("/");
-    const toggle = page.getByRole("group", { name: "Show the draft" });
-    await toggle.getByRole("button", { name: "As written" }).click();
-    await expect(toggle.getByRole("button", { name: "As written" })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByText(/^Showing the draft as the model wrote it/)).toBeAttached();
-    await toggle.getByRole("button", { name: "After the check" }).click();
-    await expect(page.getByText(/^Showing the draft after the check/)).toBeAttached();
-    await expect(
-      page.getByText("The AI cited sources that don't exist. Those numbers were removed."),
-    ).toBeVisible();
-  });
-
-  test("the command palette accepts typing and the keyboard", async ({ page }) => {
-    await page.goto("/");
-    const box = page.getByRole("combobox", { name: /^Try the command palette/ });
-    await box.fill("team");
-    const list = page.getByRole("listbox", { name: "Results" });
-    await expect(list.getByRole("option", { name: "Members" })).toHaveAttribute("aria-selected", "true");
-    await box.press("ArrowDown");
-    await expect(list.getByRole("option", { name: "Search tickets for “team”" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await box.press("ArrowUp");
-    await box.press("Enter");
-    await expect(page.getByText("In the app, this opens Members.")).toBeVisible();
-    await box.fill("#42");
-    await expect(list.getByRole("option", { name: "Open ticket #42" })).toBeVisible();
-  });
-
-  test("the support form sends a sample request into the inbox", async ({ page }) => {
-    await page.goto("/");
-    const form = page.getByRole("form", { name: "Demo support form" });
-    await form.getByLabel("Your name").fill("");
-    await form.getByRole("button", { name: "Send request" }).click();
-    await expect(form.getByRole("alert")).toHaveText("Fill in every field, with a valid email.");
-    await expect(form.getByLabel("Your name")).toHaveAttribute("aria-invalid", "true");
-
-    await form.getByLabel("Your name").fill("Ana Lima");
-    await form.getByLabel("Subject").fill("Export my invoices");
-    await form.getByRole("button", { name: "Send request" }).click();
-    await expect(page.getByText("Request received")).toBeVisible();
-    await expect(page.getByText("Your private tracking link")).toBeVisible();
-    const inbox = page.getByRole("group", { name: "The support team's inbox" });
-    await expect(inbox).toContainText("Export my invoices");
-    await expect(inbox).toContainText("#131 · Ana Lima");
-
-    await page.getByRole("button", { name: "Send another" }).click();
-    await expect(page.getByRole("form", { name: "Demo support form" }).getByLabel("Your name")).toBeFocused();
-  });
-
-  test("the API sample switches between JSON, curl and TypeScript", async ({ page }) => {
-    await page.goto("/");
-    const tabs = page.getByRole("tablist", { name: "Code sample" });
-    // The sample sits in a scroll-focus block: after a jump scroll it settles 16 px up one frame
-    // later, so tap only once it has (a tap at the old spot would miss a 32 px tab).
-    await tabs.scrollIntoViewIfNeeded();
-    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-    await tabs.getByRole("tab", { name: "curl" }).click();
-    await expect(page.locator("pre", { hasText: '-H "Content-Type: application/json"' })).toBeVisible();
-    await tabs.getByRole("tab", { name: "TypeScript" }).click();
-    await expect(page.locator("pre", { hasText: "await res.json()" })).toBeVisible();
-  });
 });

@@ -113,11 +113,11 @@ export function MobileMenu({ links }: { links: readonly { href: string; label: s
               </ul>
               <div className="mt-8 flex flex-col gap-3">
                 <Link
-                  href="/sign-up"
+                  href="/demo"
                   onClick={() => setOpen(false)}
                   className={cn(buttonVariants({ size: "lg" }), "h-11 text-base")}
                 >
-                  Sign up
+                  Try the live demo
                 </Link>
                 <Link
                   href="/sign-in"
