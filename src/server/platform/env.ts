@@ -233,6 +233,12 @@ const envSchema = z
         error: "DEMO_EMAIL_DOMAIN must be a domain name such as demo.example.com",
       })
       .default("demo.supportpilot.dev"),
+    /**
+     * Password of the shared demo accounts, public on purpose (README, plan M8 step 2). When set,
+     * /demo signs a visitor in as one of them with one tap; the password stays on the server.
+     * Unset (the default) turns /demo off.
+     */
+    DEMO_PASSWORD: z.string().min(8).max(200).optional(),
     /** Optional GitHub sign-in. Both values or neither. */
     GITHUB_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_CLIENT_SECRET: z.string().min(1).optional(),

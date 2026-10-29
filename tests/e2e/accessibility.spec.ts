@@ -1,7 +1,14 @@
 import { audit, email, expect, signIn, signUp, test } from "./fixtures";
 
 test("public pages have no serious accessibility violations", async ({ page }) => {
-  for (const path of ["/", "/sign-in", "/sign-up", "/invite/example-invitation-id", "/no-such-page"]) {
+  for (const path of [
+    "/",
+    "/demo",
+    "/sign-in",
+    "/sign-up",
+    "/invite/example-invitation-id",
+    "/no-such-page",
+  ]) {
     await page.goto(path);
     await audit(page, path);
   }
