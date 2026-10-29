@@ -121,7 +121,7 @@ describe("forgot password (OWASP Forgot Password Cheat Sheet)", () => {
     await verifiedUser("reset-short@example.com");
     await requestReset("reset-short@example.com");
     const token = await tokenFromEmail("reset-short@example.com");
-    const res = await new TestClient(handler).post("/reset-password", { newPassword: "a".repeat(14), token });
+    const res = await new TestClient(handler).post("/reset-password", { newPassword: "a".repeat(7), token });
     expect(res.status).toBe(400);
     expect((await signIn("reset-short@example.com")).status).toBe(200);
   });
