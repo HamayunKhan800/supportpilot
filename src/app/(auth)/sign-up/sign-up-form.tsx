@@ -13,7 +13,16 @@ import { SocialSignIn } from "../social-sign-in";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/server/platform/auth/policy";
 import { useProgressRouter } from "@/lib/use-progress-router";
 
-export function SignUpForm({ next, features }: { next: string; features: AuthFeatures }) {
+export function SignUpForm({
+  next,
+  features,
+  defaultEmail = "",
+}: {
+  next: string;
+  features: AuthFeatures;
+  /** From the landing page's email box (?email=); only a prefill, checked like typed input. */
+  defaultEmail?: string;
+}) {
   const router = useProgressRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -71,6 +80,7 @@ export function SignUpForm({ next, features }: { next: string; features: AuthFea
             type="email"
             autoComplete="email"
             required
+            defaultValue={defaultEmail}
             error={problems.email}
             onBlur={(e) => check("email", e.currentTarget)}
             onChange={(e) => problems.email && check("email", e.currentTarget)}
