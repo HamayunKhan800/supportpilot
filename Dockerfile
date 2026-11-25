@@ -20,7 +20,7 @@ WORKDIR /app
 # still points at the reviewed commit; --locked builds the exact dependency versions in the
 # project's Cargo.lock. Same Debian release as the runtime image, so the C library matches.
 # The user-agent value is what the upstream release build sets.
-FROM rust:1.99.1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb AS lambda-adapter
+FROM rust:1.99.1-slim-trixie@sha256:f6c4a35d21dbb3c89d7a8d056c193e94fc09037f2b58dd858b09c39a47dd02d7 AS lambda-adapter
 ADD --checksum=596bdbcea78a89084fd0b522807d04cd2f1f3f7e https://github.com/aws/aws-lambda-web-adapter.git#v1.1.0 /src
 WORKDIR /src
 RUN LAMBDA_RUNTIME_USER_AGENT=aws-lambda-rust/aws-lambda-adapter/1.1.0 \
